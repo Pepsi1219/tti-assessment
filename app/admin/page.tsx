@@ -84,10 +84,10 @@ export default function AdminDashboard() {
     : [];
 
   const scoreDistribution = [
-    { label: "Excellent (4.5-5.0)", count: evaluations.filter((e) => e.totalScore >= 4.5).length, color: "#22C55E" },
-    { label: "Pass (3.5-4.49)", count: evaluations.filter((e) => e.totalScore >= 3.5 && e.totalScore < 4.5).length, color: "#2563EB" },
-    { label: "Conditional (3.0-3.49)", count: evaluations.filter((e) => e.totalScore >= 3 && e.totalScore < 3.5).length, color: "#F59E0B" },
-    { label: "Fail (<3.0)", count: evaluations.filter((e) => e.totalScore < 3).length, color: "#EF4444" }
+    { label: t.scoreExcellent, count: evaluations.filter((e) => e.totalScore >= 4.5).length, color: "#22C55E" },
+    { label: t.scorePass, count: evaluations.filter((e) => e.totalScore >= 3.5 && e.totalScore < 4.5).length, color: "#2563EB" },
+    { label: t.scoreConditional, count: evaluations.filter((e) => e.totalScore >= 3 && e.totalScore < 3.5).length, color: "#F59E0B" },
+    { label: t.scoreFail, count: evaluations.filter((e) => e.totalScore < 3).length, color: "#EF4444" }
   ];
 
   return (
@@ -170,7 +170,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-black text-primary">{trainer.avgScore.toFixed(2)}</p>
-                    <p className="text-[10px] text-slate-400">{trainer.evalCount} evals</p>
+                    <p className="text-[10px] text-slate-400">{trainer.evalCount} {t.evals}</p>
                   </div>
                 </div>
               ))}

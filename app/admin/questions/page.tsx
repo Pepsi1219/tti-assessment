@@ -135,7 +135,7 @@ export default function QuestionManagementPage() {
                     {question.options.length > 0 && (
                       <details className="mt-2">
                         <summary className="cursor-pointer text-xs font-semibold text-primary">
-                          {question.options.length} options
+                          {question.options.length} {t.options}
                         </summary>
                         <ol className="mt-1.5 space-y-1 pl-4">
                           {question.options.map((opt, i) => (
@@ -185,8 +185,8 @@ export default function QuestionManagementPage() {
             </label>
           </div>
           <label className="block space-y-1">
-            <span className="text-sm font-bold text-slate-700">Options (1 per line)</span>
-            <textarea className="min-h-32 w-full rounded-2xl border p-3 text-sm outline-none focus:ring-2 focus:ring-primary" value={form.options} onChange={(e) => setForm({ ...form, options: e.target.value })} placeholder={"Level 1 description\nLevel 2 description\nLevel 3 description\nLevel 4 description\nLevel 5 description"} />
+            <span className="text-sm font-bold text-slate-700">{t.optionsHint}</span>
+            <textarea className="min-h-32 w-full rounded-2xl border p-3 text-sm outline-none focus:ring-2 focus:ring-primary" value={form.options} onChange={(e) => setForm({ ...form, options: e.target.value })} placeholder={t.optionsPlaceholder} />
           </label>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="h-4 w-4 rounded" />

@@ -19,8 +19,6 @@ import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import type { Category, EvaluationResult, Question, Trainer } from "@/lib/types";
 
-const scoreLabels = ["Poor", "Fair", "Good", "Very Good", "Excellent"];
-
 export default function EvaluatorPage() {
   const { data: session } = useSession();
   const { t } = useI18n();
@@ -315,7 +313,9 @@ export default function EvaluatorPage() {
 }
 
 function QuestionRow({ index, question, score, onScore }: { index: number; question: Question; score?: number; onScore: (score: number) => void }) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
+  const scoreLabels = [t.poor, t.fair, t.good, t.veryGood, t.excellent];
 
   return (
     <div className={cn("rounded-[24px] border p-4 transition", score ? "border-blue-200 bg-blue-50/60 shadow-[0_12px_30px_rgba(37,99,235,0.08)]" : "border-slate-200 bg-white/78")}>
@@ -328,7 +328,7 @@ function QuestionRow({ index, question, score, onScore }: { index: number; quest
               onClick={() => setExpanded(!expanded)}
               className="mt-1 text-xs font-semibold text-primary hover:underline"
             >
-              {expanded ? "ซ่อนเกณฑ์" : "ดูเกณฑ์การให้คะแนน"}
+              {expanded ? t.hideCriteria : t.showCriteria}
             </button>
           )}
         </div>

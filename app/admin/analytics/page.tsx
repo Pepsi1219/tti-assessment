@@ -62,10 +62,10 @@ export default function AnalyticsPage() {
   })();
 
   const scoreDistribution = [
-    { label: "Excellent (4.5-5.0)", count: evaluations.filter((e) => e.totalScore >= 4.5).length, color: "#22C55E" },
-    { label: "Pass (3.5-4.49)", count: evaluations.filter((e) => e.totalScore >= 3.5 && e.totalScore < 4.5).length, color: "#2563EB" },
-    { label: "Conditional (3.0-3.49)", count: evaluations.filter((e) => e.totalScore >= 3 && e.totalScore < 3.5).length, color: "#F59E0B" },
-    { label: "Fail (<3.0)", count: evaluations.filter((e) => e.totalScore < 3).length, color: "#EF4444" }
+    { label: t.scoreExcellent, count: evaluations.filter((e) => e.totalScore >= 4.5).length, color: "#22C55E" },
+    { label: t.scorePass, count: evaluations.filter((e) => e.totalScore >= 3.5 && e.totalScore < 4.5).length, color: "#2563EB" },
+    { label: t.scoreConditional, count: evaluations.filter((e) => e.totalScore >= 3 && e.totalScore < 3.5).length, color: "#F59E0B" },
+    { label: t.scoreFail, count: evaluations.filter((e) => e.totalScore < 3).length, color: "#EF4444" }
   ];
 
   const categoryAvg = evaluations.length > 0
@@ -121,9 +121,9 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="total" name="Total" stroke="#2563EB" strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="pass" name="Pass" stroke="#22C55E" strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="fail" name="Fail" stroke="#EF4444" strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="total" name={t.total} stroke="#2563EB" strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="pass" name={t.pass} stroke="#22C55E" strokeWidth={2} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="fail" name={t.fail} stroke="#EF4444" strokeWidth={2} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -168,7 +168,7 @@ export default function AnalyticsPage() {
 
           {/* BU Performance */}
           <Card className="p-5">
-            <h3 className="mb-4 text-lg font-black">Performance by Business Unit</h3>
+            <h3 className="mb-4 text-lg font-black">{t.performanceByBu}</h3>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {buData.map((bu) => (
                 <div key={bu.bu} className="rounded-2xl bg-white/75 p-4">

@@ -111,6 +111,18 @@ type Dictionary = {
   scoreDistribution: string;
   categoryPerformance: string;
   monthlyTrend: string;
+  showCriteria: string;
+  hideCriteria: string;
+  scoreExcellent: string;
+  scorePass: string;
+  scoreConditional: string;
+  scoreFail: string;
+  evals: string;
+  total: string;
+  performanceByBu: string;
+  options: string;
+  optionsHint: string;
+  optionsPlaceholder: string;
 };
 
 export const dictionaries: Record<Locale, Dictionary> = {
@@ -224,7 +236,19 @@ export const dictionaries: Record<Locale, Dictionary> = {
     recentEvaluations: "การประเมินล่าสุด",
     scoreDistribution: "การกระจายคะแนน",
     categoryPerformance: "ประสิทธิภาพตามหมวดหมู่",
-    monthlyTrend: "แนวโน้มรายเดือน"
+    monthlyTrend: "แนวโน้มรายเดือน",
+    showCriteria: "ดูเกณฑ์การให้คะแนน",
+    hideCriteria: "ซ่อนเกณฑ์",
+    scoreExcellent: "ยอดเยี่ยม (4.5-5.0)",
+    scorePass: "ผ่าน (3.5-4.49)",
+    scoreConditional: "มีเงื่อนไข (3.0-3.49)",
+    scoreFail: "ไม่ผ่าน (<3.0)",
+    evals: "การประเมิน",
+    total: "ทั้งหมด",
+    performanceByBu: "ประสิทธิภาพตามหน่วยธุรกิจ",
+    options: "ตัวเลือก",
+    optionsHint: "ตัวเลือก (1 บรรทัดต่อ 1 ตัวเลือก)",
+    optionsPlaceholder: "คำอธิบายระดับ 1\nคำอธิบายระดับ 2\nคำอธิบายระดับ 3\nคำอธิบายระดับ 4\nคำอธิบายระดับ 5"
   },
   en: {
     title: "Trainer Certification Evaluation",
@@ -336,7 +360,19 @@ export const dictionaries: Record<Locale, Dictionary> = {
     recentEvaluations: "Recent Evaluations",
     scoreDistribution: "Score Distribution",
     categoryPerformance: "Category Performance",
-    monthlyTrend: "Monthly Trend"
+    monthlyTrend: "Monthly Trend",
+    showCriteria: "Show Scoring Criteria",
+    hideCriteria: "Hide Criteria",
+    scoreExcellent: "Excellent (4.5-5.0)",
+    scorePass: "Pass (3.5-4.49)",
+    scoreConditional: "Conditional (3.0-3.49)",
+    scoreFail: "Fail (<3.0)",
+    evals: "evals",
+    total: "Total",
+    performanceByBu: "Performance by Business Unit",
+    options: "options",
+    optionsHint: "Options (1 per line)",
+    optionsPlaceholder: "Level 1 description\nLevel 2 description\nLevel 3 description\nLevel 4 description\nLevel 5 description"
   },
   lo: {
     title: "ລະບົບປະເມີນການຮັບຮອງຜູ້ຝຶກສອນ",
@@ -448,7 +484,19 @@ export const dictionaries: Record<Locale, Dictionary> = {
     recentEvaluations: "ການປະເມີນລ່າສຸດ",
     scoreDistribution: "ການກະຈາຍຄະແນນ",
     categoryPerformance: "ປະສິດທິພາບຕາມໝວດໝູ່",
-    monthlyTrend: "ແນວໂນ້ມລາຍເດືອນ"
+    monthlyTrend: "ແນວໂນ້ມລາຍເດືອນ",
+    showCriteria: "ເບິ່ງເກນການໃຫ້ຄະແນນ",
+    hideCriteria: "ເຊື່ອງເກນ",
+    scoreExcellent: "ດີເດັ່ນ (4.5-5.0)",
+    scorePass: "ຜ່ານ (3.5-4.49)",
+    scoreConditional: "ມີເງື່ອນໄຂ (3.0-3.49)",
+    scoreFail: "ບໍ່ຜ່ານ (<3.0)",
+    evals: "ການປະເມີນ",
+    total: "ທັງໝົດ",
+    performanceByBu: "ປະສິດທິພາບຕາມໜ່ວຍທຸລະກິດ",
+    options: "ຕົວເລືອກ",
+    optionsHint: "ຕົວເລືອກ (1 ແຖວຕໍ່ 1 ຕົວເລືອກ)",
+    optionsPlaceholder: "ຄຳອະທິບາຍລະດັບ 1\nຄຳອະທິບາຍລະດັບ 2\nຄຳອະທິບາຍລະດັບ 3\nຄຳອະທິບາຍລະດັບ 4\nຄຳອະທິບາຍລະດັບ 5"
   },
   vi: {
     title: "Đánh giá chứng nhận giảng viên",
@@ -560,6 +608,18 @@ export const dictionaries: Record<Locale, Dictionary> = {
     recentEvaluations: "Đánh giá gần đây",
     scoreDistribution: "Phân bố điểm",
     categoryPerformance: "Hiệu suất theo danh mục",
-    monthlyTrend: "Xu hướng hàng tháng"
+    monthlyTrend: "Xu hướng hàng tháng",
+    showCriteria: "Xem tiêu chí chấm điểm",
+    hideCriteria: "Ẩn tiêu chí",
+    scoreExcellent: "Xuất sắc (4.5-5.0)",
+    scorePass: "Đạt (3.5-4.49)",
+    scoreConditional: "Có điều kiện (3.0-3.49)",
+    scoreFail: "Không đạt (<3.0)",
+    evals: "đánh giá",
+    total: "Tổng",
+    performanceByBu: "Hiệu suất theo bộ phận",
+    options: "tùy chọn",
+    optionsHint: "Tùy chọn (1 dòng mỗi tùy chọn)",
+    optionsPlaceholder: "Mô tả mức 1\nMô tả mức 2\nMô tả mức 3\nMô tả mức 4\nMô tả mức 5"
   }
 };
