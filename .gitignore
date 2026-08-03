@@ -58,3 +58,8 @@ next-env.d.ts
 # dev logs
 *.log
 .next-dev.*
+
+# personal / internal docs (kept local only, not pushed)
+.env.example
+CLAUDE.md
+README.md
