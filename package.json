@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsc --noEmit"
+    "test": "tsc --noEmit",
+    "import:evaluations": "node --no-warnings --experimental-strip-types scripts/import-evaluations-from-excel.ts",
+    "import:evaluations:commit": "node --no-warnings --experimental-strip-types scripts/import-evaluations-from-excel.ts --commit",
+    "correct:legacy-scores": "node --no-warnings --experimental-strip-types scripts/correct-legacy-evaluation-scores.ts"
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
@@ -17,6 +20,7 @@
     "clsx": "^2.1.1",
     "file-saver": "^2.0.5",
     "firebase-admin": "^13.10.0",
+    "html2canvas": "^1.4.1",
     "jspdf": "^2.5.2",
     "lucide-react": "^0.468.0",
     "next": "^15.5.22",

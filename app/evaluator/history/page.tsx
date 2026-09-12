@@ -1,7 +1,6 @@
 "use client";
 
 import { Calendar, ChevronRight, Eye, Search } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer, Tooltip } from "recharts";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +11,6 @@ import { cn } from "@/lib/utils";
 import type { EvaluationResult } from "@/lib/types";
 
 export default function HistoryPage() {
-  const { data: session } = useSession();
   const { t } = useI18n();
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [query, setQuery] = useState("");
@@ -29,18 +27,15 @@ export default function HistoryPage() {
   }, []);
 
   const myEvaluations = useMemo(() => {
-    const myId = (session?.user?.employeeId ?? session?.user?.email ?? "").toLowerCase();
-    return evaluations
-      .filter((ev) => ev.evaluatorEmail.toLowerCase() === myId)
-      .filter((ev) => {
+    return evaluations.filter((ev) => {
         if (!query) return true;
         const text = query.toLowerCase();
-        return [ev.trainer?.trainerName, ev.trainer?.employeeId, ev.bu, ev.evaluationDate]
+        return [ev.recipient?.recipientName, ev.recipient?.employeeId, ev.topicName, ev.bu, ev.evaluationDate]
           .join(" ")
           .toLowerCase()
           .includes(text);
       });
-  }, [evaluations, session, query]);
+  }, [evaluations, query]);
 
   if (loading) {
     return (
@@ -86,8 +81,8 @@ export default function HistoryPage() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-lg font-black">{ev.trainer?.trainerName ?? "—"}</h3>
-                  <p className="mt-1 text-xs text-slate-500">{ev.trainer?.employeeId} · {ev.bu}</p>
+                  <h3 className="text-lg font-black">{ev.recipient?.recipientName ?? "—"}</h3>
+                  <p className="mt-1 text-xs text-slate-500">{ev.recipient?.employeeId} · {ev.topicName}</p>
                 </div>
                 <Badge tone={ev.result === "Pass" ? "success" : "danger"}>
                   {ev.result === "Pass" ? t.pass : t.fail}
@@ -115,7 +110,7 @@ export default function HistoryPage() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">{t.resultReport}</p>
-              <h2 className="mt-1 text-3xl font-black tracking-tight">{selected.trainer?.trainerName}</h2>
+              <h2 className="mt-1 text-3xl font-black tracking-tight">{selected.recipient?.recipientName}</h2>
               <p className="mt-1 text-sm text-slate-500">{selected.evaluationDate} · {t.evaluatedBy}: {selected.evaluatorName}</p>
             </div>
             <Badge tone={selected.result === "Pass" ? "success" : "danger"}>

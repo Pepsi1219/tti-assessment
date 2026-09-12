@@ -1,4 +1,4 @@
-import type { Category, Evaluation, EvaluationDetail, Question, Trainer, User } from "@/lib/types";
+import type { Category, Evaluation, EvaluationDetail, EvaluationRecipient, EvaluationTopic, Question, Trainer, User } from "@/lib/types";
 
 const now = new Date().toISOString();
 
@@ -13,6 +13,27 @@ export const trainers: Trainer[] = [
   { id: "t-003", employeeId: "NY003", trainerName: "Minh Tran", bu: "Finishing", status: "Active", createdAt: now, updatedAt: now },
   { id: "t-004", employeeId: "NY004", trainerName: "Khanh Nguyen", bu: "QC", status: "Active", createdAt: now, updatedAt: now },
   { id: "t-005", employeeId: "NY005", trainerName: "Bounmy Souliya", bu: "Sewing", status: "Active", createdAt: now, updatedAt: now }
+];
+
+export const recipients: EvaluationRecipient[] = trainers.map((trainer) => ({
+  id: `recipient-${trainer.id}`,
+  employeeId: trainer.employeeId,
+  recipientName: trainer.trainerName,
+  bu: trainer.bu,
+  status: trainer.status,
+  createdAt: trainer.createdAt,
+  updatedAt: trainer.updatedAt
+}));
+
+export const evaluationTopics: EvaluationTopic[] = [
+  {
+    id: "topic-trainer-certification",
+    topicName: "การรับรองผู้ฝึกสอน",
+    description: "ประเมินตามแบบทดสอบมาตรฐานผู้ฝึกสอน",
+    status: "Active",
+    createdAt: now,
+    updatedAt: now
+  }
 ];
 
 export const categories: Category[] = [

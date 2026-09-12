@@ -1,11 +1,14 @@
 "use client";
 
-import { AlertCircle, LogIn, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle2, LogIn, ShieldCheck, Sparkles } from "lucide-react";
+import Image from "next/image";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import logo from "@/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n/context";
 import { LanguageSelector } from "@/components/language-selector";
 
@@ -14,6 +17,10 @@ export default function LoginPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [employeeId, setEmployeeId] = useState("");
+  const [selectedEvaluatorId, setSelectedEvaluatorId] = useState("");
+  const [evaluators, setEvaluators] = useState<Array<{ id: string; name: string; employeeId: string }>>([]);
+  const [topics, setTopics] = useState<Array<{ id: string; topicName: string }>>([]);
+  const [adminMode, setAdminMode] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -25,74 +32,173 @@ export default function LoginPage() {
     }
   }, [session, status, router]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!employeeId.trim()) return;
+  useEffect(() => {
+    fetch("/api/evaluators")
+      .then((response) => {
+        if (!response.ok) throw new Error("Evaluator directory is unavailable.");
+        return response.json();
+      })
+      .then((data) => setEvaluators(Array.isArray(data) ? data : []))
+      .catch(() => {
+        setEvaluators([]);
+        setError(t.loginTemporaryError);
+      });
+  }, [t.loginTemporaryError]);
+
+  useEffect(() => {
+    fetch("/api/public/topics")
+      .then((response) => {
+        if (!response.ok) throw new Error("Topic directory is unavailable.");
+        return response.json();
+      })
+      .then((data) => setTopics(Array.isArray(data) ? data : []))
+      .catch(() => setTopics([]));
+  }, []);
+
+  async function signInWith(employeeIdToUse: string) {
+    if (!employeeIdToUse) return;
 
     setError("");
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      employeeId: employeeId.trim(),
-      redirect: false
-    });
+    try {
+      const result = await signIn("credentials", {
+        employeeId: employeeIdToUse,
+        redirect: false
+      });
 
-    setLoading(false);
+      if (!result || result.error) {
+        setError(t.loginError);
+        return;
+      }
 
-    if (result?.error) {
-      setError(t.loginError ?? "Employee ID not found");
-    } else {
-      router.replace("/");
+      // Start a new document request after the auth cookie is written. This avoids
+      // relying on the SessionProvider's in-memory state immediately after sign-in.
+      window.location.replace("/");
+    } catch {
+      setError(t.loginTemporaryError);
+    } finally {
+      setLoading(false);
     }
   }
 
+  async function handleAdminSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await signInWith(employeeId.trim());
+  }
+
+  async function handleEvaluatorSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const evaluator = evaluators.find((item) => item.id === selectedEvaluatorId);
+    if (!evaluator) return;
+    await signInWith(evaluator.employeeId);
+  }
+
   return (
-    <main className="grid min-h-screen place-items-center p-4">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <div className="mx-auto grid h-20 w-20 place-items-center rounded-[28px] bg-slate-950 text-white shadow-2xl shadow-slate-900/30">
-            <ShieldCheck className="h-9 w-9" />
-          </div>
-          <p className="mt-6 text-sm font-bold uppercase tracking-[0.24em] text-primary">Nanyang</p>
-          <h1 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">{t.title}</h1>
-          <p className="mt-2 text-sm text-slate-500">{t.loginSubtitle}</p>
-        </div>
+    <main className="min-h-screen bg-[#f4f7fb] p-3 sm:p-5 lg:p-6">
+      <div className="mx-auto grid min-h-[calc(100vh-1.5rem)] max-w-[1440px] overflow-hidden rounded-[32px] border border-white/80 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.14)] lg:min-h-[calc(100vh-3rem)] lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="relative hidden overflow-hidden bg-slate-950 p-10 text-white lg:flex lg:flex-col lg:justify-between xl:p-14">
+          <div className="absolute inset-0 opacity-70" style={{ backgroundImage: "radial-gradient(circle at 8% 18%, rgba(37,99,235,0.42), transparent 30%), radial-gradient(circle at 84% 78%, rgba(14,165,233,0.24), transparent 28%)" }} />
+          <div className="absolute -right-32 -top-24 h-80 w-80 rounded-full border border-white/10" />
+          <div className="absolute -bottom-40 -left-24 h-96 w-96 rounded-full border border-white/10" />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="block space-y-2">
-            <span className="text-sm font-bold text-slate-700">{t.employeeId}</span>
-            <Input
-              className="rounded-2xl text-center text-lg font-bold tracking-wider"
-              placeholder="e.g. NY001"
-              value={employeeId}
-              onChange={(e) => {
-                setEmployeeId(e.target.value);
-                setError("");
-              }}
-              autoFocus
-            />
-          </label>
-
-          {error && (
-            <div className="flex items-center gap-2 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-danger">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              {error}
+          <div className="relative">
+            <div className="h-20 w-28">
+              <Image src={logo} alt="Nanyang logo" priority className="h-full w-full object-contain" />
             </div>
-          )}
+            <div className="mt-14 max-w-xl">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-blue-100">
+                <Sparkles className="h-3.5 w-3.5" />
+                Train The Trainer
+              </div>
+              <h1 className="text-4xl font-black leading-[1.08] tracking-tight xl:text-5xl">Nanyang Trainer Certification Evaluation System</h1>
+              {topics.length > 0 && (
+                <div className="mt-8 max-h-52 space-y-2 overflow-y-auto pr-2">
+                  {topics.map((topic) => (
+                    <div key={topic.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-sm font-semibold text-slate-100 backdrop-blur-sm">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-300" />
+                      <span>{topic.topicName}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
-          <Button
-            type="submit"
-            className="w-full gap-2 py-3"
-            disabled={!employeeId.trim() || loading}
-          >
-            <LogIn className="h-4 w-4" />
-            {loading ? t.loading : t.login}
-          </Button>
-        </form>
+          <div className="relative flex items-center gap-3 text-sm text-slate-300">
+            <ShieldCheck className="h-5 w-5 text-blue-300" />
+            Secure internal assessment portal
+          </div>
+        </section>
 
-        <div className="flex justify-center">
-          <LanguageSelector />
-        </div>
+        <section className="relative flex min-h-[calc(100vh-1.5rem)] flex-col bg-white px-5 py-6 sm:px-10 sm:py-9 lg:min-h-0 lg:px-[12%] lg:py-10">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 lg:hidden">
+              <div className="h-11 w-16">
+                <Image src={logo} alt="Nanyang logo" priority className="h-full w-full object-contain brightness-0" />
+              </div>
+              <p className="max-w-[220px] text-sm font-black leading-5 text-slate-950">Nanyang Trainer Certification Evaluation System</p>
+            </div>
+            <div className="ml-auto"><LanguageSelector /></div>
+          </div>
+
+          <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-12">
+            {adminMode && (
+              <div className="mb-9">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">{t.admin}</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">{t.adminLogin}</h2>
+                <p className="mt-3 text-sm leading-6 text-slate-500">Enter your employee ID to access administration tools.</p>
+              </div>
+            )}
+
+            <form onSubmit={adminMode ? handleAdminSubmit : handleEvaluatorSubmit} className="space-y-5">
+              {adminMode ? (
+                <label className="block space-y-2">
+                  <span className="text-sm font-bold text-slate-700">{t.employeeId}</span>
+                  <Input className="h-14 rounded-2xl border-slate-200 bg-slate-50 px-5 text-center text-lg font-bold tracking-wider shadow-inner focus:bg-white" value={employeeId} onChange={(e) => { setEmployeeId(e.target.value); setError(""); }} autoFocus />
+                </label>
+              ) : (
+                <div className="space-y-2">
+                  <span className="text-sm font-bold text-slate-700">{t.evaluator}</span>
+                  <Select value={selectedEvaluatorId} onValueChange={(value) => { setSelectedEvaluatorId(value); setError(""); }}>
+                    <SelectTrigger aria-label={t.selectEvaluator} className="h-14 rounded-2xl border-slate-200 bg-slate-50 px-5 text-base shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100">
+                      <SelectValue placeholder={t.selectEvaluator} />
+                    </SelectTrigger>
+                    <SelectContent position="popper" sideOffset={8} className="rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl">
+                      {evaluators.map((evaluator) => (
+                        <SelectItem key={evaluator.id} value={evaluator.id} className="py-3 text-[15px]">
+                          {evaluator.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {error && (
+                <div className="flex items-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-danger">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              <Button type="submit" className="h-14 w-full gap-2 rounded-2xl text-base" disabled={loading || (adminMode ? !employeeId.trim() : !selectedEvaluatorId)}>
+                {loading ? <LogIn className="h-5 w-5 animate-pulse" /> : <ArrowRight className="h-5 w-5" />}
+                {loading ? t.loading : adminMode ? t.login : t.continue}
+              </Button>
+            </form>
+
+            <div className="my-8 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"><span className="h-px flex-1 bg-slate-200" />or<span className="h-px flex-1 bg-slate-200" /></div>
+
+            <button type="button" onClick={() => { setAdminMode(!adminMode); setError(""); }} className="group flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 px-5 py-4 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-primary">
+              <ShieldCheck className="h-4 w-4" />
+              {adminMode ? t.selectEvaluator : t.adminLogin}
+              <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+            </button>
+          </div>
+
+          <p className="text-center text-xs font-medium text-slate-400">Nanyang internal use only</p>
+        </section>
       </div>
     </main>
   );

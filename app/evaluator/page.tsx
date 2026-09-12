@@ -8,7 +8,6 @@ import {
   Search,
   Sparkles
 } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer, Tooltip } from "recharts";
 import { Badge } from "@/components/ui/badge";
@@ -17,25 +16,29 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
-import type { Category, EvaluationResult, Question, Trainer } from "@/lib/types";
+import type { Category, EvaluationRecipient, EvaluationResult, EvaluationTopic, Question } from "@/lib/types";
 
 export default function EvaluatorPage() {
-  const { data: session } = useSession();
   const { t } = useI18n();
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [recipients, setRecipients] = useState<EvaluationRecipient[]>([]);
+  const [topics, setTopics] = useState<EvaluationTopic[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [selectedTrainerId, setSelectedTrainerId] = useState("");
+  const [selectedRecipientId, setSelectedRecipientId] = useState("");
+  const [selectedTopicId, setSelectedTopicId] = useState("");
+  const [evaluationRound, setEvaluationRound] = useState("");
   const [query, setQuery] = useState("");
   const [scores, setScores] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
   const [latest, setLatest] = useState<EvaluationResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
-    Promise.all([fetch("/api/trainers"), fetch("/api/questions")]).then(
-      async ([trainerRes, questionRes]) => {
-        setTrainers(await trainerRes.json());
+    Promise.all([fetch("/api/recipients"), fetch("/api/topics"), fetch("/api/questions")]).then(
+      async ([recipientRes, topicRes, questionRes]) => {
+        setRecipients(await recipientRes.json());
+        setTopics(await topicRes.json());
         const data = await questionRes.json();
         setCategories(data.categories);
         setQuestions(data.questions);
@@ -46,14 +49,15 @@ export default function EvaluatorPage() {
   const activeQuestions = questions.filter((q) => q.isActive);
   const answeredCount = Object.values(scores).filter(Boolean).length;
   const progress = activeQuestions.length ? Math.round((answeredCount / activeQuestions.length) * 100) : 0;
-  const selectedTrainer = trainers.find((t) => t.id === selectedTrainerId);
+  const selectedRecipient = recipients.find((recipient) => recipient.id === selectedRecipientId);
+  const selectedTopic = topics.find((topic) => topic.id === selectedTopicId);
 
-  const filteredTrainers = useMemo(() => {
+  const filteredRecipients = useMemo(() => {
     const text = query.toLowerCase();
-    return trainers
-      .filter((t) => t.status === "Active")
-      .filter((t) => [t.employeeId, t.trainerName, t.bu].join(" ").toLowerCase().includes(text));
-  }, [query, trainers]);
+    return recipients
+      .filter((recipient) => recipient.status === "Active")
+      .filter((recipient) => [recipient.employeeId, recipient.recipientName, recipient.bu, recipient.buCode].join(" ").toLowerCase().includes(text));
+  }, [query, recipients]);
 
   const categoryCompletion = useMemo(() => {
     return categories.map((cat) => {
@@ -64,27 +68,36 @@ export default function EvaluatorPage() {
   }, [activeQuestions, categories, scores]);
 
   async function submit() {
-    if (!selectedTrainer || submitting) return;
+    const round = Number(evaluationRound);
+    if (!selectedRecipient || !selectedTopic || !Number.isInteger(round) || round < 1 || submitting) return;
+    setSubmitError("");
     setSubmitting(true);
     try {
       const response = await fetch("/api/evaluations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          trainerId: selectedTrainer.id,
-          evaluatorName: session?.user?.name ?? "Unknown",
-          evaluatorEmail: session?.user?.employeeId ?? session?.user?.email ?? "unknown",
-          bu: selectedTrainer.bu,
+          recipientId: selectedRecipient.id,
+          topicId: selectedTopic.id,
+          evaluationRound: round,
           comment,
           scores
         })
       });
       const result = await response.json();
+      if (!response.ok) {
+        setSubmitError(result.error ?? "Unable to save evaluation.");
+        return;
+      }
       setLatest(result);
       setScores({});
       setComment("");
-      setSelectedTrainerId("");
+      setSelectedRecipientId("");
+      setSelectedTopicId("");
+      setEvaluationRound("");
       document.getElementById("result")?.scrollIntoView({ behavior: "smooth" });
+    } catch {
+      setSubmitError("Unable to save evaluation.");
     } finally {
       setSubmitting(false);
     }
@@ -135,28 +148,50 @@ export default function EvaluatorPage() {
         <Card className="p-0">
           <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_280px]">
             <div className="space-y-6 p-5 md:p-7">
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <label className="space-y-2">
-                  <span className="text-sm font-bold text-slate-700">{t.searchTrainer}</span>
+                  <span className="text-sm font-bold text-slate-700">{t.search}</span>
                   <div className="relative">
                     <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                    <Input className="rounded-2xl border-white/80 bg-white/90 pl-11 shadow-inner" placeholder={`${t.employeeId}, ${t.trainerName}, ${t.bu}`} value={query} onChange={(e) => setQuery(e.target.value)} />
+                    <Input className="rounded-2xl border-white/80 bg-white/90 pl-11 shadow-inner" placeholder={`${t.employeeId}, ${t.recipient}, ${t.department}, BU`} value={query} onChange={(e) => setQuery(e.target.value)} />
                   </div>
                 </label>
                 <label className="space-y-2">
-                  <span className="text-sm font-bold text-slate-700">{t.selectTrainer}</span>
+                  <span className="text-sm font-bold text-slate-700">{t.selectRecipient}</span>
                   <select
                     className="touch-target w-full rounded-2xl border border-white/80 bg-white/90 px-4 text-sm font-semibold shadow-inner outline-none focus:ring-2 focus:ring-primary"
-                    value={selectedTrainerId}
-                    onChange={(e) => setSelectedTrainerId(e.target.value)}
+                    value={selectedRecipientId}
+                    onChange={(e) => setSelectedRecipientId(e.target.value)}
                   >
-                    <option value="">{t.chooseTrainer}</option>
-                    {filteredTrainers.map((trainer) => (
-                      <option key={trainer.id} value={trainer.id}>{trainer.employeeId} - {trainer.trainerName} ({trainer.bu})</option>
+                    <option value="">{t.selectRecipient}</option>
+                    {filteredRecipients.map((recipient) => (
+                      <option key={recipient.id} value={recipient.id}>{recipient.employeeId} - {recipient.recipientName} ({recipient.bu} / {recipient.buCode ?? "-"})</option>
                     ))}
                   </select>
                 </label>
+                <label className="space-y-2">
+                  <span className="text-sm font-bold text-slate-700">{t.selectTopic}</span>
+                  <select className="touch-target w-full rounded-2xl border border-white/80 bg-white/90 px-4 text-sm font-semibold shadow-inner outline-none focus:ring-2 focus:ring-primary" value={selectedTopicId} onChange={(e) => setSelectedTopicId(e.target.value)}>
+                    <option value="">{t.selectTopic}</option>
+                    {topics.filter((topic) => topic.status === "Active").map((topic) => <option key={topic.id} value={topic.id}>{topic.topicName}</option>)}
+                  </select>
+                </label>
+                <label className="space-y-2">
+                  <span className="text-sm font-bold text-slate-700">{t.round}</span>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="99"
+                    step="1"
+                    className="rounded-2xl border-white/80 bg-white/90 shadow-inner"
+                    placeholder={t.round}
+                    value={evaluationRound}
+                    onChange={(event) => setEvaluationRound(event.target.value)}
+                  />
+                </label>
               </div>
+
+              {submitError && <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-danger">{submitError}</p>}
 
               <div className="space-y-5">
                 {categories.map((cat) => {
@@ -219,22 +254,25 @@ export default function EvaluatorPage() {
                   </div>
                 </div>
 
-                {selectedTrainer ? (
+                {selectedRecipient ? (
                   <div className="rounded-[28px] border border-white/80 bg-white/80 p-5">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{t.candidate}</p>
-                    <h3 className="mt-3 text-xl font-black">{selectedTrainer.trainerName}</h3>
-                    <p className="mt-1 text-sm text-slate-500">{selectedTrainer.employeeId} · {selectedTrainer.bu}</p>
-                    <Badge tone={selectedTrainer.status === "Active" ? "success" : "danger"}>{selectedTrainer.status}</Badge>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{t.recipient}</p>
+                    <h3 className="mt-3 text-xl font-black">{selectedRecipient.recipientName}</h3>
+                    <p className="mt-1 text-sm text-slate-500">{selectedRecipient.employeeId} · {t.department}: {selectedRecipient.bu}</p>
+                    <p className="mt-1 text-sm text-slate-500">BU: {selectedRecipient.buCode ?? "-"}</p>
+                    {selectedTopic && <p className="mt-3 rounded-xl bg-blue-50 px-3 py-2 text-sm font-semibold text-primary">{selectedTopic.topicName}</p>}
+                    {evaluationRound && <p className="mt-2 text-sm font-semibold text-slate-500">{t.round}: {evaluationRound}</p>}
+                    <Badge tone={selectedRecipient.status === "Active" ? "success" : "danger"}>{selectedRecipient.status}</Badge>
                   </div>
                 ) : (
                   <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/60 p-5 text-sm font-semibold text-slate-500">
-                    {t.chooseTrainerToBegin}
+                    {t.selectRecipient}
                   </div>
                 )}
 
                 <Button
                   className="w-full"
-                  disabled={!selectedTrainer || answeredCount < activeQuestions.length || submitting}
+                  disabled={!selectedRecipient || !selectedTopic || !Number.isInteger(Number(evaluationRound)) || Number(evaluationRound) < 1 || answeredCount < activeQuestions.length || submitting}
                   onClick={submit}
                 >
                   {submitting ? t.submitting : t.submit}
@@ -260,7 +298,7 @@ export default function EvaluatorPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">{t.resultReport}</p>
-                <h2 className="mt-1 text-3xl font-black tracking-tight">{latest.trainer?.trainerName}</h2>
+                <h2 className="mt-1 text-3xl font-black tracking-tight">{latest.recipient?.recipientName}</h2>
               </div>
               <Badge tone={latest.result === "Pass" ? "success" : "danger"}>
                 {latest.result === "Pass" ? t.pass : t.fail}

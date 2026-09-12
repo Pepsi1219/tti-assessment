@@ -59,6 +59,10 @@ next-env.d.ts
 *.log
 .next-dev.*
 
+# local browser-test artifacts and real import source data
+/.playwright-cli/
+/Nanyang Trainer Certification Evaluation Form.xlsx
+
 # personal / internal docs (kept local only, not pushed)
 .env.example
 CLAUDE.md

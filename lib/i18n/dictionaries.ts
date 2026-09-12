@@ -7,14 +7,39 @@ type Dictionary = {
   loginSubtitle: string;
   signOut: string;
   loginError: string;
+  loginTemporaryError: string;
+  selectEvaluator: string;
+  evaluatorManagement: string;
+  addEvaluator: string;
+  email: string;
+  continue: string;
+  adminLogin: string;
   evaluator: string;
   admin: string;
   dashboard: string;
   newEvaluation: string;
   myEvaluations: string;
   trainers: string;
+  recipients: string;
+  recipient: string;
+  name: string;
+  department: string;
+  recipientManagement: string;
+  addRecipient: string;
+  selectRecipient: string;
   questions: string;
+  evaluationTopics: string;
+  evaluationTopic: string;
+  topicManagement: string;
+  addTopic: string;
+  selectTopic: string;
+  topicName: string;
+  course: string;
+  round: string;
+  year: string;
+  topicDescription: string;
   evaluations: string;
+  evaluationSummaries: string;
   users: string;
   analytics: string;
   settings: string;
@@ -133,14 +158,39 @@ export const dictionaries: Record<Locale, Dictionary> = {
     loginSubtitle: "ระบบประเมินการรับรองผู้ฝึกสอน Nanyang",
     signOut: "ออกจากระบบ",
     loginError: "ไม่พบรหัสพนักงานนี้ในระบบ",
+    loginTemporaryError: "ไม่สามารถเข้าสู่ระบบได้ โปรดลองอีกครั้ง",
+    selectEvaluator: "เลือกชื่อผู้ประเมินของคุณ",
+    evaluatorManagement: "จัดการผู้ประเมิน",
+    addEvaluator: "เพิ่มผู้ประเมิน",
+    email: "อีเมล",
+    continue: "เริ่มทำการประเมิน",
+    adminLogin: "เข้าสู่ระบบผู้ดูแล",
     evaluator: "ผู้ประเมิน",
     admin: "ผู้ดูแลระบบ",
     dashboard: "แดชบอร์ด",
     newEvaluation: "ประเมินใหม่",
     myEvaluations: "ประวัติการประเมิน",
     trainers: "ผู้ฝึกสอน",
+    recipients: "ผู้รับการประเมิน",
+    recipient: "ผู้รับการประเมิน",
+    name: "ชื่อ",
+    department: "แผนก",
+    recipientManagement: "จัดการผู้รับการประเมิน",
+    addRecipient: "เพิ่มผู้รับการประเมิน",
+    selectRecipient: "เลือกผู้รับการประเมิน",
     questions: "คำถาม",
+    evaluationTopics: "หัวข้อประเมิน",
+    evaluationTopic: "หัวข้อประเมิน",
+    topicManagement: "จัดการหัวข้อประเมิน",
+    addTopic: "เพิ่มหัวข้อประเมิน",
+    selectTopic: "เลือกหัวข้อประเมิน",
+    topicName: "ชื่อหัวข้อ",
+    course: "หลักสูตร",
+    round: "รอบ",
+    year: "ปี",
+    topicDescription: "รายละเอียดหัวข้อ",
     evaluations: "ผลการประเมิน",
+    evaluationSummaries: "สรุปผลรวม",
     users: "ผู้ใช้งาน",
     analytics: "วิเคราะห์",
     settings: "ตั้งค่า",
@@ -245,7 +295,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     scoreFail: "ไม่ผ่าน (<3.0)",
     evals: "การประเมิน",
     total: "ทั้งหมด",
-    performanceByBu: "ประสิทธิภาพตามหน่วยธุรกิจ",
+    performanceByBu: "ประสิทธิภาพตามแผนก",
     options: "ตัวเลือก",
     optionsHint: "ตัวเลือก (1 บรรทัดต่อ 1 ตัวเลือก)",
     optionsPlaceholder: "คำอธิบายระดับ 1\nคำอธิบายระดับ 2\nคำอธิบายระดับ 3\nคำอธิบายระดับ 4\nคำอธิบายระดับ 5"
@@ -257,14 +307,39 @@ export const dictionaries: Record<Locale, Dictionary> = {
     loginSubtitle: "Nanyang Trainer Certification Evaluation System",
     signOut: "Sign Out",
     loginError: "Employee ID not found",
+    loginTemporaryError: "Unable to sign in. Please try again.",
+    selectEvaluator: "Select your evaluator name",
+    evaluatorManagement: "Manage Evaluators",
+    addEvaluator: "Add Evaluator",
+    email: "Email",
+    continue: "Start Evaluation",
+    adminLogin: "Administrator sign in",
     evaluator: "Evaluator",
     admin: "Admin",
     dashboard: "Dashboard",
     newEvaluation: "New Evaluation",
     myEvaluations: "My Evaluations",
     trainers: "Trainers",
+    recipients: "Evaluation Recipients",
+    recipient: "Evaluation Recipient",
+    name: "Name",
+    department: "Department",
+    recipientManagement: "Manage Evaluation Recipients",
+    addRecipient: "Add Recipient",
+    selectRecipient: "Select Recipient",
     questions: "Questions",
+    evaluationTopics: "Evaluation Topics",
+    evaluationTopic: "Evaluation Topic",
+    topicManagement: "Manage Evaluation Topics",
+    addTopic: "Add Topic",
+    selectTopic: "Select Topic",
+    topicName: "Topic Name",
+    course: "Course",
+    round: "Round",
+    year: "Year",
+    topicDescription: "Topic Description",
     evaluations: "Evaluations",
+    evaluationSummaries: "Consolidated Results",
     users: "Users",
     analytics: "Analytics",
     settings: "Settings",
@@ -369,7 +444,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     scoreFail: "Fail (<3.0)",
     evals: "evals",
     total: "Total",
-    performanceByBu: "Performance by Business Unit",
+    performanceByBu: "Performance by Department",
     options: "options",
     optionsHint: "Options (1 per line)",
     optionsPlaceholder: "Level 1 description\nLevel 2 description\nLevel 3 description\nLevel 4 description\nLevel 5 description"
@@ -381,14 +456,39 @@ export const dictionaries: Record<Locale, Dictionary> = {
     loginSubtitle: "ລະບົບປະເມີນການຮັບຮອງຜູ້ຝຶກສອນ Nanyang",
     signOut: "ອອກຈາກລະບົບ",
     loginError: "ບໍ່ພົບລະຫັດພະນັກງານນີ້ໃນລະບົບ",
+    loginTemporaryError: "ບໍ່ສາມາດເຂົ້າລະບົບໄດ້ ກະລຸນາລອງໃໝ່",
+    selectEvaluator: "ເລືອກຊື່ຜູ້ປະເມີນຂອງທ່ານ",
+    evaluatorManagement: "ຈັດການຜູ້ປະເມີນ",
+    addEvaluator: "ເພີ່ມຜູ້ປະເມີນ",
+    email: "ອີເມວ",
+    continue: "ເລີ່ມການປະເມີນ",
+    adminLogin: "ເຂົ້າລະບົບຜູ້ດູແລ",
     evaluator: "ຜູ້ປະເມີນ",
     admin: "ຜູ້ດູແລ",
     dashboard: "ແດຊບອດ",
     newEvaluation: "ປະເມີນໃໝ່",
     myEvaluations: "ປະຫວັດການປະເມີນ",
     trainers: "ຜູ້ຝຶກສອນ",
+    recipients: "ຜູ້ຮັບການປະເມີນ",
+    recipient: "ຜູ້ຮັບການປະເມີນ",
+    name: "ຊື່",
+    department: "ພະແນກ",
+    recipientManagement: "ຈັດການຜູ້ຮັບການປະເມີນ",
+    addRecipient: "ເພີ່ມຜູ້ຮັບການປະເມີນ",
+    selectRecipient: "ເລືອກຜູ້ຮັບການປະເມີນ",
     questions: "ຄຳຖາມ",
+    evaluationTopics: "ຫົວຂໍ້ປະເມີນ",
+    evaluationTopic: "ຫົວຂໍ້ປະເມີນ",
+    topicManagement: "ຈັດການຫົວຂໍ້ປະເມີນ",
+    addTopic: "ເພີ່ມຫົວຂໍ້ປະເມີນ",
+    selectTopic: "ເລືອກຫົວຂໍ້ປະເມີນ",
+    topicName: "ຊື່ຫົວຂໍ້",
+    course: "ຫຼັກສູດ",
+    round: "ຮອບ",
+    year: "ປີ",
+    topicDescription: "ລາຍລະອຽດຫົວຂໍ້",
     evaluations: "ຜົນການປະເມີນ",
+    evaluationSummaries: "ສະຫຼຸບຜົນລວມ",
     users: "ຜູ້ໃຊ້ງານ",
     analytics: "ວິເຄາະ",
     settings: "ຕັ້ງຄ່າ",
@@ -493,7 +593,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     scoreFail: "ບໍ່ຜ່ານ (<3.0)",
     evals: "ການປະເມີນ",
     total: "ທັງໝົດ",
-    performanceByBu: "ປະສິດທິພາບຕາມໜ່ວຍທຸລະກິດ",
+    performanceByBu: "ປະສິດທິພາບຕາມພະແນກ",
     options: "ຕົວເລືອກ",
     optionsHint: "ຕົວເລືອກ (1 ແຖວຕໍ່ 1 ຕົວເລືອກ)",
     optionsPlaceholder: "ຄຳອະທິບາຍລະດັບ 1\nຄຳອະທິບາຍລະດັບ 2\nຄຳອະທິບາຍລະດັບ 3\nຄຳອະທິບາຍລະດັບ 4\nຄຳອະທິບາຍລະດັບ 5"
@@ -505,14 +605,39 @@ export const dictionaries: Record<Locale, Dictionary> = {
     loginSubtitle: "Hệ thống đánh giá chứng nhận giảng viên Nanyang",
     signOut: "Đăng xuất",
     loginError: "Không tìm thấy mã nhân viên",
+    loginTemporaryError: "Không thể đăng nhập. Vui lòng thử lại.",
+    selectEvaluator: "Chọn tên người đánh giá của bạn",
+    evaluatorManagement: "Quản lý người đánh giá",
+    addEvaluator: "Thêm người đánh giá",
+    email: "Email",
+    continue: "Bắt đầu đánh giá",
+    adminLogin: "Đăng nhập quản trị viên",
     evaluator: "Người đánh giá",
     admin: "Quản trị",
     dashboard: "Bảng điều khiển",
     newEvaluation: "Đánh giá mới",
     myEvaluations: "Lịch sử đánh giá",
     trainers: "Giảng viên",
+    recipients: "Người được đánh giá",
+    recipient: "Người được đánh giá",
+    name: "Tên",
+    department: "Phòng ban",
+    recipientManagement: "Quản lý người được đánh giá",
+    addRecipient: "Thêm người được đánh giá",
+    selectRecipient: "Chọn người được đánh giá",
     questions: "Câu hỏi",
+    evaluationTopics: "Chủ đề đánh giá",
+    evaluationTopic: "Chủ đề đánh giá",
+    topicManagement: "Quản lý chủ đề đánh giá",
+    addTopic: "Thêm chủ đề",
+    selectTopic: "Chọn chủ đề đánh giá",
+    topicName: "Tên chủ đề",
+    course: "Khóa học",
+    round: "Vòng",
+    year: "Năm",
+    topicDescription: "Mô tả chủ đề",
     evaluations: "Kết quả đánh giá",
+    evaluationSummaries: "Kết quả tổng hợp",
     users: "Người dùng",
     analytics: "Phân tích",
     settings: "Cài đặt",

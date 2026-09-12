@@ -20,19 +20,19 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
-import type { EvaluationResult, Trainer } from "@/lib/types";
+import type { EvaluationRecipient, EvaluationResult } from "@/lib/types";
 
 export default function AdminDashboard() {
   const { t } = useI18n();
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [recipients, setRecipients] = useState<EvaluationRecipient[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetch("/api/evaluations"), fetch("/api/trainers")]).then(
-      async ([evRes, trRes]) => {
+    Promise.all([fetch("/api/evaluations"), fetch("/api/recipients")]).then(
+      async ([evRes, recipientRes]) => {
         setEvaluations(await evRes.json());
-        setTrainers(await trRes.json());
+        setRecipients(await recipientRes.json());
         setLoading(false);
       }
     );
@@ -55,19 +55,18 @@ export default function AdminDashboard() {
     ? evaluations.reduce((sum, e) => sum + e.totalScore, 0) / totalEvaluations
     : 0;
 
-  const trainerScores = trainers
-    .map((trainer) => {
-      const trainerEvals = evaluations.filter((e) => e.trainerId === trainer.id);
-      const avg = trainerEvals.length
-        ? trainerEvals.reduce((s, e) => s + e.totalScore, 0) / trainerEvals.length
+  const recipientScores = recipients
+    .map((recipient) => {
+      const recipientEvals = evaluations.filter((evaluation) => evaluation.recipientId === recipient.id);
+      const avg = recipientEvals.length
+        ? recipientEvals.reduce((s, evaluation) => s + evaluation.totalScore, 0) / recipientEvals.length
         : 0;
-      return { ...trainer, avgScore: avg, evalCount: trainerEvals.length };
+      return { ...recipient, avgScore: avg, evalCount: recipientEvals.length };
     })
     .filter((t) => t.evalCount > 0)
     .sort((a, b) => b.avgScore - a.avgScore);
 
-  const topTrainers = trainerScores.slice(0, 5);
-  const bottomTrainers = [...trainerScores].sort((a, b) => a.avgScore - b.avgScore).slice(0, 5);
+  const topRecipients = recipientScores.slice(0, 5);
 
   const categoryAvg = evaluations.length > 0
     ? evaluations[0].categorySummary.map((cat) => {
@@ -151,26 +150,26 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        {/* Top Trainers */}
+        {/* Top recipients */}
         <Card className="p-5">
           <div className="mb-4 flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-success" />
-            <h3 className="text-lg font-black">{t.topTrainers}</h3>
+            <h3 className="text-lg font-black">{t.recipients}</h3>
           </div>
-          {topTrainers.length > 0 ? (
+          {topRecipients.length > 0 ? (
             <div className="space-y-2">
-              {topTrainers.map((trainer, idx) => (
-                <div key={trainer.id} className="flex items-center justify-between rounded-2xl bg-white/75 px-4 py-3">
+              {topRecipients.map((recipient, idx) => (
+                <div key={recipient.id} className="flex items-center justify-between rounded-2xl bg-white/75 px-4 py-3">
                   <div className="flex items-center gap-3">
                     <span className="grid h-8 w-8 place-items-center rounded-full bg-slate-950 text-xs font-black text-white">{idx + 1}</span>
                     <div>
-                      <p className="text-sm font-bold">{trainer.trainerName}</p>
-                      <p className="text-xs text-slate-400">{trainer.employeeId} · {trainer.bu}</p>
+                      <p className="text-sm font-bold">{recipient.recipientName}</p>
+                      <p className="text-xs text-slate-400">{recipient.employeeId} · {t.department}: {recipient.bu} · BU: {recipient.buCode ?? "-"}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-black text-primary">{trainer.avgScore.toFixed(2)}</p>
-                    <p className="text-[10px] text-slate-400">{trainer.evalCount} {t.evals}</p>
+                    <p className="text-lg font-black text-primary">{recipient.avgScore.toFixed(2)}</p>
+                    <p className="text-[10px] text-slate-400">{recipient.evalCount} {t.evals}</p>
                   </div>
                 </div>
               ))}
@@ -220,7 +219,7 @@ export default function AdminDashboard() {
             {evaluations.slice(0, 10).map((ev) => (
               <div key={ev.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/75 px-4 py-3">
                 <div>
-                  <p className="text-sm font-bold">{ev.trainer?.trainerName ?? "—"}</p>
+                  <p className="text-sm font-bold">{ev.recipient?.recipientName ?? "—"}</p>
                   <p className="text-xs text-slate-400">{t.evaluatedBy}: {ev.evaluatorName} · {ev.evaluationDate}</p>
                 </div>
                 <div className="flex items-center gap-3">

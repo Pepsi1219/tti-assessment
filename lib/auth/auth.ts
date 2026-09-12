@@ -15,7 +15,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const users = await getRepository().getUsers();
         const user = users.find(
-          (u) => u.employeeId.toLowerCase() === employeeId.toLowerCase()
+          (u) => u.employeeId.toLowerCase() === employeeId.toLowerCase() && u.status !== "Inactive"
         );
         if (!user) return null;
 

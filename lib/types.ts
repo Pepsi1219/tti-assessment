@@ -1,6 +1,9 @@
 export type Role = "Admin" | "Evaluator";
 export type TrainerStatus = "Active" | "Inactive";
+export type RecordStatus = "Active" | "Inactive";
+export type BusinessUnitCode = "G1" | "G2" | "G3" | "G4" | "EA" | "TRM";
 export type ResultStatus = "Pass" | "Fail";
+export type EvaluationSource = "Application" | "Microsoft Forms";
 export type Locale = "th" | "en" | "lo" | "vi";
 
 export type User = {
@@ -9,7 +12,9 @@ export type User = {
   name: string;
   email: string;
   role: Role;
+  status?: RecordStatus;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type Trainer = {
@@ -18,6 +23,26 @@ export type Trainer = {
   trainerName: string;
   bu: string;
   status: TrainerStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EvaluationRecipient = {
+  id: string;
+  employeeId: string;
+  recipientName: string;
+  bu: string;
+  buCode?: BusinessUnitCode;
+  status: RecordStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EvaluationTopic = {
+  id: string;
+  topicName: string;
+  description: string;
+  status: RecordStatus;
   createdAt: string;
   updatedAt: string;
 };
@@ -41,16 +66,32 @@ export type Question = {
 
 export type Evaluation = {
   id: string;
-  trainerId: string;
+  recipientId: string;
+  topicId: string;
+  topicName: string;
+  trainerId?: string;
   evaluatorName: string;
   evaluatorEmail: string;
+  evaluatorEmployeeId?: string;
   bu: string;
+  buCode?: BusinessUnitCode;
   evaluationDate: string;
+  evaluationRound?: number;
+  /** Authoritative raw category totals for historical records imported without item-level scores. */
+  categoryActualScores?: Record<string, number>;
+  /** Stored at submission time so lists and summaries do not need to read every question detail. */
+  categorySummary?: CategorySummary[];
   totalScore: number;
   percentage: number;
   result: ResultStatus;
   comment: string;
   createdAt: string;
+  source?: EvaluationSource;
+  legacySourceId?: string;
+  legacyStartTime?: string;
+  importSourceFile?: string;
+  importFileSha256?: string;
+  importedAt?: string;
 };
 
 export type EvaluationDetail = {
@@ -71,17 +112,36 @@ export type CategorySummary = {
 
 export type EvaluationResult = Evaluation & {
   trainer?: Trainer;
+  recipient?: EvaluationRecipient;
+  topic?: EvaluationTopic;
   categorySummary: CategorySummary[];
   details: EvaluationDetail[];
 };
 
 export type EvaluationInput = {
-  trainerId: string;
-  evaluatorName: string;
-  evaluatorEmail: string;
-  bu: string;
+  recipientId: string;
+  topicId: string;
+  evaluationRound: number;
   comment: string;
   scores: Record<string, number>;
+};
+
+export type EvaluationSummary = {
+  id: string;
+  recipientId: string;
+  recipient?: EvaluationRecipient;
+  topicId: string;
+  topicName: string;
+  evaluationRound: number;
+  evaluationYear: string;
+  bu: string;
+  buCode?: BusinessUnitCode;
+  evaluatorCount: number;
+  totalScore: number;
+  percentage: number;
+  result: ResultStatus;
+  categorySummary: CategorySummary[];
+  evaluations: EvaluationResult[];
 };
 
 export type AuditLog = {

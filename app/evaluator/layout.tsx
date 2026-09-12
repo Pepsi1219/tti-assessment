@@ -15,6 +15,12 @@ export default function EvaluatorLayout({ children }: { children: React.ReactNod
   const { t } = useI18n();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  async function handleSignOut() {
+    await signOut({ redirect: false });
+    // Resolve the destination in the browser so a LAN/IP host is preserved.
+    window.location.replace("/login");
+  }
+
   useEffect(() => {
     if (status === "loading") return;
     if (!session) router.replace("/login");
@@ -74,7 +80,7 @@ export default function EvaluatorLayout({ children }: { children: React.ReactNod
                 <p className="text-[10px] text-slate-400">{t.evaluator}</p>
               </div>
               <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={handleSignOut}
                 className="grid h-9 w-9 place-items-center rounded-full hover:bg-slate-100"
                 title={t.signOut}
               >
@@ -100,7 +106,7 @@ export default function EvaluatorLayout({ children }: { children: React.ReactNod
               );
             })}
             <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={handleSignOut}
               className="mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
               <LogOut className="h-4 w-4" />

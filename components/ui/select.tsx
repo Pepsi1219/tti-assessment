@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
@@ -44,7 +44,7 @@ const SelectContent = React.forwardRef<
       position={position}
       {...props}
     >
-      <SelectPrimitive.Viewport className={cn("p-1", position === "popper" && "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]")}>
+      <SelectPrimitive.Viewport className={cn("max-h-80 p-1.5", position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)]")}>
         {children}
       </SelectPrimitive.Viewport>
     </SelectPrimitive.Content>
@@ -58,10 +58,13 @@ const SelectItem = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
-    className={cn("relative flex w-full cursor-pointer select-none items-center rounded-xl py-2.5 pl-3 pr-8 text-sm font-medium outline-none focus:bg-blue-50 focus:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50", className)}
+    className={cn("relative flex w-full cursor-pointer select-none items-center rounded-xl py-2.5 pl-3 pr-10 text-sm font-medium outline-none transition focus:bg-blue-50 focus:text-primary data-[state=checked]:bg-blue-50 data-[state=checked]:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50", className)}
     {...props}
   >
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    <SelectPrimitive.ItemIndicator className="absolute right-3 inline-flex items-center justify-center">
+      <Check className="h-4 w-4" />
+    </SelectPrimitive.ItemIndicator>
   </SelectPrimitive.Item>
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;

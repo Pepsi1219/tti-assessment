@@ -1,24 +1,34 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
+import { getCurrentUser, isAdmin } from "@/lib/auth/authorization";
 import { getEvaluationResults } from "@/lib/services/evaluation-service";
 
 export async function GET() {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const results = await getEvaluationResults();
 
   const rows = results.map((r) => ({
-    "Trainer Name": r.trainer?.trainerName ?? "",
-    "Employee ID": r.trainer?.employeeId ?? "",
-    "Business Unit": r.bu,
+    "Evaluation Recipient": r.recipient?.recipientName ?? "",
+    "Employee ID": r.recipient?.employeeId ?? "",
+    "Evaluation Topic": r.topicName,
+    "Department": r.bu,
+    "BU": r.buCode ?? "",
     "Evaluator": r.evaluatorName,
     "Evaluator Email": r.evaluatorEmail,
     "Evaluation Date": r.evaluationDate,
+    "Round": r.evaluationRound ?? "",
     "Total Score": r.totalScore,
     "Percentage": r.percentage,
     "Result": r.result,
     ...Object.fromEntries(
       r.categorySummary.map((cat) => [cat.categoryName, cat.average])
     ),
-    "Comment": r.comment
+    "Comment": r.comment,
+    "Source": r.source ?? "Application",
+    "Legacy ID": r.legacySourceId ?? ""
   }));
 
   const wb = XLSX.utils.book_new();
