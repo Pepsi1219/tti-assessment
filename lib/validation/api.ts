@@ -28,7 +28,16 @@ export const evaluationPayloadSchema = z.object({
   evaluationRound: z.number().int().min(1).max(99),
   comment: z.string().trim().max(5_000).default(""),
   scores: z
-    .record(z.number().int().min(1).max(5))
+    .record(
+      z
+        .union([
+          z.number().int().min(1).max(5),
+          z.array(z.number().int().min(1).max(5)).min(1).max(5),
+        ])
+        .transform((value) =>
+          Array.isArray(value) ? Math.max(...value) : value,
+        ),
+    )
     .refine((scores) => Object.keys(scores).length <= 100, "Too many scores"),
 });
 

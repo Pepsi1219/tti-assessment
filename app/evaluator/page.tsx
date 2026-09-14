@@ -13,8 +13,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import { EvaluationCategoryReport } from "@/components/evaluation-category-report";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -43,8 +43,10 @@ export default function EvaluatorPage() {
   const [selectedBu, setSelectedBu] = useState("");
   const [selectedRecipientId, setSelectedRecipientId] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
-  const [evaluationRound, setEvaluationRound] = useState("");
-  const [scores, setScores] = useState<Record<string, number>>({});
+  const [evaluationRound, setEvaluationRound] = useState<number | null>(null);
+  const [roundPadOpen, setRoundPadOpen] = useState(false);
+  const [scores, setScores] = useState<Record<string, number[]>>({});
+  const sectionAnchorRef = useRef<HTMLDivElement>(null);
   const [comment, setComment] = useState("");
   const [step, setStep] = useState(0);
   const [latest, setLatest] = useState<EvaluationResult | null>(null);
@@ -108,8 +110,8 @@ export default function EvaluatorPage() {
     [activeQuestions, categories],
   );
   const isReviewStep = step === sections.length;
-  const answeredCount = activeQuestions.filter((question) =>
-    Boolean(scores[question.id]),
+  const answeredCount = activeQuestions.filter(
+    (question) => (scores[question.id]?.length ?? 0) > 0,
   ).length;
   const progress = activeQuestions.length
     ? Math.round((answeredCount / activeQuestions.length) * 100)
@@ -139,27 +141,45 @@ export default function EvaluatorPage() {
     [recipients, selectedBu],
   );
   const currentSection = sections[step];
-  const round = Number(evaluationRound);
+  const round = evaluationRound ?? 0;
   const readyToEvaluate = Boolean(
     selectedRecipient && selectedTopic && Number.isInteger(round) && round >= 1,
   );
   const currentSectionComplete =
     Boolean(currentSection) &&
-    currentSection.questions.every((question) => Boolean(scores[question.id]));
+    currentSection.questions.every(
+      (question) => (scores[question.id]?.length ?? 0) > 0,
+    );
 
   function setScore(questionId: string, score: number) {
-    setScores((current) => ({ ...current, [questionId]: score }));
+    setScores((current) => {
+      const selected = current[questionId] ?? [];
+      const next = selected.includes(score)
+        ? selected.filter((value) => value !== score)
+        : [...selected, score].sort((left, right) => left - right);
+      return { ...current, [questionId]: next };
+    });
+  }
+  function scrollToSection() {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        sectionAnchorRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }),
+    );
   }
   function goBack() {
     setSubmitError("");
     setStep((current) => Math.max(0, current - 1));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToSection();
   }
   function goNext() {
     if (currentSectionComplete) {
       setSubmitError("");
       setStep((current) => Math.min(sections.length, current + 1));
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      scrollToSection();
     }
   }
   function startNextEvaluation() {
@@ -176,7 +196,7 @@ export default function EvaluatorPage() {
     setSelectedBu("");
     setSelectedRecipientId("");
     setSelectedTopicId("");
-    setEvaluationRound("");
+    setEvaluationRound(null);
     setScores({});
     setComment("");
     setSubmitError("");
@@ -295,10 +315,10 @@ export default function EvaluatorPage() {
               >
                 <SelectTrigger
                   aria-label={t.selectRecipient}
-                  className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-sm shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100 dark:bg-slate-900"
+                  className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-left text-sm shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100 dark:bg-slate-900"
                 >
                   <SelectValue
-                    className="truncate"
+                    className="truncate text-left"
                     placeholder={t.selectRecipient}
                   />
                 </SelectTrigger>
@@ -364,19 +384,22 @@ export default function EvaluatorPage() {
               <span className="text-sm font-bold text-slate-700">
                 {t.round}
               </span>
-              <Input
-                type="number"
-                min="1"
-                max="99"
-                step="1"
-                className="border-slate-200 bg-white"
-                value={evaluationRound}
-                onChange={(event) => {
-                  setEvaluationRound(event.target.value);
-                  setStep(0);
-                }}
+              <Button
+                type="button"
+                className="h-12 w-full justify-between rounded-2xl border-slate-200 bg-white px-4 text-left font-semibold shadow-none"
+                onClick={() => setRoundPadOpen(true)}
                 disabled={answeredCount > 0}
-              />
+                aria-label={t.round}
+              >
+                <span
+                  className={
+                    evaluationRound ? "text-slate-900" : "text-slate-400"
+                  }
+                >
+                  {evaluationRound ?? t.round}
+                </span>
+                <ChevronRight className="h-4 w-4 rotate-90 text-slate-400" />
+              </Button>
             </label>
           </div>
           {answeredCount > 0 && (
@@ -387,6 +410,29 @@ export default function EvaluatorPage() {
           )}
         </div>
       </Card>
+      <Dialog
+        open={roundPadOpen}
+        onClose={() => setRoundPadOpen(false)}
+        title="Select round"
+        className="max-w-sm"
+      >
+        <div className="grid grid-cols-3 gap-3">
+          {Array.from({ length: 9 }, (_, index) => index + 1).map((value) => (
+            <button
+              key={value}
+              type="button"
+              className="h-14 rounded-2xl border border-slate-200 bg-slate-50 text-xl font-black text-slate-900 transition hover:border-primary hover:bg-blue-50 hover:text-primary"
+              onClick={() => {
+                setEvaluationRound(value);
+                setStep(0);
+                setRoundPadOpen(false);
+              }}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+      </Dialog>
       {loading && (
         <Card className="p-8 text-center text-sm font-semibold text-slate-500">
           Loading evaluation form…
@@ -417,6 +463,7 @@ export default function EvaluatorPage() {
           </p>
         </Card>
       )}
+      <div ref={sectionAnchorRef} className="scroll-mt-24" aria-hidden="true" />
       {!loading && !loadError && readyToEvaluate && currentSection && (
         <Card className="overflow-hidden p-0">
           <div className="border-b border-slate-100 px-5 py-5 md:px-7">
@@ -451,7 +498,7 @@ export default function EvaluatorPage() {
                 key={question.id}
                 index={index + 1}
                 question={question}
-                score={scores[question.id]}
+                scores={scores[question.id]}
                 onScore={(score) => setScore(question.id, score)}
               />
             ))}
@@ -489,7 +536,7 @@ export default function EvaluatorPage() {
                   <p className="mt-1 text-sm text-emerald-600">
                     {
                       section.questions.filter(
-                        (question) => scores[question.id],
+                        (question) => (scores[question.id]?.length ?? 0) > 0,
                       ).length
                     }
                     /{section.questions.length} complete
@@ -532,12 +579,12 @@ export default function EvaluatorPage() {
 function CriterionQuestion({
   index,
   question,
-  score,
+  scores,
   onScore,
 }: {
   index: number;
   question: Question;
-  score?: number;
+  scores?: number[];
   onScore: (score: number) => void;
 }) {
   const criteria = question.options.slice(0, question.maxScore || 5);
@@ -555,7 +602,7 @@ function CriterionQuestion({
       <div className="mt-4 space-y-2">
         {criteria.map((criterion, index) => {
           const value = index + 1;
-          const selected = score === value;
+          const selected = scores?.includes(value) ?? false;
           return (
             <button
               key={value}
