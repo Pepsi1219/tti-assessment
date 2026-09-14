@@ -1,6 +1,23 @@
-import { categories, evaluationDetails, evaluationTopics, evaluations, questions, recipients, trainers, users } from "@/lib/data/seed";
+import {
+  categories,
+  evaluationDetails,
+  evaluationTopics,
+  evaluations,
+  questions,
+  recipients,
+  trainers,
+  users,
+} from "@/lib/data/seed";
 import type { EvaluationRepository } from "@/lib/repositories/evaluation-repository";
-import type { Evaluation, EvaluationDetail, EvaluationRecipient, EvaluationTopic, Question, Trainer, User } from "@/lib/types";
+import type {
+  Evaluation,
+  EvaluationDetail,
+  EvaluationRecipient,
+  EvaluationTopic,
+  Question,
+  Trainer,
+  User,
+} from "@/lib/types";
 
 export class InMemoryEvaluationRepository implements EvaluationRepository {
   async getUsers() {
@@ -15,7 +32,9 @@ export class InMemoryEvaluationRepository implements EvaluationRepository {
   }
 
   async deleteEvaluator(id: string) {
-    const index = users.findIndex((item) => item.id === id && item.role === "Evaluator");
+    const index = users.findIndex(
+      (item) => item.id === id && item.role === "Evaluator",
+    );
     if (index >= 0) users.splice(index, 1);
   }
 
@@ -36,7 +55,9 @@ export class InMemoryEvaluationRepository implements EvaluationRepository {
   }
 
   async getRecipients() {
-    return [...recipients].sort((a, b) => a.recipientName.localeCompare(b.recipientName));
+    return [...recipients].sort((a, b) =>
+      a.recipientName.localeCompare(b.recipientName),
+    );
   }
 
   async upsertRecipient(recipient: EvaluationRecipient) {
@@ -47,7 +68,9 @@ export class InMemoryEvaluationRepository implements EvaluationRepository {
   }
 
   async getTopics() {
-    return [...evaluationTopics].sort((a, b) => a.topicName.localeCompare(b.topicName));
+    return [...evaluationTopics].sort((a, b) =>
+      a.topicName.localeCompare(b.topicName),
+    );
   }
 
   async upsertTopic(topic: EvaluationTopic) {
@@ -88,5 +111,17 @@ export class InMemoryEvaluationRepository implements EvaluationRepository {
   async saveEvaluation(evaluation: Evaluation, details: EvaluationDetail[]) {
     evaluations.push(evaluation);
     evaluationDetails.push(...details);
+  }
+
+  async deleteEvaluation(id: string) {
+    const evaluationIndex = evaluations.findIndex(
+      (evaluation) => evaluation.id === id,
+    );
+    if (evaluationIndex >= 0) evaluations.splice(evaluationIndex, 1);
+
+    for (let index = evaluationDetails.length - 1; index >= 0; index -= 1) {
+      if (evaluationDetails[index].evaluationId === id)
+        evaluationDetails.splice(index, 1);
+    }
   }
 }

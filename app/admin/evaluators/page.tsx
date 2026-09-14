@@ -1,15 +1,22 @@
 "use client";
 
-import { Edit2, Plus, Search, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Edit2, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n/context";
-import type { User } from "@/lib/types";
+import type { EvaluationResult, User } from "@/lib/types";
 
 type EvaluatorForm = {
   employeeId: string;
@@ -18,12 +25,26 @@ type EvaluatorForm = {
   status: "Active" | "Inactive";
 };
 
-const emptyForm: EvaluatorForm = { employeeId: "", name: "", email: "", status: "Active" };
+const emptyForm: EvaluatorForm = {
+  employeeId: "",
+  name: "",
+  email: "",
+  status: "Active",
+};
 
 export default function EvaluatorManagementPage() {
   const { t } = useI18n();
   const [evaluators, setEvaluators] = useState<User[]>([]);
-  const [query, setQuery] = useState("");
+  const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
+  const [filterEmployeeId, setFilterEmployeeId] = useState("");
+  const [filterBuCode, setFilterBuCode] = useState("all");
+  const [filterDepartment, setFilterDepartment] = useState("all");
+  const [filterCourse, setFilterCourse] = useState("all");
+  const [filterYear, setFilterYear] = useState("all");
+  const [filterResult, setFilterResult] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [pageSize, setPageSize] = useState(25);
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
   const [form, setForm] = useState<EvaluatorForm>(emptyForm);
@@ -32,20 +53,125 @@ export default function EvaluatorManagementPage() {
   const [error, setError] = useState("");
 
   async function load() {
-    const response = await fetch("/api/evaluators?includeInactive=1");
-    if (response.ok) setEvaluators(await response.json());
-    else setError(t.error);
+    const [evaluatorsResult, evaluationsResult] = await Promise.allSettled([
+      fetch("/api/evaluators?includeInactive=1"),
+      fetch("/api/evaluations"),
+    ]);
+    if (evaluatorsResult.status === "fulfilled" && evaluatorsResult.value.ok) {
+      setEvaluators(await evaluatorsResult.value.json());
+    } else {
+      setError(t.error);
+    }
+    if (
+      evaluationsResult.status === "fulfilled" &&
+      evaluationsResult.value.ok
+    ) {
+      setEvaluations(await evaluationsResult.value.json());
+    }
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
-  const filtered = evaluators.filter((evaluator) =>
-    [evaluator.employeeId, evaluator.name, evaluator.email, evaluator.status ?? "Active"]
-      .join(" ")
-      .toLowerCase()
-      .includes(query.toLowerCase())
+  const filterOptions = useMemo(() => {
+    const unique = (values: Array<string | undefined>) =>
+      Array.from(
+        new Set(values.filter((value): value is string => Boolean(value))),
+      ).sort();
+    return {
+      buCodes: unique(evaluations.map((evaluation) => evaluation.buCode)),
+      departments: unique(evaluations.map((evaluation) => evaluation.bu)),
+      courses: unique(evaluations.map((evaluation) => evaluation.topicName)),
+      years: unique(
+        evaluations.map((evaluation) => evaluation.evaluationDate?.slice(0, 4)),
+      ).reverse(),
+    };
+  }, [evaluations]);
+
+  const filtered = useMemo(
+    () =>
+      evaluators.filter((evaluator) => {
+        if (
+          filterStatus !== "all" &&
+          (evaluator.status ?? "Active") !== filterStatus
+        )
+          return false;
+        if (
+          filterEmployeeId &&
+          !evaluator.employeeId
+            .toLowerCase()
+            .includes(filterEmployeeId.trim().toLowerCase())
+        )
+          return false;
+        const hasEvaluationFilters =
+          filterBuCode !== "all" ||
+          filterDepartment !== "all" ||
+          filterCourse !== "all" ||
+          filterYear !== "all" ||
+          filterResult !== "all";
+        if (!hasEvaluationFilters) return true;
+        return evaluations.some((evaluation) => {
+          const sameEvaluator = evaluation.evaluatorEmployeeId
+            ? evaluation.evaluatorEmployeeId === evaluator.employeeId
+            : evaluation.evaluatorName === evaluator.name;
+          if (!sameEvaluator) return false;
+          if (filterBuCode !== "all" && evaluation.buCode !== filterBuCode)
+            return false;
+          if (filterDepartment !== "all" && evaluation.bu !== filterDepartment)
+            return false;
+          if (filterCourse !== "all" && evaluation.topicName !== filterCourse)
+            return false;
+          if (
+            filterYear !== "all" &&
+            evaluation.evaluationDate?.slice(0, 4) !== filterYear
+          )
+            return false;
+          if (filterResult !== "all" && evaluation.result !== filterResult)
+            return false;
+          return true;
+        });
+      }),
+    [
+      evaluations,
+      evaluators,
+      filterBuCode,
+      filterCourse,
+      filterDepartment,
+      filterEmployeeId,
+      filterResult,
+      filterStatus,
+      filterYear,
+    ],
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = useMemo(
+    () => filtered.slice((page - 1) * pageSize, page * pageSize),
+    [filtered, page, pageSize],
+  );
+  const pageNumbers = useMemo(
+    () => getPageNumbers(totalPages, page),
+    [page, totalPages],
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    filterEmployeeId,
+    filterBuCode,
+    filterDepartment,
+    filterCourse,
+    filterYear,
+    filterResult,
+    filterStatus,
+    pageSize,
+  ]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
 
   function openCreate() {
     setEditing(null);
@@ -60,7 +186,7 @@ export default function EvaluatorManagementPage() {
       employeeId: evaluator.employeeId,
       name: evaluator.name,
       email: evaluator.email,
-      status: evaluator.status ?? "Active"
+      status: evaluator.status ?? "Active",
     });
     setError("");
     setDialogOpen(true);
@@ -73,7 +199,7 @@ export default function EvaluatorManagementPage() {
       const response = await fetch("/api/evaluators", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, id: editing?.id })
+        body: JSON.stringify({ ...form, id: editing?.id }),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
@@ -91,7 +217,10 @@ export default function EvaluatorManagementPage() {
     if (!window.confirm(`${t.confirmDelete} ${evaluator.name}`)) return;
 
     setError("");
-    const response = await fetch(`/api/evaluators?id=${encodeURIComponent(evaluator.id)}`, { method: "DELETE" });
+    const response = await fetch(
+      `/api/evaluators?id=${encodeURIComponent(evaluator.id)}`,
+      { method: "DELETE" },
+    );
     if (!response.ok) {
       const body = await response.json().catch(() => null);
       setError(body?.error ?? t.error);
@@ -101,60 +230,340 @@ export default function EvaluatorManagementPage() {
   }
 
   if (loading) {
-    return <div className="flex justify-center py-20"><div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
+    return (
+      <div className="flex justify-center py-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">{t.admin}</p>
-          <h1 className="mt-1 text-2xl font-black tracking-tight">{t.evaluatorManagement}</h1>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">
+            {t.admin}
+          </p>
+          <h1 className="mt-1 text-2xl font-black tracking-tight">
+            {t.evaluatorManagement}
+          </h1>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4" />{t.addEvaluator}</Button>
+        <Button onClick={openCreate}>
+          <Plus className="h-4 w-4" />
+          {t.addEvaluator}
+        </Button>
       </div>
 
-      {error && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-danger">{error}</p>}
+      {error && (
+        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-danger">
+          {error}
+        </p>
+      )}
 
       <Card className="p-5">
-        <div className="relative mb-4 max-w-sm">
-          <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-          <Input className="rounded-2xl pl-11" placeholder={t.search} value={query} onChange={(event) => setQuery(event.target.value)} />
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+          <Input
+            className="rounded-2xl"
+            placeholder={t.employeeId}
+            value={filterEmployeeId}
+            onChange={(event) => setFilterEmployeeId(event.target.value)}
+          />
+          <FilterSelect
+            value={filterBuCode}
+            onChange={setFilterBuCode}
+            label={`${t.all} BU`}
+            options={filterOptions.buCodes}
+          />
+          <FilterSelect
+            value={filterDepartment}
+            onChange={setFilterDepartment}
+            label={`${t.all} ${t.department}`}
+            options={filterOptions.departments}
+          />
+          <FilterSelect
+            value={filterCourse}
+            onChange={setFilterCourse}
+            label={`${t.all} ${t.course}`}
+            options={filterOptions.courses}
+          />
+          <FilterSelect
+            value={filterYear}
+            onChange={setFilterYear}
+            label={`${t.all} ${t.year}`}
+            options={filterOptions.years}
+          />
+          <FilterSelect
+            value={filterResult}
+            onChange={setFilterResult}
+            label={`${t.all} ${t.result}`}
+            options={["Pass", "Fail"]}
+            optionLabels={{ Pass: t.pass, Fail: t.fail }}
+          />
+          <FilterSelect
+            value={filterStatus}
+            onChange={setFilterStatus}
+            label={`${t.all} ${t.status}`}
+            options={["Active", "Inactive"]}
+            optionLabels={{ Active: t.active, Inactive: t.inactive }}
+          />
         </div>
-        <Table>
-          <TableHeader><TableRow><TableHead>{t.employeeId}</TableHead><TableHead>{t.evaluator}</TableHead><TableHead>{t.email}</TableHead><TableHead>{t.status}</TableHead><TableHead className="text-right">{t.actions}</TableHead></TableRow></TableHeader>
+        <Table className="min-w-[1040px] table-auto">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-px whitespace-nowrap">
+                {t.employeeId}
+              </TableHead>
+              <TableHead className="min-w-56">{t.evaluator}</TableHead>
+              <TableHead className="min-w-64">{t.email}</TableHead>
+              <TableHead className="w-px whitespace-nowrap">
+                {t.status}
+              </TableHead>
+              <TableHead className="w-[120px] min-w-[120px] whitespace-nowrap text-center">
+                {t.actions}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
           <TableBody>
-            {filtered.map((evaluator) => {
+            {paginated.map((evaluator) => {
               const active = evaluator.status !== "Inactive";
               return (
                 <TableRow key={evaluator.id}>
-                  <TableCell className="font-bold">{evaluator.employeeId}</TableCell>
+                  <TableCell className="whitespace-nowrap font-bold tabular-nums">
+                    {evaluator.employeeId}
+                  </TableCell>
                   <TableCell>{evaluator.name}</TableCell>
                   <TableCell>{evaluator.email}</TableCell>
-                  <TableCell><Badge tone={active ? "success" : "danger"}>{active ? t.active : t.inactive}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <button onClick={() => openEdit(evaluator)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-blue-50" title={t.edit}><Edit2 className="h-4 w-4 text-primary" /></button>
-                      <button onClick={() => remove(evaluator)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-red-50" title={t.delete}><Trash2 className="h-4 w-4 text-danger" /></button>
+                  <TableCell>
+                    <Badge tone={active ? "success" : "danger"}>
+                      {active ? t.active : t.inactive}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="w-[120px] min-w-[120px]">
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(evaluator)}
+                        className="grid h-9 w-9 place-items-center rounded-xl text-primary transition hover:bg-blue-50 dark:hover:bg-blue-950/60"
+                        title={t.edit}
+                        aria-label={`${t.edit}: ${evaluator.name}`}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => remove(evaluator)}
+                        className="grid h-9 w-9 place-items-center rounded-xl text-danger transition hover:bg-red-50 dark:hover:bg-red-950/60"
+                        title={t.delete}
+                        aria-label={`${t.delete}: ${evaluator.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </TableCell>
                 </TableRow>
               );
             })}
-            {!filtered.length && <TableRow><TableCell colSpan={5} className="py-8 text-center text-slate-400">{t.noData}</TableCell></TableRow>}
+            {!filtered.length && (
+              <TableRow>
+                <TableCell
+                  colSpan={5}
+                  className="py-8 text-center text-slate-400"
+                >
+                  {t.noData}
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </Card>
 
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title={editing ? t.edit : t.addEvaluator}>
+      <div className="flex flex-col gap-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="whitespace-nowrap">{t.rowsPerPage}</span>
+          <select
+            aria-label={t.rowsPerPage}
+            value={pageSize}
+            onChange={(event) => setPageSize(Number(event.target.value))}
+            className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+          >
+            {[25, 50, 100].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+          <span className="whitespace-nowrap">
+            {filtered.length === 0
+              ? "0"
+              : `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, filtered.length)}`}{" "}
+            {t.of} {filtered.length}
+          </span>
+        </div>
+        <nav aria-label="Pagination" className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label={t.previous}
+            disabled={page === 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          {pageNumbers.map((pageNumber, index) =>
+            pageNumber === null ? (
+              <span key={`ellipsis-${index}`} className="px-1 text-slate-400">
+                …
+              </span>
+            ) : (
+              <button
+                key={pageNumber}
+                type="button"
+                aria-label={`Page ${pageNumber}`}
+                aria-current={pageNumber === page ? "page" : undefined}
+                onClick={() => setPage(pageNumber)}
+                className={`grid h-9 min-w-9 place-items-center rounded-xl border px-2 font-bold transition ${pageNumber === page ? "border-primary bg-primary text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"}`}
+              >
+                {pageNumber}
+              </button>
+            ),
+          )}
+          <button
+            type="button"
+            aria-label={t.next}
+            disabled={page === totalPages}
+            onClick={() =>
+              setPage((current) => Math.min(totalPages, current + 1))
+            }
+            className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </nav>
+      </div>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        title={editing ? t.edit : t.addEvaluator}
+      >
         <div className="space-y-4">
-          <label className="block space-y-1"><span className="text-sm font-bold text-slate-700">{t.employeeId}</span><Input value={form.employeeId} onChange={(event) => setForm({ ...form, employeeId: event.target.value })} /></label>
-          <label className="block space-y-1"><span className="text-sm font-bold text-slate-700">{t.evaluator}</span><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
-          <label className="block space-y-1"><span className="text-sm font-bold text-slate-700">{t.email}</span><Input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
-          <label className="block space-y-1"><span className="text-sm font-bold text-slate-700">{t.status}</span><select className="touch-target w-full rounded-2xl border px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as EvaluatorForm["status"] })}><option value="Active">{t.active}</option><option value="Inactive">{t.inactive}</option></select></label>
-          <div className="flex justify-end gap-3 pt-2"><Button className="bg-slate-200 text-slate-700 shadow-none hover:bg-slate-300" onClick={() => setDialogOpen(false)}>{t.cancel}</Button><Button onClick={save} disabled={saving || !form.employeeId || !form.name || !form.email}>{saving ? t.submitting : t.save}</Button></div>
+          <label className="block space-y-1">
+            <span className="text-sm font-bold text-slate-700">
+              {t.employeeId}
+            </span>
+            <Input
+              value={form.employeeId}
+              onChange={(event) =>
+                setForm({ ...form, employeeId: event.target.value })
+              }
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-bold text-slate-700">
+              {t.evaluator}
+            </span>
+            <Input
+              value={form.name}
+              onChange={(event) =>
+                setForm({ ...form, name: event.target.value })
+              }
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-bold text-slate-700">{t.email}</span>
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(event) =>
+                setForm({ ...form, email: event.target.value })
+              }
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-bold text-slate-700">{t.status}</span>
+            <select
+              className="touch-target w-full rounded-2xl border px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
+              value={form.status}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  status: event.target.value as EvaluatorForm["status"],
+                })
+              }
+            >
+              <option value="Active">{t.active}</option>
+              <option value="Inactive">{t.inactive}</option>
+            </select>
+          </label>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              className="bg-slate-200 text-slate-700 shadow-none hover:bg-slate-300"
+              onClick={() => setDialogOpen(false)}
+            >
+              {t.cancel}
+            </Button>
+            <Button
+              onClick={save}
+              disabled={saving || !form.employeeId || !form.name || !form.email}
+            >
+              {saving ? t.submitting : t.save}
+            </Button>
+          </div>
         </div>
       </Dialog>
     </div>
   );
+}
+
+function FilterSelect({
+  value,
+  onChange,
+  label,
+  options,
+  optionLabels,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+  options: string[];
+  optionLabels?: Record<string, string>;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+    >
+      <option value="all">{label}</option>
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {optionLabels?.[option] ?? option}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function getPageNumbers(
+  totalPages: number,
+  currentPage: number,
+): Array<number | null> {
+  if (totalPages <= 7)
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  const pages = new Set([
+    1,
+    totalPages,
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+  ]);
+  const ordered = Array.from(pages)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+  const result: Array<number | null> = [];
+  ordered.forEach((page, index) => {
+    if (index > 0 && page - ordered[index - 1] > 1) result.push(null);
+    result.push(page);
+  });
+  return result;
 }

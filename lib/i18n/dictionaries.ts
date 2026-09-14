@@ -57,6 +57,7 @@ type Dictionary = {
   back: string;
   next: string;
   previous: string;
+  rowsPerPage: string;
   step: string;
   of: string;
   comment: string;
@@ -117,6 +118,7 @@ type Dictionary = {
   success: string;
   confirm: string;
   confirmDelete: string;
+  deleteEvaluationWarning: string;
   addTrainer: string;
   addQuestion: string;
   filter: string;
@@ -208,11 +210,13 @@ export const dictionaries: Record<Locale, Dictionary> = {
     back: "กลับ",
     next: "ถัดไป",
     previous: "ก่อนหน้า",
+    rowsPerPage: "รายการต่อหน้า",
     step: "ขั้นตอน",
     of: "จาก",
     comment: "ความคิดเห็น",
     additionalComment: "ความคิดเห็นเพิ่มเติม",
-    commentPlaceholder: "เพิ่มหมายเหตุการประเมิน จุดแข็ง ความเสี่ยง และแผนติดตาม",
+    commentPlaceholder:
+      "เพิ่มหมายเหตุการประเมิน จุดแข็ง ความเสี่ยง และแผนติดตาม",
     result: "ผลการประเมิน",
     pass: "ผ่าน",
     fail: "ไม่ผ่าน",
@@ -268,6 +272,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     success: "สำเร็จ",
     confirm: "ยืนยัน",
     confirmDelete: "ยืนยันการลบ?",
+    deleteEvaluationWarning:
+      "ผลการประเมินและรายละเอียดคะแนนทั้งหมดจะถูกลบถาวร และไม่สามารถกู้คืนได้",
     addTrainer: "เพิ่มผู้ฝึกสอน",
     addQuestion: "เพิ่มคำถาม",
     filter: "กรอง",
@@ -298,7 +304,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     performanceByBu: "ประสิทธิภาพตามแผนก",
     options: "ตัวเลือก",
     optionsHint: "ตัวเลือก (1 บรรทัดต่อ 1 ตัวเลือก)",
-    optionsPlaceholder: "คำอธิบายระดับ 1\nคำอธิบายระดับ 2\nคำอธิบายระดับ 3\nคำอธิบายระดับ 4\nคำอธิบายระดับ 5"
+    optionsPlaceholder:
+      "คำอธิบายระดับ 1\nคำอธิบายระดับ 2\nคำอธิบายระดับ 3\nคำอธิบายระดับ 4\nคำอธิบายระดับ 5",
   },
   en: {
     title: "Trainer Certification Evaluation",
@@ -339,7 +346,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     year: "Year",
     topicDescription: "Topic Description",
     evaluations: "Evaluations",
-    evaluationSummaries: "Consolidated Results",
+    evaluationSummaries: "Summary Result",
     users: "Users",
     analytics: "Analytics",
     settings: "Settings",
@@ -357,11 +364,13 @@ export const dictionaries: Record<Locale, Dictionary> = {
     back: "Back",
     next: "Next",
     previous: "Previous",
+    rowsPerPage: "Rows per page",
     step: "Step",
     of: "of",
     comment: "Comment",
     additionalComment: "Additional Comment",
-    commentPlaceholder: "Add evaluation notes, strengths, risks, and follow-up actions.",
+    commentPlaceholder:
+      "Add evaluation notes, strengths, risks, and follow-up actions.",
     result: "Result",
     pass: "Pass",
     fail: "Fail",
@@ -417,6 +426,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     success: "Success",
     confirm: "Confirm",
     confirmDelete: "Confirm delete?",
+    deleteEvaluationWarning:
+      "The evaluation and all score details will be permanently deleted and cannot be recovered.",
     addTrainer: "Add Trainer",
     addQuestion: "Add Question",
     filter: "Filter",
@@ -447,7 +458,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     performanceByBu: "Performance by Department",
     options: "options",
     optionsHint: "Options (1 per line)",
-    optionsPlaceholder: "Level 1 description\nLevel 2 description\nLevel 3 description\nLevel 4 description\nLevel 5 description"
+    optionsPlaceholder:
+      "Level 1 description\nLevel 2 description\nLevel 3 description\nLevel 4 description\nLevel 5 description",
   },
   lo: {
     title: "ລະບົບປະເມີນການຮັບຮອງຜູ້ຝຶກສອນ",
@@ -506,6 +518,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     back: "ກັບ",
     next: "ຕໍ່ໄປ",
     previous: "ກ່ອນໜ້າ",
+    rowsPerPage: "ລາຍການຕໍ່ໜ້າ",
     step: "ຂັ້ນຕອນ",
     of: "ຈາກ",
     comment: "ຄວາມຄິດເຫັນ",
@@ -566,6 +579,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     success: "ສຳເລັດ",
     confirm: "ຢືນຢັນ",
     confirmDelete: "ຢືນຢັນການລຶບ?",
+    deleteEvaluationWarning:
+      "ຜົນການປະເມີນ ແລະ ລາຍລະອຽດຄະແນນທັງໝົດຈະຖືກລຶບຖາວອນ ແລະ ບໍ່ສາມາດກູ້ຄືນໄດ້",
     addTrainer: "ເພີ່ມຜູ້ຝຶກສອນ",
     addQuestion: "ເພີ່ມຄຳຖາມ",
     filter: "ກັ່ນຕອງ",
@@ -596,7 +611,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     performanceByBu: "ປະສິດທິພາບຕາມພະແນກ",
     options: "ຕົວເລືອກ",
     optionsHint: "ຕົວເລືອກ (1 ແຖວຕໍ່ 1 ຕົວເລືອກ)",
-    optionsPlaceholder: "ຄຳອະທິບາຍລະດັບ 1\nຄຳອະທິບາຍລະດັບ 2\nຄຳອະທິບາຍລະດັບ 3\nຄຳອະທິບາຍລະດັບ 4\nຄຳອະທິບາຍລະດັບ 5"
+    optionsPlaceholder:
+      "ຄຳອະທິບາຍລະດັບ 1\nຄຳອະທິບາຍລະດັບ 2\nຄຳອະທິບາຍລະດັບ 3\nຄຳອະທິບາຍລະດັບ 4\nຄຳອະທິບາຍລະດັບ 5",
   },
   vi: {
     title: "Đánh giá chứng nhận giảng viên",
@@ -655,11 +671,13 @@ export const dictionaries: Record<Locale, Dictionary> = {
     back: "Quay lại",
     next: "Tiếp theo",
     previous: "Trước đó",
+    rowsPerPage: "Số dòng mỗi trang",
     step: "Bước",
     of: "trên",
     comment: "Nhận xét",
     additionalComment: "Nhận xét bổ sung",
-    commentPlaceholder: "Thêm ghi chú đánh giá, điểm mạnh, rủi ro và kế hoạch theo dõi.",
+    commentPlaceholder:
+      "Thêm ghi chú đánh giá, điểm mạnh, rủi ro và kế hoạch theo dõi.",
     result: "Kết quả",
     pass: "Đạt",
     fail: "Không đạt",
@@ -715,6 +733,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     success: "Thành công",
     confirm: "Xác nhận",
     confirmDelete: "Xác nhận xóa?",
+    deleteEvaluationWarning:
+      "Kết quả đánh giá và toàn bộ chi tiết điểm sẽ bị xóa vĩnh viễn và không thể khôi phục.",
     addTrainer: "Thêm giảng viên",
     addQuestion: "Thêm câu hỏi",
     filter: "Lọc",
@@ -745,6 +765,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     performanceByBu: "Hiệu suất theo bộ phận",
     options: "tùy chọn",
     optionsHint: "Tùy chọn (1 dòng mỗi tùy chọn)",
-    optionsPlaceholder: "Mô tả mức 1\nMô tả mức 2\nMô tả mức 3\nMô tả mức 4\nMô tả mức 5"
-  }
+    optionsPlaceholder:
+      "Mô tả mức 1\nMô tả mức 2\nMô tả mức 3\nMô tả mức 4\nMô tả mức 5",
+  },
 };

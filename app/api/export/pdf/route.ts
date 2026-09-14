@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsPDF } from "jspdf";
 import { getCurrentUser, isAdmin } from "@/lib/auth/authorization";
-import { getPassingCriteria, getReportCategoryName } from "@/lib/reports/evaluation-report";
-import { getEvaluationResults, getEvaluationSummaries } from "@/lib/services/evaluation-service";
+import {
+  getPassingCriteria,
+  getReportCategoryName,
+} from "@/lib/reports/evaluation-report";
+import {
+  getEvaluationResults,
+  getEvaluationSummaries,
+} from "@/lib/services/evaluation-service";
 import type { CategorySummary, EvaluationSummary } from "@/lib/types";
 
 const departmentNames: Record<string, string> = {
-  "เทคนิคเย็บ": "Sewing Technical",
+  เทคนิคเย็บ: "Sewing Technical",
   "CSA พัฒนาทักษะ": "CSA Skill Development",
 };
 
@@ -39,7 +45,13 @@ function drawCheckbox(doc: jsPDF, x: number, y: number, checked: boolean) {
   doc.setLineWidth(0.2);
 }
 
-function drawRadarChart(doc: jsPDF, categories: CategorySummary[], centerX: number, centerY: number, radius: number) {
+function drawRadarChart(
+  doc: jsPDF,
+  categories: CategorySummary[],
+  centerX: number,
+  centerY: number,
+  radius: number,
+) {
   if (!categories.length) return;
 
   const pointAt = (index: number, value: number) => {
@@ -66,13 +78,17 @@ function drawRadarChart(doc: jsPDF, categories: CategorySummary[], centerX: numb
     doc.line(centerX, centerY, end.x, end.y);
   });
 
-  const values = categories.map((category, index) => pointAt(index, Math.max(0, Math.min(5, category.average))));
+  const values = categories.map((category, index) =>
+    pointAt(index, Math.max(0, Math.min(5, category.average))),
+  );
   if (values.length > 2) {
     const origin = values[0];
-    const segments = values.slice(1).map((point, index) => [
-      point.x - values[index].x,
-      point.y - values[index].y,
-    ]);
+    const segments = values
+      .slice(1)
+      .map((point, index) => [
+        point.x - values[index].x,
+        point.y - values[index].y,
+      ]);
     const last = values[values.length - 1];
     segments.push([origin.x - last.x, origin.y - last.y]);
     doc.setDrawColor(22, 163, 74);
@@ -88,11 +104,12 @@ function drawRadarChart(doc: jsPDF, categories: CategorySummary[], centerX: numb
   categories.forEach((category, index) => {
     const labelPoint = pointAt(index, 6.05);
     const label = radarLabels[category.categoryId] ?? `Category ${index + 1}`;
-    const options = labelPoint.x < centerX - 2
-      ? { align: "right" as const }
-      : labelPoint.x > centerX + 2
-        ? { align: "left" as const }
-        : { align: "center" as const };
+    const options =
+      labelPoint.x < centerX - 2
+        ? { align: "right" as const }
+        : labelPoint.x > centerX + 2
+          ? { align: "left" as const }
+          : { align: "center" as const };
     doc.text(label, labelPoint.x, labelPoint.y, options);
   });
 }
@@ -100,10 +117,21 @@ function drawRadarChart(doc: jsPDF, categories: CategorySummary[], centerX: numb
 function createConsolidatedReport(summary: EvaluationSummary) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const recipientEmployeeId = summary.recipient?.employeeId ?? "Not available";
-  const recipientName = englishValue(summary.recipient?.recipientName, `Employee ${recipientEmployeeId}`);
-  const department = departmentNames[summary.bu] ?? englishValue(summary.bu, `Department ${summary.buCode ?? "Not available"}`);
-  const totalActual = summary.categorySummary.reduce((sum, category) => sum + category.actualScore, 0);
-  const totalFull = summary.categorySummary.reduce((sum, category) => sum + category.fullScore, 0);
+  const recipientName = englishValue(
+    summary.recipient?.recipientName,
+    `Employee ${recipientEmployeeId}`,
+  );
+  const department =
+    departmentNames[summary.bu] ??
+    englishValue(summary.bu, `Department ${summary.buCode ?? "Not available"}`);
+  const totalActual = summary.categorySummary.reduce(
+    (sum, category) => sum + category.actualScore,
+    0,
+  );
+  const totalFull = summary.categorySummary.reduce(
+    (sum, category) => sum + category.fullScore,
+    0,
+  );
 
   doc.setProperties({
     title: `Consolidated Trainer Evaluation - ${recipientEmployeeId}`,
@@ -115,14 +143,22 @@ function createConsolidatedReport(summary: EvaluationSummary) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(17);
   doc.setTextColor(255, 255, 255);
-  doc.text("Nanyang Trainer Certification Consolidated Evaluation", 105, 15.5, { align: "center" });
+  doc.text("Nanyang Trainer Certification Consolidated Evaluation", 105, 15.5, {
+    align: "center",
+  });
 
   const metadata = [
     ["Evaluation Recipient", recipientName],
     ["Employee ID", recipientEmployeeId],
-    ["Evaluation Topic", englishValue(summary.topicName, "Trainer Certification")],
+    [
+      "Evaluation Topic",
+      englishValue(summary.topicName, "Trainer Certification"),
+    ],
     ["Round / Year", `${summary.evaluationRound} / ${summary.evaluationYear}`],
-    ["Department / BU", `${department}${summary.buCode ? ` / ${summary.buCode}` : ""}`],
+    [
+      "Department / BU",
+      `${department}${summary.buCode ? ` / ${summary.buCode}` : ""}`,
+    ],
     ["Number of Evaluators", String(summary.evaluatorCount)],
   ];
   doc.setFontSize(8.5);
@@ -168,7 +204,11 @@ function createConsolidatedReport(summary: EvaluationSummary) {
     doc.text(category.actualScore.toFixed(2), 137, y, { align: "right" });
     doc.text(category.fullScore.toFixed(0), 164, y, { align: "right" });
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(criticalFailure ? 220 : 15, criticalFailure ? 38 : 23, criticalFailure ? 38 : 42);
+    doc.setTextColor(
+      criticalFailure ? 220 : 15,
+      criticalFailure ? 38 : 23,
+      criticalFailure ? 38 : 42,
+    );
     doc.text(category.average.toFixed(2), 193, y, { align: "right" });
     doc.setDrawColor(226, 232, 240);
     doc.line(14, y + 2, 196, y + 2);
@@ -193,7 +233,10 @@ function createConsolidatedReport(summary: EvaluationSummary) {
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
   doc.text("Passing Criteria", 14, criteriaY);
-  const criteria = getPassingCriteria(summary.totalScore, summary.categorySummary);
+  const criteria = getPassingCriteria(
+    summary.totalScore,
+    summary.categorySummary,
+  );
   doc.setFontSize(8);
   criteria.forEach((criterion, index) => {
     const criterionY = criteriaY + 8 + index * 7;
@@ -202,7 +245,11 @@ function createConsolidatedReport(summary: EvaluationSummary) {
     doc.setTextColor(51, 65, 85);
     doc.text(criterion.label, 21, criterionY);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(criterion.passed ? 22 : 220, criterion.passed ? 163 : 38, criterion.passed ? 74 : 38);
+    doc.setTextColor(
+      criterion.passed ? 22 : 220,
+      criterion.passed ? 163 : 38,
+      criterion.passed ? 74 : 38,
+    );
     doc.text(criterion.actual.toFixed(2), 103, criterionY, { align: "right" });
   });
 
@@ -218,7 +265,7 @@ function createConsolidatedReport(summary: EvaluationSummary) {
   doc.text("Fail", 53, resultY + 8);
 
   doc.setFontSize(11);
-  doc.text("Combined Competency Profile", 151, criteriaY, { align: "center" });
+  doc.text("Competency Profile", 151, criteriaY, { align: "center" });
   drawRadarChart(doc, summary.categorySummary, 151, criteriaY + 38, 25);
 
   const evaluatorsY = Math.max(resultY + 23, criteriaY + 73);
@@ -239,12 +286,27 @@ function createConsolidatedReport(summary: EvaluationSummary) {
   summary.evaluations.slice(0, 8).forEach((evaluation) => {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(15, 23, 42);
-    doc.text(englishValue(evaluation.evaluatorName, `Employee ${evaluation.evaluatorEmployeeId ?? ""}`), 17, evaluatorY);
+    doc.text(
+      englishValue(
+        evaluation.evaluatorName,
+        `Employee ${evaluation.evaluatorEmployeeId ?? ""}`,
+      ),
+      17,
+      evaluatorY,
+    );
     doc.text(evaluation.evaluationDate, 115, evaluatorY);
-    doc.text(evaluation.totalScore.toFixed(2), 151, evaluatorY, { align: "right" });
-    doc.text(`${evaluation.percentage.toFixed(2)}%`, 174, evaluatorY, { align: "right" });
+    doc.text(evaluation.totalScore.toFixed(2), 151, evaluatorY, {
+      align: "right",
+    });
+    doc.text(`${evaluation.percentage.toFixed(2)}%`, 174, evaluatorY, {
+      align: "right",
+    });
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(evaluation.result === "Pass" ? 22 : 220, evaluation.result === "Pass" ? 163 : 38, evaluation.result === "Pass" ? 74 : 38);
+    doc.setTextColor(
+      evaluation.result === "Pass" ? 22 : 220,
+      evaluation.result === "Pass" ? 163 : 38,
+      evaluation.result === "Pass" ? 74 : 38,
+    );
     doc.text(evaluation.result, 193, evaluatorY, { align: "right" });
     doc.setDrawColor(226, 232, 240);
     doc.line(14, evaluatorY + 2, 196, evaluatorY + 2);
@@ -261,15 +323,21 @@ function createConsolidatedReport(summary: EvaluationSummary) {
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!isAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isAdmin(user))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const id = request.nextUrl.searchParams.get("id");
   const summaryId = request.nextUrl.searchParams.get("summaryId");
   if (summaryId) {
     const summaries = await getEvaluationSummaries();
     const summary = summaries.find((item) => item.id === summaryId);
-    if (!summary) return NextResponse.json({ error: "Consolidated evaluation not found" }, { status: 404 });
+    if (!summary)
+      return NextResponse.json(
+        { error: "Consolidated evaluation not found" },
+        { status: 404 },
+      );
 
     const buffer = createConsolidatedReport(summary).output("arraybuffer");
     return new NextResponse(buffer, {
@@ -280,7 +348,9 @@ export async function GET(request: NextRequest) {
     });
   }
   const results = await getEvaluationResults();
-  const target = id ? results.find((evaluation) => evaluation.id === id) : results[0];
+  const target = id
+    ? results.find((evaluation) => evaluation.id === id)
+    : results[0];
 
   if (!target) {
     return NextResponse.json({ error: "No evaluation found" }, { status: 404 });
@@ -298,19 +368,38 @@ export async function GET(request: NextRequest) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(17);
   doc.setTextColor(255, 255, 255);
-  doc.text("Nanyang Trainer Certification Evaluation Form", 105, 15.5, { align: "center" });
+  doc.text("Nanyang Trainer Certification Evaluation Form", 105, 15.5, {
+    align: "center",
+  });
 
   const recipientEmployeeId = target.recipient?.employeeId ?? "Not available";
-  const recipientName = englishValue(target.recipient?.recipientName, `Employee ${recipientEmployeeId}`);
-  const evaluatorName = englishValue(target.evaluatorName, `Employee ${target.evaluatorEmployeeId ?? "Not available"}`);
-  const department = departmentNames[target.bu] ?? englishValue(target.bu, `Department ${target.buCode ?? "Not available"}`);
+  const recipientName = englishValue(
+    target.recipient?.recipientName,
+    `Employee ${recipientEmployeeId}`,
+  );
+  const evaluatorName = englishValue(
+    target.evaluatorName,
+    `Employee ${target.evaluatorEmployeeId ?? "Not available"}`,
+  );
+  const department =
+    departmentNames[target.bu] ??
+    englishValue(target.bu, `Department ${target.buCode ?? "Not available"}`);
   const metadata = [
     ["Evaluation Recipient", recipientName],
     ["Employee ID", recipientEmployeeId],
-    ["Evaluation Topic", englishValue(target.topicName, "Trainer Certification")],
-    ["Department / BU", `${department}${target.buCode ? ` / ${target.buCode}` : ""}`],
+    [
+      "Evaluation Topic",
+      englishValue(target.topicName, "Trainer Certification"),
+    ],
+    [
+      "Department / BU",
+      `${department}${target.buCode ? ` / ${target.buCode}` : ""}`,
+    ],
     ["Evaluator", evaluatorName],
-    ["Date / Round", `${target.evaluationDate}${target.evaluationRound ? ` / ${target.evaluationRound}` : ""}`],
+    [
+      "Date / Round",
+      `${target.evaluationDate}${target.evaluationRound ? ` / ${target.evaluationRound}` : ""}`,
+    ],
   ];
 
   doc.setFontSize(8.5);
@@ -345,8 +434,14 @@ export async function GET(request: NextRequest) {
   y += 6;
 
   doc.setFontSize(8.5);
-  const totalActual = target.categorySummary.reduce((sum, category) => sum + category.actualScore, 0);
-  const totalFull = target.categorySummary.reduce((sum, category) => sum + category.fullScore, 0);
+  const totalActual = target.categorySummary.reduce(
+    (sum, category) => sum + category.actualScore,
+    0,
+  );
+  const totalFull = target.categorySummary.reduce(
+    (sum, category) => sum + category.fullScore,
+    0,
+  );
   target.categorySummary.forEach((category, index) => {
     const criticalFailure = category.isCritical && category.average < 3;
     if (criticalFailure) {
@@ -381,7 +476,10 @@ export async function GET(request: NextRequest) {
   const sectionY = y + 13;
   doc.setFontSize(11);
   doc.text("Passing Criteria", 14, sectionY);
-  const criteria = getPassingCriteria(target.totalScore, target.categorySummary);
+  const criteria = getPassingCriteria(
+    target.totalScore,
+    target.categorySummary,
+  );
   doc.setFontSize(8);
   criteria.forEach((criterion, index) => {
     const criterionY = sectionY + 8 + index * 7;
@@ -390,7 +488,11 @@ export async function GET(request: NextRequest) {
     doc.setTextColor(51, 65, 85);
     doc.text(criterion.label, 21, criterionY);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(criterion.passed ? 22 : 220, criterion.passed ? 163 : 38, criterion.passed ? 74 : 38);
+    doc.setTextColor(
+      criterion.passed ? 22 : 220,
+      criterion.passed ? 163 : 38,
+      criterion.passed ? 74 : 38,
+    );
     doc.text(criterion.actual.toFixed(2), 103, criterionY, { align: "right" });
   });
 
@@ -418,7 +520,10 @@ export async function GET(request: NextRequest) {
   doc.setFontSize(8.5);
   doc.setTextColor(51, 65, 85);
   const comment = target.comment
-    ? englishValue(target.comment, "The original comment contains non-English text and is available in the application.")
+    ? englishValue(
+        target.comment,
+        "The original comment contains non-English text and is available in the application.",
+      )
     : "No comment";
   const commentLines = doc.splitTextToSize(comment, 178) as string[];
   doc.text(commentLines.slice(0, 3), 14, commentY + 8);

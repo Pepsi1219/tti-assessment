@@ -1,22 +1,31 @@
 "use client";
 
 import {
-  Award,
+  ArrowLeft,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
-  Clock3,
-  Search,
-  Sparkles
+  ClipboardCheck,
+  ImageDown,
+  RotateCcw,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer, Tooltip } from "recharts";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EvaluationCategoryReport } from "@/components/evaluation-category-report";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
-import type { Category, EvaluationRecipient, EvaluationResult, EvaluationTopic, Question } from "@/lib/types";
+import type {
+  Category,
+  EvaluationRecipient,
+  EvaluationResult,
+  EvaluationTopic,
+  Question,
+} from "@/lib/types";
+
+type Section = Category & { questions: Question[] };
 
 export default function EvaluatorPage() {
   const { t } = useI18n();
@@ -24,52 +33,159 @@ export default function EvaluatorPage() {
   const [topics, setTopics] = useState<EvaluationTopic[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [selectedBu, setSelectedBu] = useState("");
   const [selectedRecipientId, setSelectedRecipientId] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [evaluationRound, setEvaluationRound] = useState("");
-  const [query, setQuery] = useState("");
   const [scores, setScores] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
+  const [step, setStep] = useState(0);
   const [latest, setLatest] = useState<EvaluationResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
-    Promise.all([fetch("/api/recipients"), fetch("/api/topics"), fetch("/api/questions")]).then(
-      async ([recipientRes, topicRes, questionRes]) => {
-        setRecipients(await recipientRes.json());
-        setTopics(await topicRes.json());
-        const data = await questionRes.json();
-        setCategories(data.categories);
-        setQuestions(data.questions);
+    let isMounted = true;
+    async function loadFormData() {
+      try {
+        const [recipientRes, topicRes, questionRes] = await Promise.all([
+          fetch("/api/recipients"),
+          fetch("/api/topics"),
+          fetch("/api/questions"),
+        ]);
+        if (!recipientRes.ok || !topicRes.ok || !questionRes.ok)
+          throw new Error("Unable to load evaluation form data.");
+        const [recipientData, topicData, questionData] = await Promise.all([
+          recipientRes.json(),
+          topicRes.json(),
+          questionRes.json(),
+        ]);
+        if (!isMounted) return;
+        setRecipients(recipientData);
+        setTopics(topicData);
+        setCategories(questionData.categories);
+        setQuestions(questionData.questions);
+      } catch {
+        if (isMounted)
+          setLoadError(
+            "Unable to load the evaluation form. Please refresh and try again.",
+          );
+      } finally {
+        if (isMounted) setLoading(false);
       }
-    );
+    }
+    void loadFormData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const activeQuestions = questions.filter((q) => q.isActive);
-  const answeredCount = Object.values(scores).filter(Boolean).length;
-  const progress = activeQuestions.length ? Math.round((answeredCount / activeQuestions.length) * 100) : 0;
-  const selectedRecipient = recipients.find((recipient) => recipient.id === selectedRecipientId);
+  const activeQuestions = useMemo(
+    () => questions.filter((question) => question.isActive),
+    [questions],
+  );
+  const sections = useMemo<Section[]>(
+    () =>
+      categories
+        .slice()
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((category) => ({
+          ...category,
+          questions: activeQuestions.filter(
+            (question) => question.categoryId === category.id,
+          ),
+        }))
+        .filter((category) => category.questions.length > 0),
+    [activeQuestions, categories],
+  );
+  const isReviewStep = step === sections.length;
+  const answeredCount = activeQuestions.filter((question) =>
+    Boolean(scores[question.id]),
+  ).length;
+  const progress = activeQuestions.length
+    ? Math.round((answeredCount / activeQuestions.length) * 100)
+    : 0;
+  const selectedRecipient = recipients.find(
+    (recipient) => recipient.id === selectedRecipientId,
+  );
   const selectedTopic = topics.find((topic) => topic.id === selectedTopicId);
+  const availableBus = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          recipients
+            .filter((recipient) => recipient.status === "Active")
+            .map((recipient) => recipient.buCode ?? recipient.bu),
+        ),
+      ).sort(),
+    [recipients],
+  );
+  const visibleRecipients = useMemo(
+    () =>
+      recipients.filter(
+        (recipient) =>
+          recipient.status === "Active" &&
+          (!selectedBu || (recipient.buCode ?? recipient.bu) === selectedBu),
+      ),
+    [recipients, selectedBu],
+  );
+  const currentSection = sections[step];
+  const round = Number(evaluationRound);
+  const readyToEvaluate = Boolean(
+    selectedRecipient && selectedTopic && Number.isInteger(round) && round >= 1,
+  );
+  const currentSectionComplete =
+    Boolean(currentSection) &&
+    currentSection.questions.every((question) => Boolean(scores[question.id]));
 
-  const filteredRecipients = useMemo(() => {
-    const text = query.toLowerCase();
-    return recipients
-      .filter((recipient) => recipient.status === "Active")
-      .filter((recipient) => [recipient.employeeId, recipient.recipientName, recipient.bu, recipient.buCode].join(" ").toLowerCase().includes(text));
-  }, [query, recipients]);
+  function setScore(questionId: string, score: number) {
+    setScores((current) => ({ ...current, [questionId]: score }));
+  }
+  function goBack() {
+    setSubmitError("");
+    setStep((current) => Math.max(0, current - 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function goNext() {
+    if (currentSectionComplete) {
+      setSubmitError("");
+      setStep((current) => Math.min(sections.length, current + 1));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+  function startNextEvaluation() {
+    setLatest(null);
+    setSelectedRecipientId("");
+    setScores({});
+    setComment("");
+    setSubmitError("");
+    setStep(0);
+  }
 
-  const categoryCompletion = useMemo(() => {
-    return categories.map((cat) => {
-      const catQuestions = activeQuestions.filter((q) => q.categoryId === cat.id);
-      const done = catQuestions.filter((q) => scores[q.id]).length;
-      return { ...cat, total: catQuestions.length, done };
-    });
-  }, [activeQuestions, categories, scores]);
+  function returnToSetup() {
+    setLatest(null);
+    setSelectedBu("");
+    setSelectedRecipientId("");
+    setSelectedTopicId("");
+    setEvaluationRound("");
+    setScores({});
+    setComment("");
+    setSubmitError("");
+    setStep(0);
+  }
 
   async function submit() {
-    const round = Number(evaluationRound);
-    if (!selectedRecipient || !selectedTopic || !Number.isInteger(round) || round < 1 || submitting) return;
+    if (
+      !selectedRecipient ||
+      !selectedTopic ||
+      !Number.isInteger(round) ||
+      round < 1 ||
+      answeredCount !== activeQuestions.length ||
+      submitting
+    )
+      return;
     setSubmitError("");
     setSubmitting(true);
     try {
@@ -81,334 +197,529 @@ export default function EvaluatorPage() {
           topicId: selectedTopic.id,
           evaluationRound: round,
           comment,
-          scores
-        })
+          scores,
+        }),
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) {
         setSubmitError(result.error ?? "Unable to save evaluation.");
         return;
       }
-      setLatest(result);
-      setScores({});
-      setComment("");
-      setSelectedRecipientId("");
-      setSelectedTopicId("");
-      setEvaluationRound("");
-      document.getElementById("result")?.scrollIntoView({ behavior: "smooth" });
+      setLatest(result as EvaluationResult);
     } catch {
-      setSubmitError("Unable to save evaluation.");
+      setSubmitError(
+        "Unable to connect to the evaluation service. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
+  if (latest)
+    return (
+      <EvaluationResultScreen
+        result={latest}
+        onBack={returnToSetup}
+        onNext={startNextEvaluation}
+      />
+    );
+
   return (
-    <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)] xl:gap-6">
-      <aside className="hidden lg:block">
-        <div className="sticky top-20 space-y-4">
-          <Card className="p-4">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm font-bold">{t.evaluationMap}</p>
-              <Badge tone={progress === 100 ? "success" : "neutral"}>{progress}%</Badge>
-            </div>
-            <div className="mb-4 h-2 rounded-full bg-slate-200">
-              <div className="h-2 rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
-            </div>
-            <nav className="space-y-1.5">
-              {categoryCompletion.map((cat) => (
-                <a key={cat.id} href={`#${cat.id}`} className="group flex items-center justify-between rounded-2xl px-3 py-2.5 text-sm transition hover:bg-white">
-                  <span className="line-clamp-1 font-semibold text-slate-700">{cat.categoryName}</span>
-                  <span className="text-xs font-bold text-slate-400 group-hover:text-primary">{cat.done}/{cat.total}</span>
-                </a>
-              ))}
-            </nav>
-          </Card>
+    <section className="mx-auto max-w-5xl space-y-6">
+      <Card className="overflow-hidden p-0">
+        <div className="border-b border-slate-100 bg-slate-950 px-5 py-6 text-white md:px-8">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-300">
+            {t.newEvaluation}
+          </p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">
+            {t.title}
+          </h2>
+          <p className="mt-2 text-sm text-slate-300">
+            Complete one section at a time, then review before submitting.
+          </p>
         </div>
-      </aside>
-
-      <section className="space-y-6">
-        <Card className="relative overflow-hidden p-5 md:p-6">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-sky-400 to-emerald-400" />
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-primary">
-                <Sparkles className="h-3.5 w-3.5" />
-                {t.newEvaluation}
-              </div>
-              <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">{t.title}</h2>
-            </div>
-            <div className="flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-bold text-white shadow-2xl shadow-slate-950/20">
-              <Clock3 className="h-4 w-4 text-blue-300" />
-              {answeredCount}/{activeQuestions.length}
-            </div>
+        <div className="space-y-5 p-5 md:p-7">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <label className="space-y-2">
+              <span className="text-sm font-bold text-slate-700">BU</span>
+              <select
+                className="touch-target w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-50"
+                value={selectedBu}
+                onChange={(event) => {
+                  setSelectedBu(event.target.value);
+                  setSelectedRecipientId("");
+                  setStep(0);
+                }}
+                disabled={answeredCount > 0}
+              >
+                <option value="">All BU</option>
+                {availableBus.map((bu) => (
+                  <option key={bu} value={bu}>
+                    {bu}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-bold text-slate-700">
+                {t.selectRecipient}
+              </span>
+              <select
+                className="touch-target w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-50"
+                value={selectedRecipientId}
+                onChange={(event) => {
+                  setSelectedRecipientId(event.target.value);
+                  setStep(0);
+                }}
+                disabled={answeredCount > 0}
+              >
+                <option value="">{t.selectRecipient}</option>
+                {visibleRecipients.map((recipient) => (
+                  <option key={recipient.id} value={recipient.id}>
+                    {recipient.employeeId} - {recipient.recipientName} (
+                    {recipient.buCode ?? "-"} / {recipient.bu})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-bold text-slate-700">
+                {t.selectTopic}
+              </span>
+              <select
+                className="touch-target w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-50"
+                value={selectedTopicId}
+                onChange={(event) => {
+                  setSelectedTopicId(event.target.value);
+                  setStep(0);
+                }}
+                disabled={answeredCount > 0}
+              >
+                <option value="">{t.selectTopic}</option>
+                {topics
+                  .filter((topic) => topic.status === "Active")
+                  .map((topic) => (
+                    <option key={topic.id} value={topic.id}>
+                      {topic.topicName}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-bold text-slate-700">
+                {t.round}
+              </span>
+              <Input
+                type="number"
+                min="1"
+                max="99"
+                step="1"
+                className="border-slate-200 bg-white"
+                value={evaluationRound}
+                onChange={(event) => {
+                  setEvaluationRound(event.target.value);
+                  setStep(0);
+                }}
+                disabled={answeredCount > 0}
+              />
+            </label>
           </div>
+          {answeredCount > 0 && (
+            <p className="text-xs font-semibold text-slate-500">
+              The recipient, topic, and round are locked after scoring begins.
+              Select “Evaluate next” to begin a new form.
+            </p>
+          )}
+        </div>
+      </Card>
+      {loading && (
+        <Card className="p-8 text-center text-sm font-semibold text-slate-500">
+          Loading evaluation form…
         </Card>
-
-        <Card className="p-0">
-          <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_280px]">
-            <div className="space-y-6 p-5 md:p-7">
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label className="space-y-2">
-                  <span className="text-sm font-bold text-slate-700">{t.search}</span>
-                  <div className="relative">
-                    <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-                    <Input className="rounded-2xl border-white/80 bg-white/90 pl-11 shadow-inner" placeholder={`${t.employeeId}, ${t.recipient}, ${t.department}, BU`} value={query} onChange={(e) => setQuery(e.target.value)} />
-                  </div>
-                </label>
-                <label className="space-y-2">
-                  <span className="text-sm font-bold text-slate-700">{t.selectRecipient}</span>
-                  <select
-                    className="touch-target w-full rounded-2xl border border-white/80 bg-white/90 px-4 text-sm font-semibold shadow-inner outline-none focus:ring-2 focus:ring-primary"
-                    value={selectedRecipientId}
-                    onChange={(e) => setSelectedRecipientId(e.target.value)}
-                  >
-                    <option value="">{t.selectRecipient}</option>
-                    {filteredRecipients.map((recipient) => (
-                      <option key={recipient.id} value={recipient.id}>{recipient.employeeId} - {recipient.recipientName} ({recipient.bu} / {recipient.buCode ?? "-"})</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-2">
-                  <span className="text-sm font-bold text-slate-700">{t.selectTopic}</span>
-                  <select className="touch-target w-full rounded-2xl border border-white/80 bg-white/90 px-4 text-sm font-semibold shadow-inner outline-none focus:ring-2 focus:ring-primary" value={selectedTopicId} onChange={(e) => setSelectedTopicId(e.target.value)}>
-                    <option value="">{t.selectTopic}</option>
-                    {topics.filter((topic) => topic.status === "Active").map((topic) => <option key={topic.id} value={topic.id}>{topic.topicName}</option>)}
-                  </select>
-                </label>
-                <label className="space-y-2">
-                  <span className="text-sm font-bold text-slate-700">{t.round}</span>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="99"
-                    step="1"
-                    className="rounded-2xl border-white/80 bg-white/90 shadow-inner"
-                    placeholder={t.round}
-                    value={evaluationRound}
-                    onChange={(event) => setEvaluationRound(event.target.value)}
-                  />
-                </label>
-              </div>
-
-              {submitError && <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-danger">{submitError}</p>}
-
-              <div className="space-y-5">
-                {categories.map((cat) => {
-                  const catQuestions = activeQuestions.filter((q) => q.categoryId === cat.id);
-                  const done = catQuestions.filter((q) => scores[q.id]).length;
-                  return (
-                    <section key={cat.id} id={cat.id} className="scroll-mt-28 rounded-[28px] border border-white/80 bg-white/72 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.06)] backdrop-blur">
-                      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-black tracking-tight">{cat.categoryName}</h3>
-                            {cat.isCritical && <Badge tone="warning">{t.critical}</Badge>}
-                          </div>
-                          <p className="mt-1 text-sm text-slate-500">{done} {t.of} {catQuestions.length} {t.complete.toLowerCase()}</p>
-                        </div>
-                        <div className="h-2 w-28 rounded-full bg-slate-200">
-                          <div className="h-2 rounded-full bg-slate-950 transition-all" style={{ width: `${catQuestions.length ? (done / catQuestions.length) * 100 : 0}%` }} />
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        {catQuestions.map((question, idx) => (
-                          <QuestionRow
-                            key={question.id}
-                            index={idx + 1}
-                            question={question}
-                            score={scores[question.id]}
-                            onScore={(score) => setScores({ ...scores, [question.id]: score })}
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
-
-              <label className="block space-y-2">
-                <span className="text-sm font-bold text-slate-700">{t.additionalComment}</span>
-                <textarea
-                  className="min-h-32 w-full rounded-[24px] border border-white/80 bg-white/85 p-4 text-sm leading-6 shadow-inner outline-none focus:ring-2 focus:ring-primary"
-                  placeholder={t.commentPlaceholder}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                />
-              </label>
-            </div>
-
-            <aside className="border-t border-white/70 bg-white/55 p-5 backdrop-blur-xl xl:border-l xl:border-t-0">
-              <div className="sticky top-20 space-y-4">
-                <div className="rounded-[28px] bg-slate-950 p-5 text-white shadow-2xl shadow-slate-950/25">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">{t.liveStatus}</p>
-                  <div className="mt-4 flex items-end justify-between">
-                    <div>
-                      <p className="text-5xl font-black tracking-tight">{progress}%</p>
-                      <p className="mt-1 text-sm text-slate-300">{t.progress}</p>
-                    </div>
-                    <ChevronRight className="h-6 w-6 text-blue-300" />
-                  </div>
-                  <div className="mt-5 h-2 rounded-full bg-white/15">
-                    <div className="h-2 rounded-full bg-blue-400 transition-all" style={{ width: `${progress}%` }} />
-                  </div>
-                </div>
-
-                {selectedRecipient ? (
-                  <div className="rounded-[28px] border border-white/80 bg-white/80 p-5">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">{t.recipient}</p>
-                    <h3 className="mt-3 text-xl font-black">{selectedRecipient.recipientName}</h3>
-                    <p className="mt-1 text-sm text-slate-500">{selectedRecipient.employeeId} · {t.department}: {selectedRecipient.bu}</p>
-                    <p className="mt-1 text-sm text-slate-500">BU: {selectedRecipient.buCode ?? "-"}</p>
-                    {selectedTopic && <p className="mt-3 rounded-xl bg-blue-50 px-3 py-2 text-sm font-semibold text-primary">{selectedTopic.topicName}</p>}
-                    {evaluationRound && <p className="mt-2 text-sm font-semibold text-slate-500">{t.round}: {evaluationRound}</p>}
-                    <Badge tone={selectedRecipient.status === "Active" ? "success" : "danger"}>{selectedRecipient.status}</Badge>
-                  </div>
-                ) : (
-                  <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/60 p-5 text-sm font-semibold text-slate-500">
-                    {t.selectRecipient}
+      )}
+      {loadError && (
+        <p
+          role="alert"
+          className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-danger"
+        >
+          {loadError}
+        </p>
+      )}
+      {submitError && (
+        <p
+          role="alert"
+          className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-danger"
+        >
+          {submitError}
+        </p>
+      )}
+      {!loading && !loadError && !readyToEvaluate && (
+        <Card className="p-8 text-center">
+          <ClipboardCheck className="mx-auto h-10 w-10 text-primary" />
+          <h3 className="mt-4 text-xl font-black">Set up the evaluation</h3>
+          <p className="mt-2 text-sm text-slate-500">
+            Select the recipient, evaluation topic, and round to begin.
+          </p>
+        </Card>
+      )}
+      {!loading && !loadError && readyToEvaluate && currentSection && (
+        <Card className="overflow-hidden p-0">
+          <div className="border-b border-slate-100 px-5 py-5 md:px-7">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-primary">
+                  Section {step + 1} of {sections.length}
+                </p>
+                <h3 className="mt-1 text-2xl font-black tracking-tight">
+                  {currentSection.categoryName}
+                </h3>
+                {currentSection.isCritical && (
+                  <div className="mt-2">
+                    <Badge tone="warning">{t.critical}</Badge>
                   </div>
                 )}
-
-                <Button
-                  className="w-full"
-                  disabled={!selectedRecipient || !selectedTopic || !Number.isInteger(Number(evaluationRound)) || Number(evaluationRound) < 1 || answeredCount < activeQuestions.length || submitting}
-                  onClick={submit}
-                >
-                  {submitting ? t.submitting : t.submit}
-                </Button>
-
-                {/* Mobile progress bar */}
-                <div className="lg:hidden">
-                  <div className="mb-2 text-xs font-bold text-slate-500">{t.evaluationMap}</div>
-                  {categoryCompletion.map((cat) => (
-                    <a key={cat.id} href={`#${cat.id}`} className="flex items-center justify-between py-1.5 text-xs font-semibold text-slate-600">
-                      <span className="line-clamp-1">{cat.categoryName}</span>
-                      <span>{cat.done}/{cat.total}</span>
-                    </a>
-                  ))}
-                </div>
               </div>
-            </aside>
+              <p className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-bold text-slate-600">
+                {answeredCount}/{activeQuestions.length} · {progress}%
+              </p>
+            </div>
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+          <div className="space-y-5 p-5 md:p-7">
+            {currentSection.questions.map((question, index) => (
+              <CriterionQuestion
+                key={question.id}
+                index={index + 1}
+                question={question}
+                score={scores[question.id]}
+                onScore={(score) => setScore(question.id, score)}
+              />
+            ))}
+            <WizardActions
+              canGoNext={currentSectionComplete}
+              canGoBack={step > 0}
+              onBack={goBack}
+              onNext={goNext}
+            />
           </div>
         </Card>
+      )}
+      {!loading && !loadError && readyToEvaluate && isReviewStep && (
+        <Card className="overflow-hidden p-0">
+          <div className="border-b border-slate-100 px-5 py-6 md:px-7">
+            <p className="text-sm font-bold text-primary">Review</p>
+            <h3 className="mt-1 text-2xl font-black tracking-tight">
+              Ready to submit
+            </h3>
+            <p className="mt-2 text-sm text-slate-500">
+              All {activeQuestions.length} questions have been scored. Add a
+              comment if needed.
+            </p>
+          </div>
+          <div className="space-y-5 p-5 md:p-7">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {sections.map((section) => (
+                <div
+                  key={section.id}
+                  className="rounded-2xl border border-slate-200 bg-white p-4"
+                >
+                  <p className="font-bold text-slate-800">
+                    {section.categoryName}
+                  </p>
+                  <p className="mt-1 text-sm text-emerald-600">
+                    {
+                      section.questions.filter(
+                        (question) => scores[question.id],
+                      ).length
+                    }
+                    /{section.questions.length} complete
+                  </p>
+                </div>
+              ))}
+            </div>
+            <label className="block space-y-2">
+              <span className="text-sm font-bold text-slate-700">
+                {t.additionalComment}
+              </span>
+              <textarea
+                className="min-h-32 w-full rounded-[24px] border border-slate-200 bg-white p-4 text-sm leading-6 outline-none focus:ring-2 focus:ring-primary"
+                placeholder={t.commentPlaceholder}
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+              />
+            </label>
+            <div className="flex flex-wrap justify-between gap-3 border-t border-slate-100 pt-5">
+              <Button
+                type="button"
+                className="bg-slate-100 text-slate-700 shadow-none hover:bg-slate-200"
+                onClick={goBack}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <Button type="button" disabled={submitting} onClick={submit}>
+                {submitting ? t.submitting : t.submit}
+                <CheckCircle2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+    </section>
+  );
+}
 
-        {latest && (
-          <Card id="result" className="space-y-5 p-5 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">{t.resultReport}</p>
-                <h2 className="mt-1 text-3xl font-black tracking-tight">{latest.recipient?.recipientName}</h2>
-              </div>
-              <Badge tone={latest.result === "Pass" ? "success" : "danger"}>
-                {latest.result === "Pass" ? t.pass : t.fail}
-              </Badge>
-            </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              <ResultTile label={t.totalScore} value={`${latest.totalScore}/5`} />
-              <ResultTile label={t.percentage} value={`${latest.percentage}%`} />
-              <ResultTile label={t.date} value={latest.evaluationDate} />
-            </div>
-            <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
-              <div className="h-80 rounded-[28px] bg-white/70 p-3">
-                <ResponsiveContainer>
-                  <RadarChart data={latest.categorySummary}>
-                    <PolarGrid stroke="#dbe3ef" />
-                    <PolarAngleAxis dataKey="categoryName" tick={{ fontSize: 10, fill: "#475569" }} />
-                    <Radar dataKey="average" fill="#2563EB" fillOpacity={0.28} stroke="#2563EB" strokeWidth={2} />
-                    <Tooltip />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="space-y-2">
-                {latest.categorySummary.map((item) => (
-                  <div key={item.categoryId} className="rounded-2xl bg-white/75 p-3">
-                    <div className="mb-2 flex justify-between text-sm">
-                      <span className="font-bold">{item.categoryName}</span>
-                      <span className={cn("font-black", item.isCritical && item.average < 3 ? "text-danger" : "")}>{item.average.toFixed(2)}</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-slate-200">
-                      <div
-                        className={cn("h-2 rounded-full", item.isCritical && item.average < 3 ? "bg-danger" : "bg-primary")}
-                        style={{ width: `${(item.average / 5) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {latest.comment && (
-              <div className="rounded-2xl bg-white/75 p-4">
-                <p className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-400">{t.comment}</p>
-                <p className="text-sm leading-6 text-slate-700">{latest.comment}</p>
-              </div>
-            )}
-          </Card>
-        )}
-      </section>
+function CriterionQuestion({
+  index,
+  question,
+  score,
+  onScore,
+}: {
+  index: number;
+  question: Question;
+  score?: number;
+  onScore: (score: number) => void;
+}) {
+  const criteria = question.options.slice(0, question.maxScore || 5);
+  return (
+    <fieldset className="rounded-[24px] border border-slate-200 bg-white p-4 md:p-5">
+      <legend className="sr-only">{question.questionText}</legend>
+      <div className="flex gap-3">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-black text-white">
+          {index}
+        </span>
+        <p className="pt-1 text-sm font-bold leading-6 text-slate-800">
+          {question.questionText}
+        </p>
+      </div>
+      <div className="mt-4 space-y-2">
+        {criteria.map((criterion, index) => {
+          const value = index + 1;
+          const selected = score === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onScore(value)}
+              aria-pressed={selected}
+              className={cn(
+                "flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition",
+                selected
+                  ? "border-primary bg-blue-50 text-slate-950 shadow-[0_10px_22px_rgba(37,99,235,0.10)]"
+                  : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40",
+              )}
+            >
+              <span
+                className={cn(
+                  "grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black",
+                  selected
+                    ? "bg-primary text-white"
+                    : "bg-slate-100 text-slate-600",
+                )}
+              >
+                {value}
+              </span>
+              <span className="pt-0.5 text-sm font-medium leading-6">
+                {criterion}
+              </span>
+              {selected && (
+                <CheckCircle2 className="ml-auto mt-1 h-4 w-4 shrink-0 text-primary" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function WizardActions({
+  canGoNext,
+  canGoBack,
+  onBack,
+  onNext,
+}: {
+  canGoNext: boolean;
+  canGoBack: boolean;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap justify-between gap-3 border-t border-slate-100 pt-5">
+      <Button
+        type="button"
+        className="bg-slate-100 text-slate-700 shadow-none hover:bg-slate-200"
+        disabled={!canGoBack}
+        onClick={onBack}
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Back
+      </Button>
+      <Button type="button" disabled={!canGoNext} onClick={onNext}>
+        Next
+        <ChevronRight className="h-4 w-4" />
+      </Button>
     </div>
   );
 }
 
-function QuestionRow({ index, question, score, onScore }: { index: number; question: Question; score?: number; onScore: (score: number) => void }) {
-  const { t } = useI18n();
-  const [expanded, setExpanded] = useState(false);
-  const scoreLabels = [t.poor, t.fair, t.good, t.veryGood, t.excellent];
-
+function EvaluationResultScreen({
+  result,
+  onBack,
+  onNext,
+}: {
+  result: EvaluationResult;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [savingPng, setSavingPng] = useState(false);
+  async function savePng() {
+    const report = reportRef.current;
+    if (!report || savingPng) return;
+    setSavingPng(true);
+    let captureRoot: HTMLDivElement | undefined;
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      captureRoot = report.cloneNode(true) as HTMLDivElement;
+      captureRoot.style.position = "fixed";
+      captureRoot.style.left = "-100000px";
+      captureRoot.style.top = "0";
+      captureRoot.style.width = `${Math.ceil(report.getBoundingClientRect().width)}px`;
+      captureRoot.style.background = "#ffffff";
+      captureRoot.style.pointerEvents = "none";
+      captureRoot
+        .querySelectorAll("[data-html2canvas-ignore]")
+        .forEach((element) => element.remove());
+      document.body.appendChild(captureRoot);
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
+      const canvas = await html2canvas(captureRoot, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: captureRoot.scrollWidth,
+        height: captureRoot.scrollHeight,
+      });
+      const link = document.createElement("a");
+      link.download = `evaluation-${result.recipient?.employeeId ?? result.recipientId}-${result.evaluationDate}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } finally {
+      captureRoot?.remove();
+      setSavingPng(false);
+    }
+  }
   return (
-    <div className={cn("rounded-[24px] border p-4 transition", score ? "border-blue-200 bg-blue-50/60 shadow-[0_12px_30px_rgba(37,99,235,0.08)]" : "border-slate-200 bg-white/78")}>
-      <div className="mb-3 flex gap-3">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-black text-white">{index}</span>
-        <div className="flex-1">
-          <p className="pt-1 text-sm font-bold leading-6 text-slate-800">{question.questionText}</p>
-          {question.options.length > 0 && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="mt-1 text-xs font-semibold text-primary hover:underline"
-            >
-              {expanded ? t.hideCriteria : t.showCriteria}
-            </button>
+    <section className="mx-auto max-w-5xl space-y-5">
+      <div
+        ref={reportRef}
+        className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+      >
+        <div className="bg-slate-950 px-5 py-7 text-white md:px-8">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-300">
+            Evaluation summary
+          </p>
+          <h2 className="mt-2 text-3xl font-black tracking-tight">
+            {result.recipient?.recipientName ?? "—"}
+          </h2>
+          <p className="mt-1 text-sm text-slate-300">
+            {result.topicName} · Round {result.evaluationRound ?? "—"} ·{" "}
+            {result.evaluationDate}
+          </p>
+        </div>
+        <div className="space-y-6 p-5 md:p-8">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ResultTile
+              label="Employee ID"
+              value={result.recipient?.employeeId ?? "—"}
+            />
+            <ResultTile
+              label="Score"
+              value={`${result.totalScore.toFixed(2)} / 5`}
+            />
+            <ResultTile
+              label="Percentage"
+              value={`${result.percentage.toFixed(2)}%`}
+            />
+            <ResultTile
+              label="Result"
+              value={result.result}
+              success={result.result === "Pass"}
+            />
+          </div>
+          <EvaluationCategoryReport categories={result.categorySummary} />
+          {result.comment && (
+            <div className="rounded-2xl border border-slate-200 p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Comments
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-700">
+                {result.comment}
+              </p>
+            </div>
           )}
         </div>
       </div>
-      {expanded && question.options.length > 0 && (
-        <div className="mb-3 ml-11 space-y-1.5 rounded-2xl bg-slate-50/80 p-3">
-          {question.options.map((option, i) => (
-            <div key={i} className="flex gap-2 text-xs leading-5 text-slate-600">
-              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-slate-200 text-[10px] font-bold">{i + 1}</span>
-              <span>{option}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="grid grid-cols-5 gap-2">
-        {[1, 2, 3, 4, 5].map((value) => (
-          <button
-            key={value}
-            type="button"
-            className={cn(
-              "touch-target rounded-2xl border px-2 py-2 text-center transition",
-              score === value
-                ? "border-primary bg-primary text-white shadow-[0_14px_24px_rgba(37,99,235,0.24)]"
-                : "border-slate-200 bg-white text-slate-600 hover:border-primary hover:text-primary"
-            )}
-            onClick={() => onScore(value)}
-            aria-label={`Score ${value}: ${scoreLabels[value - 1]}`}
-          >
-            <span className="block text-lg font-black">{value}</span>
-            <span className="hidden text-[10px] font-bold uppercase tracking-wide sm:block">{scoreLabels[value - 1]}</span>
-          </button>
-        ))}
+      <div
+        className="flex flex-wrap justify-end gap-3"
+        data-html2canvas-ignore="true"
+      >
+        <Button
+          type="button"
+          className="bg-slate-100 text-slate-700 shadow-none hover:bg-slate-200"
+          onClick={onBack}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+        <Button
+          type="button"
+          className="bg-slate-950 shadow-none hover:bg-slate-800"
+          disabled={savingPng}
+          onClick={savePng}
+        >
+          <ImageDown className="h-4 w-4" />
+          {savingPng ? "Saving PNG..." : "Save PNG"}
+        </Button>
+        <Button type="button" onClick={onNext}>
+          <RotateCcw className="h-4 w-4" />
+          Evaluate next
+        </Button>
       </div>
-    </div>
+    </section>
   );
 }
 
-function ResultTile({ label, value }: { label: string; value: string }) {
+function ResultTile({
+  label,
+  value,
+  success,
+}: {
+  label: string;
+  value: string;
+  success?: boolean;
+}) {
   return (
-    <div className="rounded-[24px] bg-white/75 p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-      <p className="mt-2 text-2xl font-black tracking-tight">{value}</p>
+    <div className="rounded-[24px] border border-slate-200 bg-white p-4">
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "mt-2 text-2xl font-black tracking-tight",
+          success ? "text-emerald-500" : "text-slate-950",
+        )}
+      >
+        {value}
+      </p>
     </div>
   );
 }

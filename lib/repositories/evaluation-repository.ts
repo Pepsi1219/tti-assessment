@@ -1,4 +1,13 @@
-import type { Category, Evaluation, EvaluationDetail, EvaluationRecipient, EvaluationTopic, Question, Trainer, User } from "@/lib/types";
+import type {
+  Category,
+  Evaluation,
+  EvaluationDetail,
+  EvaluationRecipient,
+  EvaluationTopic,
+  Question,
+  Trainer,
+  User,
+} from "@/lib/types";
 
 export interface EvaluationRepository {
   getUsers(): Promise<User[]>;
@@ -16,6 +25,12 @@ export interface EvaluationRepository {
   upsertQuestion(question: Question): Promise<Question>;
   getEvaluations(): Promise<Evaluation[]>;
   getEvaluationDetails(): Promise<EvaluationDetail[]>;
-  getEvaluationDetailsByEvaluationId(evaluationIds: string[]): Promise<EvaluationDetail[]>;
-  saveEvaluation(evaluation: Evaluation, details: EvaluationDetail[]): Promise<void>;
+  getEvaluationDetailsByEvaluationId(
+    evaluationIds: string[],
+  ): Promise<EvaluationDetail[]>;
+  saveEvaluation(
+    evaluation: Evaluation,
+    details: EvaluationDetail[],
+  ): Promise<void>;
+  deleteEvaluation(id: string): Promise<void>;
 }

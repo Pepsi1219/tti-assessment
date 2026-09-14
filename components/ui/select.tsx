@@ -16,8 +16,8 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "touch-target flex w-full items-center justify-between rounded-2xl border border-white/80 bg-white/90 px-4 py-2 text-sm font-semibold shadow-inner outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50",
-      className
+      "touch-target flex w-full items-center justify-between rounded-2xl border border-white/80 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow-inner outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100",
+      className,
     )}
     {...props}
   >
@@ -37,14 +37,20 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-2xl border bg-white shadow-xl animate-in fade-in-0 zoom-in-95",
+        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-2xl border bg-white text-slate-900 shadow-xl animate-in fade-in-0 zoom-in-95 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
         position === "popper" && "translate-y-1",
-        className
+        className,
       )}
       position={position}
       {...props}
     >
-      <SelectPrimitive.Viewport className={cn("max-h-80 p-1.5", position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)]")}>
+      <SelectPrimitive.Viewport
+        className={cn(
+          "max-h-80 p-1.5",
+          position === "popper" &&
+            "w-full min-w-[var(--radix-select-trigger-width)]",
+        )}
+      >
         {children}
       </SelectPrimitive.Viewport>
     </SelectPrimitive.Content>
@@ -58,7 +64,10 @@ const SelectItem = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Item
     ref={ref}
-    className={cn("relative flex w-full cursor-pointer select-none items-center rounded-xl py-2.5 pl-3 pr-10 text-sm font-medium outline-none transition focus:bg-blue-50 focus:text-primary data-[state=checked]:bg-blue-50 data-[state=checked]:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50", className)}
+    className={cn(
+      "relative flex w-full cursor-pointer select-none items-center rounded-xl py-2.5 pl-3 pr-10 text-sm font-medium outline-none transition focus:bg-blue-50 focus:text-primary data-[state=checked]:bg-blue-50 data-[state=checked]:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-blue-950/60 dark:data-[state=checked]:bg-blue-950/60",
+      className,
+    )}
     {...props}
   >
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -69,4 +78,11 @@ const SelectItem = React.forwardRef<
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-export { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue };
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+};

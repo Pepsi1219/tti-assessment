@@ -6,6 +6,14 @@
   --background: 220 33% 98%;
   --foreground: 224 44% 8%;
   --border: 220 20% 90%;
+  color-scheme: light;
+}
+
+.dark {
+  --background: 224 47% 7%;
+  --foreground: 210 40% 98%;
+  --border: 217 33% 20%;
+  color-scheme: dark;
 }
 
 * {
@@ -15,11 +23,21 @@
 body {
   min-height: 100vh;
   background:
-    linear-gradient(115deg, rgba(37, 99, 235, 0.10), transparent 34%),
+    linear-gradient(115deg, rgba(37, 99, 235, 0.1), transparent 34%),
     linear-gradient(245deg, rgba(34, 197, 94, 0.08), transparent 38%),
     linear-gradient(135deg, #ffffff 0%, #f7f9fc 48%, #eef5ff 100%);
   color: hsl(var(--foreground));
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.dark body {
+  background:
+    linear-gradient(115deg, rgba(37, 99, 235, 0.16), transparent 34%),
+    linear-gradient(245deg, rgba(14, 116, 144, 0.12), transparent 38%),
+    linear-gradient(135deg, #020617 0%, #081122 48%, #0f172a 100%);
 }
 
 .touch-target {
@@ -29,8 +47,122 @@ body {
 .glass-panel {
   border: 1px solid rgba(255, 255, 255, 0.72);
   background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 24px 80px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(22px);
+}
+
+.dark .glass-panel {
+  border-color: rgba(51, 65, 85, 0.82);
+  background: rgba(15, 23, 42, 0.84);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(148, 163, 184, 0.08);
+}
+
+/* Legacy pages still use light utility tokens directly. These scoped mappings
+   keep every existing surface readable while the theme is selected globally. */
+.dark .bg-white,
+.dark [class~="bg-white/55"],
+.dark [class~="bg-white/60"],
+.dark [class~="bg-white/65"],
+.dark [class~="bg-white/70"],
+.dark [class~="bg-white/75"],
+.dark [class~="bg-white/80"],
+.dark [class~="bg-white/85"],
+.dark [class~="bg-white/90"],
+.dark [class~="bg-white/95"] {
+  background-color: rgb(15 23 42 / 0.94) !important;
+}
+
+.dark .bg-slate-50,
+.dark [class~="bg-slate-50/50"],
+.dark [class~="bg-slate-50/60"],
+.dark [class~="bg-slate-50/80"],
+.dark .bg-slate-100 {
+  background-color: rgb(30 41 59 / 0.9) !important;
+}
+
+.dark .bg-slate-200 {
+  background-color: rgb(51 65 85) !important;
+}
+
+.dark .bg-slate-300,
+.dark .hover\:bg-slate-300:hover {
+  background-color: rgb(71 85 105) !important;
+}
+
+.dark .bg-blue-50,
+.dark [class~="bg-blue-50/50"],
+.dark .hover\:bg-blue-50:hover {
+  background-color: rgb(23 37 84 / 0.72) !important;
+}
+
+.dark .bg-red-50,
+.dark .bg-red-100 {
+  background-color: rgb(69 10 10 / 0.72) !important;
+}
+
+.dark .bg-green-50,
+.dark .bg-green-100 {
+  background-color: rgb(5 46 22 / 0.72) !important;
+}
+
+.dark .bg-amber-50,
+.dark .bg-amber-100 {
+  background-color: rgb(69 26 3 / 0.72) !important;
+}
+
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-slate-800 {
+  color: rgb(248 250 252) !important;
+}
+
+.dark .text-slate-700,
+.dark .text-slate-600 {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .text-slate-500,
+.dark .text-slate-400 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark [class~="border-white/60"],
+.dark [class~="border-white/70"],
+.dark [class~="border-white/80"] {
+  border-color: rgb(51 65 85 / 0.9) !important;
+}
+
+.dark .border-red-100,
+.dark .border-red-200 {
+  border-color: rgb(127 29 29 / 0.9) !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  color-scheme: dark;
+}
+
+.dark .recharts-text {
+  fill: #cbd5e1 !important;
+}
+
+.dark .recharts-polar-grid-angle line,
+.dark .recharts-polar-grid-concentric path,
+.dark .recharts-cartesian-grid line {
+  stroke: #475569 !important;
+}
+
+.dark .recharts-default-tooltip {
+  border-color: #475569 !important;
+  background: #0f172a !important;
+  color: #f8fafc !important;
 }
 
 .squircle {

@@ -1,14 +1,21 @@
 "use client";
 
-import { ClipboardList, History, LogOut, Menu, ShieldCheck, X } from "lucide-react";
+import { ClipboardList, History, LogOut, Menu, X } from "lucide-react";
+import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LanguageSelector } from "@/components/language-selector";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n } from "@/lib/i18n/context";
+import logo from "@/logo.png";
 
-export default function EvaluatorLayout({ children }: { children: React.ReactNode }) {
+export default function EvaluatorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -36,7 +43,7 @@ export default function EvaluatorLayout({ children }: { children: React.ReactNod
 
   const navItems = [
     { href: "/evaluator", label: t.newEvaluation, icon: ClipboardList },
-    { href: "/evaluator/history", label: t.myEvaluations, icon: History }
+    { href: "/evaluator/history", label: t.myEvaluations, icon: History },
   ];
 
   return (
@@ -44,15 +51,29 @@ export default function EvaluatorLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-30 border-b border-white/70 bg-white/70 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <button className="lg:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <button
+              className="lg:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </button>
             <Link href="/evaluator" className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-[16px] bg-slate-950 text-white shadow-lg">
-                <ShieldCheck className="h-5 w-5" />
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-950 p-1.5 shadow-lg shadow-slate-950/20">
+                <Image
+                  src={logo}
+                  alt="Nanyang"
+                  className="h-full w-full object-contain"
+                  priority
+                />
               </div>
               <div className="hidden sm:block">
-                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Nanyang</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+                  Nanyang
+                </p>
                 <h1 className="text-sm font-bold leading-tight">{t.title}</h1>
               </div>
             </Link>
@@ -74,9 +95,12 @@ export default function EvaluatorLayout({ children }: { children: React.ReactNod
           </nav>
           <div className="flex items-center gap-3">
             <LanguageSelector />
+            <ThemeToggle />
             <div className="hidden items-center gap-2 md:flex">
               <div className="text-right">
-                <p className="text-xs font-semibold text-slate-700">{session?.user?.name}</p>
+                <p className="text-xs font-semibold text-slate-700">
+                  {session?.user?.name}
+                </p>
                 <p className="text-[10px] text-slate-400">{t.evaluator}</p>
               </div>
               <button
