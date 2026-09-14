@@ -522,7 +522,7 @@ export default function EvaluationManagementPage() {
             role="dialog"
             aria-modal="true"
             aria-label="Evaluation report"
-            className="max-h-[calc(100vh-1.5rem)] w-full max-w-6xl overflow-y-auto rounded-3xl shadow-2xl sm:max-h-[calc(100vh-3rem)]"
+            className="scrollbar-hide max-h-[calc(100vh-1.5rem)] w-full max-w-6xl overflow-y-auto rounded-3xl shadow-2xl sm:max-h-[calc(100vh-3rem)]"
           >
             <EvaluationReport
               evaluation={selected}
@@ -636,7 +636,7 @@ function EvaluationReport({
   }));
 
   return (
-    <Card className="overflow-hidden border-slate-200 bg-white p-0 shadow-xl shadow-slate-200/50">
+    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-0 shadow-xl shadow-slate-200/50">
       <div className="border-b border-slate-200 bg-slate-950 px-5 py-6 text-white md:px-8">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -659,7 +659,7 @@ function EvaluationReport({
       </div>
 
       <div className="space-y-8 p-5 md:p-8">
-        <dl className="grid gap-x-8 gap-y-4 rounded-2xl bg-slate-50 p-5 sm:grid-cols-2 xl:grid-cols-4">
+        <dl className="grid gap-x-8 gap-y-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2 xl:grid-cols-4">
           <ReportField
             label="Evaluation Recipient"
             value={evaluation.recipient?.recipientName ?? "—"}
@@ -699,12 +699,12 @@ function EvaluationReport({
           </h3>
           <div className="overflow-x-auto rounded-2xl border border-slate-200">
             <table className="w-full min-w-[720px] border-collapse text-sm">
-              <thead className="bg-slate-100 text-left text-xs uppercase tracking-wider text-slate-600">
+              <thead className="bg-white text-left text-xs uppercase tracking-wider text-slate-600">
                 <tr>
                   <th className="px-4 py-3">Evaluation Item</th>
-                  <th className="px-4 py-3 text-right">Obtained Score</th>
-                  <th className="px-4 py-3 text-right">Full Score</th>
-                  <th className="px-4 py-3 text-right">Average (Max 5)</th>
+                  <th className="px-4 py-3 text-center">Obtained Score</th>
+                  <th className="px-4 py-3 text-center">Full Score</th>
+                  <th className="px-4 py-3 text-center">Average (Max 5)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -714,21 +714,25 @@ function EvaluationReport({
                   return (
                     <tr
                       key={category.categoryId}
-                      className={criticalFailure ? "bg-red-50/70" : "bg-white"}
+                      className={
+                        criticalFailure
+                          ? "bg-red-50/70 dark:bg-slate-950"
+                          : "bg-white dark:bg-slate-950"
+                      }
                     >
                       <td className="px-4 py-3 font-semibold text-slate-800">
                         <span className="mr-3 text-slate-400">{index + 1}</span>
                         {getReportCategoryName(category)}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
+                      <td className="px-4 py-3 text-center tabular-nums">
                         {category.actualScore.toFixed(1)}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
+                      <td className="px-4 py-3 text-center tabular-nums">
                         {category.fullScore.toFixed(0)}
                       </td>
                       <td
                         className={cn(
-                          "px-4 py-3 text-right font-black tabular-nums",
+                          "px-4 py-3 text-center font-black tabular-nums",
                           criticalFailure && "text-red-600",
                         )}
                       >
@@ -738,21 +742,21 @@ function EvaluationReport({
                   );
                 })}
               </tbody>
-              <tfoot className="border-t-2 border-slate-300 bg-slate-50 font-black text-slate-950">
+              <tfoot className="border-t-2 border-slate-300 bg-white font-black text-slate-950">
                 <tr>
                   <td className="px-4 py-3">Total</td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3 text-center tabular-nums">
                     {totalActual.toFixed(1)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">
+                  <td className="px-4 py-3 text-center tabular-nums">
                     {totalFull.toFixed(0)}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">—</td>
+                  <td className="px-4 py-3 text-center tabular-nums">—</td>
                 </tr>
                 <tr className="border-t border-slate-200">
                   <td className="px-4 py-3">Overall Average</td>
                   <td colSpan={2} />
-                  <td className="px-4 py-3 text-right text-lg tabular-nums">
+                  <td className="px-4 py-3 text-center text-lg tabular-nums">
                     {evaluation.totalScore.toFixed(2)} / 5
                   </td>
                 </tr>
@@ -810,7 +814,7 @@ function EvaluationReport({
             </section>
           </div>
 
-          <section className="rounded-2xl bg-slate-50 p-4">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4">
             <h3 className="text-center text-lg font-black text-slate-950">
               Competency Profile
             </h3>
@@ -844,7 +848,7 @@ function EvaluationReport({
           </section>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 

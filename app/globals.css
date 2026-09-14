@@ -44,6 +44,16 @@ body {
   min-height: 44px;
 }
 
+/* Preserve touch/wheel scrolling while removing the distracting scrollbar UI. */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 .glass-panel {
   border: 1px solid rgba(255, 255, 255, 0.72);
   background: rgba(255, 255, 255, 0.78);
