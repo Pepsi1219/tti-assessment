@@ -49,9 +49,13 @@ export default function EvaluatorLayout({
   return (
     <div className="min-h-screen text-slate-950">
       <header className="sticky top-0 z-30 border-b border-white/70 bg-white/70 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex w-full min-w-0 max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <button
+              type="button"
+              aria-label={
+                mobileMenuOpen ? "Close navigation" : "Open navigation"
+              }
               className="lg:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
@@ -139,7 +143,9 @@ export default function EvaluatorLayout({
           </nav>
         )}
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+      <main className="mx-auto w-full min-w-0 max-w-7xl overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
+        {children}
+      </main>
     </div>
   );
 }

@@ -15,6 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EvaluationCategoryReport } from "@/components/evaluation-category-report";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import type {
@@ -225,7 +232,7 @@ export default function EvaluatorPage() {
     );
 
   return (
-    <section className="mx-auto max-w-5xl space-y-6">
+    <section className="mx-auto min-w-0 max-w-5xl space-y-6">
       <Card className="overflow-hidden p-0">
         <div className="border-b border-slate-100 bg-slate-950 px-5 py-6 text-white md:px-8">
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-300">
@@ -234,76 +241,124 @@ export default function EvaluatorPage() {
           <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">
             {t.title}
           </h2>
-          <p className="mt-2 text-sm text-slate-300">
-            Complete one section at a time, then review before submitting.
-          </p>
         </div>
         <div className="space-y-5 p-5 md:p-7">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <label className="space-y-2">
               <span className="text-sm font-bold text-slate-700">BU</span>
-              <select
-                className="touch-target w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-50"
-                value={selectedBu}
-                onChange={(event) => {
-                  setSelectedBu(event.target.value);
+              <Select
+                value={selectedBu || "all"}
+                onValueChange={(value) => {
+                  setSelectedBu(value === "all" ? "" : value);
                   setSelectedRecipientId("");
                   setStep(0);
                 }}
                 disabled={answeredCount > 0}
               >
-                <option value="">All BU</option>
-                {availableBus.map((bu) => (
-                  <option key={bu} value={bu}>
-                    {bu}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  aria-label="BU"
+                  className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-sm shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100 dark:bg-slate-900"
+                >
+                  <SelectValue className="truncate" placeholder="All BU" />
+                </SelectTrigger>
+                <SelectContent
+                  position="popper"
+                  sideOffset={8}
+                  className="rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl"
+                >
+                  <SelectItem value="all" className="py-3 text-[15px]">
+                    All BU
+                  </SelectItem>
+                  {availableBus.map((bu) => (
+                    <SelectItem
+                      key={bu}
+                      value={bu}
+                      className="py-3 text-[15px]"
+                    >
+                      {bu}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
             <label className="space-y-2">
               <span className="text-sm font-bold text-slate-700">
                 {t.selectRecipient}
               </span>
-              <select
-                className="touch-target w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-50"
+              <Select
                 value={selectedRecipientId}
-                onChange={(event) => {
-                  setSelectedRecipientId(event.target.value);
+                onValueChange={(value) => {
+                  setSelectedRecipientId(value);
                   setStep(0);
                 }}
                 disabled={answeredCount > 0}
               >
-                <option value="">{t.selectRecipient}</option>
-                {visibleRecipients.map((recipient) => (
-                  <option key={recipient.id} value={recipient.id}>
-                    {recipient.employeeId} - {recipient.recipientName} (
-                    {recipient.buCode ?? "-"} / {recipient.bu})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  aria-label={t.selectRecipient}
+                  className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-sm shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100 dark:bg-slate-900"
+                >
+                  <SelectValue
+                    className="truncate"
+                    placeholder={t.selectRecipient}
+                  />
+                </SelectTrigger>
+                <SelectContent
+                  position="popper"
+                  sideOffset={8}
+                  className="rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl"
+                >
+                  {visibleRecipients.map((recipient) => (
+                    <SelectItem
+                      key={recipient.id}
+                      value={recipient.id}
+                      className="py-3 text-[15px]"
+                    >
+                      {recipient.employeeId} - {recipient.recipientName} (
+                      {recipient.buCode ?? "-"} / {recipient.bu})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
             <label className="space-y-2">
               <span className="text-sm font-bold text-slate-700">
                 {t.selectTopic}
               </span>
-              <select
-                className="touch-target w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:bg-slate-50"
+              <Select
                 value={selectedTopicId}
-                onChange={(event) => {
-                  setSelectedTopicId(event.target.value);
+                onValueChange={(value) => {
+                  setSelectedTopicId(value);
                   setStep(0);
                 }}
                 disabled={answeredCount > 0}
               >
-                <option value="">{t.selectTopic}</option>
-                {topics
-                  .filter((topic) => topic.status === "Active")
-                  .map((topic) => (
-                    <option key={topic.id} value={topic.id}>
-                      {topic.topicName}
-                    </option>
-                  ))}
-              </select>
+                <SelectTrigger
+                  aria-label={t.selectTopic}
+                  className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-sm shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100 dark:bg-slate-900"
+                >
+                  <SelectValue
+                    className="truncate"
+                    placeholder={t.selectTopic}
+                  />
+                </SelectTrigger>
+                <SelectContent
+                  position="popper"
+                  sideOffset={8}
+                  className="rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl"
+                >
+                  {topics
+                    .filter((topic) => topic.status === "Active")
+                    .map((topic) => (
+                      <SelectItem
+                        key={topic.id}
+                        value={topic.id}
+                        className="py-3 text-[15px]"
+                      >
+                        {topic.topicName}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </label>
             <label className="space-y-2">
               <span className="text-sm font-bold text-slate-700">
