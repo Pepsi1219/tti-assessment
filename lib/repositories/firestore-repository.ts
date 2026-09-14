@@ -179,7 +179,10 @@ export class FirestoreEvaluationRepository implements EvaluationRepository {
   }
 
   async getEvaluationDetails(): Promise<EvaluationDetail[]> {
-    return this.getAll<EvaluationDetail>(collectionNames.evaluationDetails);
+    return this.getCachedAll<EvaluationDetail>(
+      collectionNames.evaluationDetails,
+      EVALUATION_CACHE_TTL_MS,
+    );
   }
 
   async saveEvaluation(

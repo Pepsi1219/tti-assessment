@@ -9,7 +9,7 @@ export const trainerPayloadSchema = z.object({
   trainerName: z.string().trim().min(1).max(200),
   bu: z.string().trim().min(1).max(128),
   status: z.enum(["Active", "Inactive"]).optional(),
-  createdAt: z.string().datetime().optional()
+  createdAt: z.string().datetime().optional(),
 });
 
 export const questionPayloadSchema = z.object({
@@ -19,7 +19,7 @@ export const questionPayloadSchema = z.object({
   options: z.array(z.string().trim().min(1).max(1_000)).max(10).default([]),
   weight: z.number().finite().min(0.01).max(100),
   maxScore: z.number().int().min(1).max(5),
-  isActive: z.boolean().default(true)
+  isActive: z.boolean().default(true),
 });
 
 export const evaluationPayloadSchema = z.object({
@@ -27,7 +27,9 @@ export const evaluationPayloadSchema = z.object({
   topicId: identifier,
   evaluationRound: z.number().int().min(1).max(99),
   comment: z.string().trim().max(5_000).default(""),
-  scores: z.record(z.number().int().min(1).max(5))
+  scores: z
+    .record(z.number().int().min(1).max(5))
+    .refine((scores) => Object.keys(scores).length <= 100, "Too many scores"),
 });
 
 export const recipientPayloadSchema = z.object({
@@ -36,14 +38,14 @@ export const recipientPayloadSchema = z.object({
   recipientName: z.string().trim().min(1).max(200),
   bu: z.string().trim().min(1).max(128),
   buCode: businessUnitCode,
-  status: z.enum(["Active", "Inactive"]).optional()
+  status: z.enum(["Active", "Inactive"]).optional(),
 });
 
 export const topicPayloadSchema = z.object({
   id: identifier.optional(),
   topicName: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2_000).default(""),
-  status: z.enum(["Active", "Inactive"]).optional()
+  status: z.enum(["Active", "Inactive"]).optional(),
 });
 
 export const evaluatorPayloadSchema = z.object({
@@ -51,5 +53,5 @@ export const evaluatorPayloadSchema = z.object({
   employeeId: z.string().trim().min(1).max(64),
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().email().max(320),
-  status: z.enum(["Active", "Inactive"]).optional()
+  status: z.enum(["Active", "Inactive"]).optional(),
 });

@@ -7,7 +7,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Credentials({
       name: "Employee ID",
       credentials: {
-        employeeId: { label: "Employee ID", type: "text" }
+        employeeId: { label: "Employee ID", type: "text" },
       },
       async authorize(credentials) {
         const employeeId = credentials?.employeeId as string | undefined;
@@ -15,7 +15,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const users = await getRepository().getUsers();
         const user = users.find(
-          (u) => u.employeeId.toLowerCase() === employeeId.toLowerCase() && u.status !== "Inactive"
+          (u) =>
+            u.employeeId.toLowerCase() === employeeId.toLowerCase() &&
+            u.status !== "Inactive",
         );
         if (!user) return null;
 
@@ -24,10 +26,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           email: user.email,
           role: user.role,
-          employeeId: user.employeeId
+          employeeId: user.employeeId,
         };
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
@@ -43,15 +45,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         user: {
           ...session.user,
           role: token.role as string,
-          employeeId: token.employeeId as string
-        }
+          employeeId: token.employeeId as string,
+        },
       };
-    }
+    },
   },
   pages: {
-    signIn: "/login"
+    signIn: "/login",
   },
   session: {
-    strategy: "jwt"
-  }
+    strategy: "jwt",
+    // Bound session replay and avoid keeping privileged sessions alive forever.
+    maxAge: 8 * 60 * 60,
+    updateAge: 60 * 60,
+  },
 });
