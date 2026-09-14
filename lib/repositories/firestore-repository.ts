@@ -212,6 +212,13 @@ export class FirestoreEvaluationRepository implements EvaluationRepository {
     );
   }
 
+  async updateEvaluation(evaluation: Evaluation): Promise<void> {
+    await this.collection<Evaluation>(collectionNames.evaluations)
+      .doc(evaluation.id)
+      .set(evaluation);
+    this.invalidateCache(collectionNames.evaluations);
+  }
+
   async deleteEvaluation(id: string): Promise<void> {
     const db = getFirestoreDb();
     const details = await this.collection<EvaluationDetail>(

@@ -113,6 +113,12 @@ export class InMemoryEvaluationRepository implements EvaluationRepository {
     evaluationDetails.push(...details);
   }
 
+  async updateEvaluation(evaluation: Evaluation) {
+    const index = evaluations.findIndex((item) => item.id === evaluation.id);
+    if (index < 0) throw new Error("Evaluation not found");
+    evaluations[index] = evaluation;
+  }
+
   async deleteEvaluation(id: string) {
     const evaluationIndex = evaluations.findIndex(
       (evaluation) => evaluation.id === id,

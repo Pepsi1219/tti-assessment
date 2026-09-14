@@ -1,10 +1,12 @@
 "use client";
 
-import { Award, Eye, FileText, ImageDown, Users, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Check, Eye, FileText, ImageDown, Users, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { EvaluationCategoryReport } from "@/components/evaluation-category-report";
+import { Input } from "@/components/ui/input";
+import { WrappedRadarTick } from "@/components/evaluation-category-report";
 import {
   Table,
   TableBody,
@@ -15,6 +17,19 @@ import {
 } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n/context";
 import { useEscapeKey } from "@/lib/hooks/use-escape-key";
+import {
+  getPassingCriteria,
+  getReportCategoryName,
+} from "@/lib/reports/evaluation-report";
+import {
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 import { cn } from "@/lib/utils";
 import type { EvaluationSummary } from "@/lib/types";
 
@@ -22,8 +37,65 @@ export default function EvaluationSummariesPage() {
   const { t } = useI18n();
   const [summaries, setSummaries] = useState<EvaluationSummary[]>([]);
   const [selected, setSelected] = useState<EvaluationSummary | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [comparisonOpen, setComparisonOpen] = useState(false);
+  const [filterEmployeeId, setFilterEmployeeId] = useState("");
+  const [filterBuCode, setFilterBuCode] = useState("all");
+  const [filterDepartment, setFilterDepartment] = useState("all");
+  const [filterCourse, setFilterCourse] = useState("all");
+  const [filterYear, setFilterYear] = useState("all");
+  const [filterResult, setFilterResult] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const filterOptions = useMemo(() => {
+    const unique = (values: Array<string | undefined>) =>
+      Array.from(
+        new Set(values.filter((value): value is string => Boolean(value))),
+      ).sort();
+
+    return {
+      buCodes: unique(summaries.map((summary) => summary.buCode)),
+      departments: unique(summaries.map((summary) => summary.bu)),
+      courses: unique(summaries.map((summary) => summary.topicName)),
+      years: unique(summaries.map((summary) => summary.evaluationYear))
+        .sort()
+        .reverse(),
+    };
+  }, [summaries]);
+
+  const filteredSummaries = useMemo(
+    () =>
+      summaries.filter((summary) => {
+        if (
+          filterEmployeeId &&
+          !(summary.recipient?.employeeId ?? "")
+            .toLowerCase()
+            .includes(filterEmployeeId.trim().toLowerCase())
+        )
+          return false;
+        if (filterBuCode !== "all" && summary.buCode !== filterBuCode)
+          return false;
+        if (filterDepartment !== "all" && summary.bu !== filterDepartment)
+          return false;
+        if (filterCourse !== "all" && summary.topicName !== filterCourse)
+          return false;
+        if (filterYear !== "all" && summary.evaluationYear !== filterYear)
+          return false;
+        if (filterResult !== "all" && summary.result !== filterResult)
+          return false;
+        return true;
+      }),
+    [
+      summaries,
+      filterEmployeeId,
+      filterBuCode,
+      filterDepartment,
+      filterCourse,
+      filterYear,
+      filterResult,
+    ],
+  );
 
   async function exportSummaryPdf(summary: EvaluationSummary) {
     const response = await fetch(
@@ -61,7 +133,7 @@ export default function EvaluationSummariesPage() {
   }, []);
 
   useEffect(() => {
-    if (!selected) return;
+    if (!selected && !comparisonOpen) return;
     const previousOverflow = document.body.style.overflow;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSelected(null);
@@ -72,7 +144,35 @@ export default function EvaluationSummariesPage() {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selected]);
+  }, [selected, comparisonOpen]);
+
+  const selectedSummaries = summaries.filter((summary) =>
+    selectedIds.has(summary.id),
+  );
+  const allFilteredSelected =
+    filteredSummaries.length > 0 &&
+    filteredSummaries.every((summary) => selectedIds.has(summary.id));
+
+  function toggleSummary(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAllFiltered() {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allFilteredSelected) {
+        filteredSummaries.forEach((summary) => next.delete(summary.id));
+      } else {
+        filteredSummaries.forEach((summary) => next.add(summary.id));
+      }
+      return next;
+    });
+  }
 
   if (loading) {
     return (
@@ -101,9 +201,105 @@ export default function EvaluationSummariesPage() {
         </Card>
       ) : (
         <Card className="p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-slate-500">
+              Selected {selectedIds.size} item
+              {selectedIds.size === 1 ? "" : "s"}
+            </p>
+            <Button
+              type="button"
+              disabled={selectedIds.size === 0}
+              onClick={() => setComparisonOpen(true)}
+            >
+              <Eye className="h-4 w-4" />
+              View selected results
+            </Button>
+          </div>
+          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <Input
+              className="rounded-2xl"
+              placeholder={t.employeeId}
+              value={filterEmployeeId}
+              onChange={(event) => setFilterEmployeeId(event.target.value)}
+            />
+            <select
+              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              value={filterBuCode}
+              onChange={(event) => setFilterBuCode(event.target.value)}
+            >
+              <option value="all">{t.all} BU</option>
+              {filterOptions.buCodes.map((buCode) => (
+                <option key={buCode} value={buCode}>
+                  {buCode}
+                </option>
+              ))}
+            </select>
+            <select
+              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              value={filterDepartment}
+              onChange={(event) => setFilterDepartment(event.target.value)}
+            >
+              <option value="all">
+                {t.all} {t.department}
+              </option>
+              {filterOptions.departments.map((department) => (
+                <option key={department} value={department}>
+                  {department}
+                </option>
+              ))}
+            </select>
+            <select
+              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              value={filterCourse}
+              onChange={(event) => setFilterCourse(event.target.value)}
+            >
+              <option value="all">
+                {t.all} {t.course}
+              </option>
+              {filterOptions.courses.map((course) => (
+                <option key={course} value={course}>
+                  {course}
+                </option>
+              ))}
+            </select>
+            <select
+              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              value={filterYear}
+              onChange={(event) => setFilterYear(event.target.value)}
+            >
+              <option value="all">
+                {t.all} {t.year}
+              </option>
+              {filterOptions.years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+            <select
+              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              value={filterResult}
+              onChange={(event) => setFilterResult(event.target.value)}
+            >
+              <option value="all">
+                {t.all} {t.result}
+              </option>
+              <option value="Pass">{t.pass}</option>
+              <option value="Fail">{t.fail}</option>
+            </select>
+          </div>
           <Table className="min-w-[1180px]">
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleAllFiltered}
+                    aria-label="Select all filtered results"
+                    className="h-4 w-4 rounded border-slate-300 accent-primary"
+                  />
+                </TableHead>
                 <TableHead>{t.employeeId}</TableHead>
                 <TableHead>{t.name}</TableHead>
                 <TableHead>BU</TableHead>
@@ -118,8 +314,17 @@ export default function EvaluationSummariesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {summaries.map((summary) => (
+              {filteredSummaries.map((summary) => (
                 <TableRow key={summary.id}>
+                  <TableCell className="text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(summary.id)}
+                      onChange={() => toggleSummary(summary.id)}
+                      aria-label={`Select ${summary.recipient?.recipientName ?? summary.recipientId}`}
+                      className="h-4 w-4 rounded border-slate-300 accent-primary"
+                    />
+                  </TableCell>
                   <TableCell className="font-bold tabular-nums">
                     {summary.recipient?.employeeId ?? "—"}
                   </TableCell>
@@ -174,6 +379,16 @@ export default function EvaluationSummariesPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredSummaries.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={12}
+                    className="py-10 text-center text-slate-400"
+                  >
+                    {t.noData}
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </Card>
@@ -181,7 +396,8 @@ export default function EvaluationSummariesPage() {
 
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 flex touch-pan-y items-start justify-center overflow-y-scroll overscroll-contain bg-slate-950/55 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+          style={{ WebkitOverflowScrolling: "touch" }}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setSelected(null);
           }}
@@ -189,7 +405,350 @@ export default function EvaluationSummariesPage() {
           <SummaryModal summary={selected} onClose={() => setSelected(null)} />
         </div>
       )}
+
+      {comparisonOpen && selectedSummaries.length > 0 && (
+        <SummaryComparisonModal
+          summaries={selectedSummaries}
+          onClose={() => setComparisonOpen(false)}
+        />
+      )}
     </div>
+  );
+}
+
+const COMPARISON_COLORS = [
+  { stroke: "#0891b2", fill: "#67e8f9" },
+  { stroke: "#9333ea", fill: "#d8b4fe" },
+  { stroke: "#2563eb", fill: "#93c5fd" },
+  { stroke: "#ea580c", fill: "#fdba74" },
+  { stroke: "#16a34a", fill: "#86efac" },
+  { stroke: "#db2777", fill: "#f9a8d4" },
+];
+
+function SummaryComparisonModal({
+  summaries,
+  onClose,
+}: {
+  summaries: EvaluationSummary[];
+  onClose: () => void;
+}) {
+  useEscapeKey(onClose);
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [isSavingPng, setIsSavingPng] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
+  async function savePng() {
+    const report = reportRef.current;
+    if (!report || isSavingPng) return;
+
+    setIsSavingPng(true);
+    let captureRoot: HTMLDivElement | undefined;
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      captureRoot = report.cloneNode(true) as HTMLDivElement;
+      captureRoot.style.position = "fixed";
+      captureRoot.style.left = "-100000px";
+      captureRoot.style.top = "0";
+      captureRoot.style.width = `${Math.ceil(report.getBoundingClientRect().width)}px`;
+      captureRoot.style.background = "#ffffff";
+      captureRoot.style.pointerEvents = "none";
+      captureRoot.dataset.exportTheme = "light";
+      captureRoot
+        .querySelectorAll("[data-html2canvas-ignore]")
+        .forEach((element) => element.remove());
+      document.body.appendChild(captureRoot);
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
+
+      const canvas = await html2canvas(captureRoot, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: captureRoot.scrollWidth,
+        height: captureRoot.scrollHeight,
+      });
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((value) => {
+          if (value) resolve(value);
+          else reject(new Error("Unable to create PNG"));
+        }, "image/png");
+      });
+      const filename = `summary-result-comparison-${new Date().toISOString().slice(0, 10)}.png`;
+      const file = new File([blob], filename, { type: "image/png" });
+      const canShareFile =
+        typeof navigator.share === "function" &&
+        (!navigator.canShare || navigator.canShare({ files: [file] }));
+
+      if (canShareFile) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: "Summary Result Comparison",
+          });
+          return;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError")
+            return;
+        }
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = filename;
+      link.href = url;
+      link.rel = "noopener";
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+    } finally {
+      captureRoot?.remove();
+      setIsSavingPng(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 touch-pan-y overflow-y-scroll overscroll-contain bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
+      style={{ WebkitOverflowScrolling: "touch" }}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div
+        ref={reportRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Selected summary results"
+        className="mx-auto min-h-0 w-full max-w-[1600px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 bg-slate-950 px-5 py-5 text-white md:px-8">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">
+              Summary Result Comparison
+            </p>
+            <h2 className="mt-1 text-2xl font-black">
+              {summaries.length} selected employees
+            </h2>
+          </div>
+          <div
+            className="flex shrink-0 items-center gap-2"
+            data-html2canvas-ignore="true"
+          >
+            <button
+              type="button"
+              onClick={() => setShowDetails((current) => !current)}
+              aria-expanded={showDetails}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/10 px-3 text-xs font-bold transition hover:bg-white/20"
+            >
+              <FileText className="h-4 w-4" />
+              {showDetails ? "Hide detail" : "Detail"}
+            </button>
+            <button
+              type="button"
+              onClick={savePng}
+              disabled={isSavingPng}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/10 px-3 text-xs font-bold transition hover:bg-white/20 disabled:cursor-wait disabled:opacity-60"
+            >
+              <ImageDown className="h-4 w-4" />
+              {isSavingPng ? "Saving..." : "Save PNG"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/10 transition hover:bg-white/20"
+              aria-label="Close comparison"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-5 bg-white p-4 md:p-6 xl:grid-cols-2 2xl:grid-cols-3">
+          {summaries.map((summary, index) => {
+            const color = COMPARISON_COLORS[index % COMPARISON_COLORS.length];
+            const radarData = summary.categorySummary.map((category) => ({
+              ...category,
+              reportName: getReportCategoryName(category),
+            }));
+            return (
+              <section
+                key={summary.id}
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+              >
+                <div className="border-b border-slate-200 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="text-xl font-black text-slate-950">
+                        {summary.recipient?.recipientName ?? "—"}
+                      </h3>
+                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                        {summary.recipient?.employeeId ?? "—"} ·{" "}
+                        {summary.buCode ?? "—"}
+                      </p>
+                    </div>
+                    <ComparisonResultStamp result={summary.result} />
+                  </div>
+                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <ComparisonField
+                      label="Score"
+                      value={`${summary.totalScore.toFixed(2)} / 5`}
+                    />
+                    <ComparisonField
+                      label="Percentage"
+                      value={`${summary.percentage.toFixed(2)}%`}
+                    />
+                    <ComparisonField label="Course" value={summary.topicName} />
+                    <ComparisonField
+                      label="Round / Year"
+                      value={`${summary.evaluationRound} / ${summary.evaluationYear}`}
+                    />
+                    <ComparisonField
+                      label="Department"
+                      value={summary.bu || "—"}
+                    />
+                    <ComparisonField
+                      label="Evaluators"
+                      value={String(summary.evaluatorCount)}
+                    />
+                  </dl>
+                </div>
+
+                <div className="h-[390px] p-3">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart
+                      data={radarData}
+                      outerRadius="58%"
+                      margin={{ top: 34, right: 56, bottom: 34, left: 56 }}
+                    >
+                      <PolarGrid stroke="#cbd5e1" />
+                      <PolarAngleAxis
+                        dataKey="reportName"
+                        tick={WrappedRadarTick}
+                      />
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, 5]}
+                        tickCount={6}
+                        tick={{ fontSize: 9, fill: "#64748b" }}
+                      />
+                      <Radar
+                        dataKey="average"
+                        fill={color.fill}
+                        fillOpacity={0.5}
+                        stroke={color.stroke}
+                        strokeWidth={2.5}
+                      />
+                      <Tooltip
+                        formatter={(value) => [
+                          Number(value).toFixed(2),
+                          "Average",
+                        ]}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {showDetails && (
+                  <div className="border-t border-slate-200 p-4">
+                    <div className="space-y-2">
+                      {summary.categorySummary.map((category) => {
+                        const criticalFailure =
+                          category.isCritical && category.average < 3;
+                        return (
+                          <div
+                            key={category.categoryId}
+                            className="flex items-center justify-between gap-3 text-xs"
+                          >
+                            <span className="font-semibold text-slate-600">
+                              {getReportCategoryName(category)}
+                            </span>
+                            <span
+                              className={cn(
+                                "font-black tabular-nums text-slate-950",
+                                criticalFailure && "text-red-600",
+                              )}
+                            >
+                              {category.average.toFixed(2)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComparisonField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        {label}
+      </dt>
+      <dd className="mt-0.5 break-words font-bold text-slate-800">{value}</dd>
+    </div>
+  );
+}
+
+function ComparisonResultStamp({ result }: { result: "Pass" | "Fail" }) {
+  const passed = result === "Pass";
+  const color = passed ? "#16a34a" : "#dc2626";
+  return (
+    <svg
+      viewBox="0 0 132 48"
+      width="132"
+      height="48"
+      className={cn(
+        "h-12 w-[132px] shrink-0 overflow-visible",
+        passed ? "-rotate-6" : "rotate-6",
+      )}
+      role="img"
+      aria-label={result}
+    >
+      <rect
+        x="3"
+        y="4"
+        width="126"
+        height="40"
+        rx="5"
+        fill="none"
+        stroke={color}
+        strokeWidth="3"
+      />
+      {passed && (
+        <>
+          <circle cx="22" cy="24" r="9" fill={color} />
+          <path
+            d="M17.5 24.2 21 27.5 26.8 20.8"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </>
+      )}
+      <text
+        x={passed ? 78 : 66}
+        y="24"
+        fill={color}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontSize="16"
+        fontWeight="900"
+        letterSpacing="1.6"
+      >
+        {passed ? "PASSED" : "FAIL"}
+      </text>
+    </svg>
   );
 }
 
@@ -219,6 +778,7 @@ function SummaryModal({
       captureRoot.style.top = "0";
       captureRoot.style.width = `${Math.ceil(report.getBoundingClientRect().width)}px`;
       captureRoot.style.background = "#ffffff";
+      captureRoot.dataset.exportTheme = "light";
       captureRoot.style.pointerEvents = "none";
       const clonedCard = captureRoot.querySelector<HTMLElement>(
         "#summary-evaluation-report",
@@ -261,20 +821,17 @@ function SummaryModal({
         role="dialog"
         aria-modal="true"
         aria-label="Summary evaluation report"
-        className="max-h-[calc(100vh-1.5rem)] w-full max-w-6xl overflow-y-auto rounded-3xl border-0 bg-white p-0 shadow-2xl sm:max-h-[calc(100vh-3rem)]"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl overscroll-contain overflow-y-auto touch-pan-y rounded-3xl border-0 bg-white p-0 shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
         <div className="flex items-start justify-between gap-4 bg-slate-950 px-5 py-6 text-white md:px-8">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-300">
-              Summary Evaluation
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">
+              Evaluation Report
             </p>
             <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">
-              {summary.recipient?.recipientName ?? "—"}
+              Nanyang Trainer Certification Evaluation Form
             </h2>
-            <p className="mt-1 text-sm text-slate-300">
-              {summary.topicName} · {summary.evaluationYear} · Round{" "}
-              {summary.evaluationRound}
-            </p>
           </div>
           <div
             className="flex shrink-0 items-center gap-2"
@@ -300,38 +857,220 @@ function SummaryModal({
           </div>
         </div>
 
-        <div className="space-y-6 bg-white p-5 md:p-8">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <SummaryTile
+        <div className="space-y-8 bg-white p-5 text-slate-950 md:p-8">
+          <dl className="grid gap-x-8 gap-y-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2 xl:grid-cols-4">
+            <ReportField
+              label="Evaluation Recipient"
+              value={summary.recipient?.recipientName ?? "—"}
+            />
+            <ReportField
               label="Employee ID"
-              value={summary.recipient?.employeeId ?? "—"}
+              value={summary.recipient?.employeeId ?? summary.recipientId}
             />
-            <SummaryTile
-              label="Evaluators"
-              value={String(summary.evaluatorCount)}
-              icon={<Users className="h-4 w-4" />}
+            <ReportField
+              label="Evaluation Topic"
+              value={summary.topicName || "—"}
             />
-            <SummaryTile
-              label="Score"
-              value={`${summary.totalScore.toFixed(2)} / 5`}
-              icon={<Award className="h-4 w-4" />}
+            <ReportField
+              label="Department / BU"
+              value={`${summary.bu || "—"}${summary.buCode ? ` / ${summary.buCode}` : ""}`}
             />
-            <SummaryTile
-              label="Percentage"
-              value={`${summary.percentage.toFixed(2)}%`}
+            <ReportField
+              label="Evaluator"
+              value={`${summary.evaluatorCount} evaluator${summary.evaluatorCount === 1 ? "" : "s"}`}
             />
-            <SummaryTile
-              label="Result"
+            <ReportField
+              label="Date"
+              value={summary.evaluations[0]?.evaluationDate ?? "—"}
+            />
+            <ReportField
+              label="Round"
+              value={String(summary.evaluationRound)}
+            />
+            <ReportField
+              label="Final Result"
               value={summary.result}
-              result={summary.result}
+              emphasize={summary.result === "Pass" ? "success" : "danger"}
             />
-          </div>
+          </dl>
 
-          <EvaluationCategoryReport
-            categories={summary.categorySummary}
-            profileTitle="Competency Profile"
-            scoresTitle="Category Scores"
-          />
+          <section>
+            <h3 className="mb-4 text-lg font-black text-slate-950">
+              Evaluation Summary
+            </h3>
+            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+              <table className="w-full border-collapse text-sm">
+                <thead className="bg-white text-left text-xs uppercase tracking-wider text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3">Evaluation Item</th>
+                    <th className="px-4 py-3 text-center">Obtained Score</th>
+                    <th className="px-4 py-3 text-center">Full Score</th>
+                    <th className="px-4 py-3 text-center">Average (Max 5)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {summary.categorySummary.map((category, index) => {
+                    const criticalFailure =
+                      category.isCritical && category.average < 3;
+                    return (
+                      <tr
+                        key={category.categoryId}
+                        className={
+                          criticalFailure ? "bg-red-50/70" : "bg-white"
+                        }
+                      >
+                        <td className="px-4 py-3 font-semibold text-slate-800">
+                          <span className="mr-3 text-slate-400">
+                            {index + 1}
+                          </span>
+                          {getReportCategoryName(category)}
+                        </td>
+                        <td className="px-4 py-3 text-center tabular-nums">
+                          {category.actualScore.toFixed(1)}
+                        </td>
+                        <td className="px-4 py-3 text-center tabular-nums">
+                          {category.fullScore.toFixed(0)}
+                        </td>
+                        <td
+                          className={cn(
+                            "px-4 py-3 text-center font-black tabular-nums",
+                            criticalFailure && "text-red-600",
+                          )}
+                        >
+                          {category.average.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="border-t-2 border-slate-300 bg-white font-black text-slate-950">
+                  <tr>
+                    <td className="px-4 py-3">Total</td>
+                    <td className="px-4 py-3 text-center tabular-nums">
+                      {summary.categorySummary
+                        .reduce(
+                          (total, category) => total + category.actualScore,
+                          0,
+                        )
+                        .toFixed(1)}
+                    </td>
+                    <td className="px-4 py-3 text-center tabular-nums">
+                      {summary.categorySummary
+                        .reduce(
+                          (total, category) => total + category.fullScore,
+                          0,
+                        )
+                        .toFixed(0)}
+                    </td>
+                    <td className="px-4 py-3 text-center">—</td>
+                  </tr>
+                  <tr className="border-t border-slate-200">
+                    <td className="px-4 py-3">Overall Average</td>
+                    <td colSpan={2} />
+                    <td className="px-4 py-3 text-center text-lg tabular-nums">
+                      {summary.totalScore.toFixed(2)} / 5
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+
+          <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="space-y-6">
+              <section className="rounded-2xl border border-slate-200 p-5">
+                <h3 className="text-lg font-black text-slate-950">
+                  Passing Criteria
+                </h3>
+                <div className="mt-4 space-y-3">
+                  {getPassingCriteria(
+                    summary.totalScore,
+                    summary.categorySummary,
+                  ).map((criterion) => (
+                    <div
+                      key={criterion.id}
+                      className="flex items-start gap-3 text-sm"
+                    >
+                      <ReportCheckbox checked={criterion.passed} />
+                      <p className="flex-1 leading-6 text-slate-700">
+                        {criterion.label}
+                      </p>
+                      <span
+                        className={cn(
+                          "font-black tabular-nums",
+                          criterion.passed
+                            ? "text-emerald-600"
+                            : "text-red-600",
+                        )}
+                      >
+                        {criterion.actual.toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <section className="rounded-2xl border border-slate-200 p-5">
+                <h3 className="text-lg font-black text-slate-950">Result</h3>
+                <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
+                  <div className="flex items-center gap-3 font-bold text-slate-800">
+                    <ReportCheckbox checked={summary.result === "Pass"} /> Pass
+                  </div>
+                  <div className="flex items-center gap-3 font-bold text-slate-800">
+                    <ReportCheckbox checked={summary.result === "Fail"} /> Fail
+                  </div>
+                </div>
+              </section>
+              <section className="rounded-2xl border border-slate-200 p-5">
+                <h3 className="text-lg font-black text-slate-950">Comments</h3>
+                <p className="mt-3 min-h-20 border-b border-dashed border-slate-300 pb-3 text-sm leading-7 text-slate-700">
+                  {summary.evaluations.find((evaluation) => evaluation.comment)
+                    ?.comment || "No comment"}
+                </p>
+              </section>
+            </div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="text-center text-lg font-black text-slate-950">
+                Competency Profile
+              </h3>
+              <div className="mt-2 h-[390px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart
+                    data={summary.categorySummary.map((category) => ({
+                      ...category,
+                      reportName: getReportCategoryName(category),
+                    }))}
+                    outerRadius="61%"
+                    margin={{ top: 28, right: 48, bottom: 28, left: 48 }}
+                  >
+                    <PolarGrid stroke="#cbd5e1" />
+                    <PolarAngleAxis
+                      dataKey="reportName"
+                      tick={WrappedRadarTick}
+                    />
+                    <PolarRadiusAxis
+                      angle={90}
+                      domain={[0, 5]}
+                      tickCount={6}
+                      tick={{ fontSize: 9, fill: "#64748b" }}
+                    />
+                    <Radar
+                      dataKey="average"
+                      fill="#22c55e"
+                      fillOpacity={0.42}
+                      stroke="#16a34a"
+                      strokeWidth={2}
+                    />
+                    <Tooltip
+                      formatter={(value) => [
+                        Number(value).toFixed(2),
+                        "Average",
+                      ]}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+          </div>
 
           <section>
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -378,32 +1117,45 @@ function SummaryModal({
   );
 }
 
-function SummaryTile({
+function ReportField({
   label,
   value,
-  icon,
-  result,
+  emphasize,
 }: {
   label: string;
   value: string;
-  icon?: React.ReactNode;
-  result?: "Pass" | "Fail";
+  emphasize?: "success" | "danger";
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-        {icon}
+    <div>
+      <dt className="text-xs font-bold uppercase tracking-wider text-slate-400">
         {label}
-      </p>
-      <p
+      </dt>
+      <dd
         className={cn(
-          "mt-2 text-2xl font-black",
-          result === "Pass" && "text-success",
-          result === "Fail" && "text-danger",
+          "mt-1 font-bold text-slate-900",
+          emphasize === "success" && "text-emerald-600",
+          emphasize === "danger" && "text-red-600",
         )}
       >
         {value}
-      </p>
+      </dd>
     </div>
+  );
+}
+
+function ReportCheckbox({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className={cn(
+        "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded border-2",
+        checked
+          ? "border-slate-950 bg-slate-950 text-white"
+          : "border-slate-300 bg-white",
+      )}
+      aria-hidden="true"
+    >
+      {checked && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+    </span>
   );
 }

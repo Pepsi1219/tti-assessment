@@ -7,13 +7,23 @@ import {
   ChevronRight,
   ClipboardCheck,
   ImageDown,
+  Check,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
-import { EvaluationCategoryReport } from "@/components/evaluation-category-report";
+import { WrappedRadarTick } from "@/components/evaluation-category-report";
+import {
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 import {
   Select,
   SelectContent,
@@ -22,6 +32,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n/context";
+import {
+  getPassingCriteria,
+  getReportCategoryName,
+} from "@/lib/reports/evaluation-report";
 import { cn } from "@/lib/utils";
 import type {
   Category,
@@ -675,6 +689,7 @@ function EvaluationResultScreen({
       captureRoot.style.top = "0";
       captureRoot.style.width = `${Math.ceil(report.getBoundingClientRect().width)}px`;
       captureRoot.style.background = "#ffffff";
+      captureRoot.dataset.exportTheme = "light";
       captureRoot.style.pointerEvents = "none";
       captureRoot
         .querySelectorAll("[data-html2canvas-ignore]")
@@ -726,55 +741,233 @@ function EvaluationResultScreen({
       setSavingPng(false);
     }
   }
+  const totalActual = result.categorySummary.reduce(
+    (sum, category) => sum + category.actualScore,
+    0,
+  );
+  const totalFull = result.categorySummary.reduce(
+    (sum, category) => sum + category.fullScore,
+    0,
+  );
+  const criteria = getPassingCriteria(
+    result.totalScore,
+    result.categorySummary,
+  );
+  const radarData = result.categorySummary.map((category) => ({
+    ...category,
+    reportName: getReportCategoryName(category),
+  }));
   return (
-    <section className="mx-auto max-w-5xl space-y-5">
+    <section className="mx-auto max-w-6xl space-y-5">
       <div
         ref={reportRef}
-        className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+        className="overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-950 shadow-sm"
       >
-        <div className="bg-slate-950 px-5 py-7 text-white md:px-8">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-300">
-            Evaluation summary
+        <div className="border-b border-slate-200 bg-slate-950 px-5 py-7 text-white md:px-8">
+          <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">
+            Evaluation Report
           </p>
-          <h2 className="mt-2 text-3xl font-black tracking-tight">
-            {result.recipient?.recipientName ?? "—"}
+          <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">
+            Nanyang Trainer Certification Evaluation Form
           </h2>
-          <p className="mt-1 text-sm text-slate-300">
-            {result.topicName} · Round {result.evaluationRound ?? "—"} ·{" "}
-            {result.evaluationDate}
-          </p>
         </div>
-        <div className="space-y-6 p-5 md:p-8">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <ResultTile
+
+        <div className="space-y-8 p-5 md:p-8">
+          <dl className="grid gap-x-8 gap-y-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2 xl:grid-cols-4">
+            <ReportField
+              label="Evaluation Recipient"
+              value={result.recipient?.recipientName ?? "—"}
+            />
+            <ReportField
               label="Employee ID"
-              value={result.recipient?.employeeId ?? "—"}
+              value={result.recipient?.employeeId ?? result.recipientId ?? "—"}
             />
-            <ResultTile
-              label="Score"
-              value={`${result.totalScore.toFixed(2)} / 5`}
+            <ReportField
+              label="Evaluation Topic"
+              value={result.topicName || "—"}
             />
-            <ResultTile
-              label="Percentage"
-              value={`${result.percentage.toFixed(2)}%`}
+            <ReportField
+              label="Department / BU"
+              value={`${result.bu || "—"}${result.buCode ? ` / ${result.buCode}` : ""}`}
             />
-            <ResultTile
-              label="Result"
+            <ReportField
+              label="Evaluator"
+              value={result.evaluatorName || "—"}
+            />
+            <ReportField label="Date" value={result.evaluationDate || "—"} />
+            <ReportField
+              label="Round"
+              value={
+                result.evaluationRound ? String(result.evaluationRound) : "—"
+              }
+            />
+            <ReportField
+              label="Final Result"
               value={result.result}
-              success={result.result === "Pass"}
+              emphasize={result.result === "Pass" ? "success" : "danger"}
             />
-          </div>
-          <EvaluationCategoryReport categories={result.categorySummary} />
-          {result.comment && (
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Comments
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-700">
-                {result.comment}
-              </p>
+          </dl>
+
+          <section>
+            <h3 className="mb-4 text-lg font-black text-slate-950">
+              Evaluation Summary
+            </h3>
+            <div className="overflow-x-auto rounded-2xl border border-slate-200">
+              <table className="w-full border-collapse text-sm">
+                <thead className="bg-white text-left text-xs uppercase tracking-wider text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3">Evaluation Item</th>
+                    <th className="px-4 py-3 text-center">Obtained Score</th>
+                    <th className="px-4 py-3 text-center">Full Score</th>
+                    <th className="px-4 py-3 text-center">Average (Max 5)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {result.categorySummary.map((category, index) => {
+                    const criticalFailure =
+                      category.isCritical && category.average < 3;
+                    return (
+                      <tr
+                        key={category.categoryId}
+                        className={
+                          criticalFailure ? "bg-red-50/70" : "bg-white"
+                        }
+                      >
+                        <td className="px-4 py-3 font-semibold text-slate-800">
+                          <span className="mr-3 text-slate-400">
+                            {index + 1}
+                          </span>
+                          {getReportCategoryName(category)}
+                        </td>
+                        <td className="px-4 py-3 text-center tabular-nums">
+                          {category.actualScore.toFixed(1)}
+                        </td>
+                        <td className="px-4 py-3 text-center tabular-nums">
+                          {category.fullScore.toFixed(0)}
+                        </td>
+                        <td
+                          className={cn(
+                            "px-4 py-3 text-center font-black tabular-nums",
+                            criticalFailure && "text-red-600",
+                          )}
+                        >
+                          {category.average.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="border-t-2 border-slate-300 bg-white font-black text-slate-950">
+                  <tr>
+                    <td className="px-4 py-3">Total</td>
+                    <td className="px-4 py-3 text-center tabular-nums">
+                      {totalActual.toFixed(1)}
+                    </td>
+                    <td className="px-4 py-3 text-center tabular-nums">
+                      {totalFull.toFixed(0)}
+                    </td>
+                    <td className="px-4 py-3 text-center tabular-nums">—</td>
+                  </tr>
+                  <tr className="border-t border-slate-200">
+                    <td className="px-4 py-3">Overall Average</td>
+                    <td colSpan={2} />
+                    <td className="px-4 py-3 text-center text-lg tabular-nums">
+                      {result.totalScore.toFixed(2)} / 5
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
-          )}
+          </section>
+
+          <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="space-y-6">
+              <section className="rounded-2xl border border-slate-200 p-5">
+                <h3 className="text-lg font-black text-slate-950">
+                  Passing Criteria
+                </h3>
+                <div className="mt-4 space-y-3">
+                  {criteria.map((criterion) => (
+                    <div
+                      key={criterion.id}
+                      className="flex items-start gap-3 text-sm"
+                    >
+                      <ReportCheckbox checked={criterion.passed} />
+                      <p className="flex-1 leading-6 text-slate-700">
+                        {criterion.label}
+                      </p>
+                      <span
+                        className={cn(
+                          "font-black tabular-nums",
+                          criterion.passed
+                            ? "text-emerald-600"
+                            : "text-red-600",
+                        )}
+                      >
+                        {criterion.actual.toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <section className="rounded-2xl border border-slate-200 p-5">
+                <h3 className="text-lg font-black text-slate-950">Result</h3>
+                <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
+                  <div className="flex items-center gap-3 font-bold text-slate-800">
+                    <ReportCheckbox checked={result.result === "Pass"} /> Pass
+                  </div>
+                  <div className="flex items-center gap-3 font-bold text-slate-800">
+                    <ReportCheckbox checked={result.result === "Fail"} /> Fail
+                  </div>
+                </div>
+              </section>
+              <section className="rounded-2xl border border-slate-200 p-5">
+                <h3 className="text-lg font-black text-slate-950">Comments</h3>
+                <p className="mt-3 min-h-20 whitespace-pre-wrap border-b border-dashed border-slate-300 pb-3 text-sm leading-7 text-slate-700">
+                  {result.comment || "No comment"}
+                </p>
+              </section>
+            </div>
+            <section className="rounded-2xl border border-slate-200 bg-white p-4">
+              <h3 className="text-center text-lg font-black text-slate-950">
+                Competency Profile
+              </h3>
+              <div className="mt-2 h-[390px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart
+                    data={radarData}
+                    outerRadius="61%"
+                    margin={{ top: 28, right: 48, bottom: 28, left: 48 }}
+                  >
+                    <PolarGrid stroke="#cbd5e1" />
+                    <PolarAngleAxis
+                      dataKey="reportName"
+                      tick={WrappedRadarTick}
+                    />
+                    <PolarRadiusAxis
+                      angle={90}
+                      domain={[0, 5]}
+                      tickCount={6}
+                      tick={{ fontSize: 9, fill: "#64748b" }}
+                    />
+                    <Radar
+                      dataKey="average"
+                      fill="#22c55e"
+                      fillOpacity={0.42}
+                      stroke="#16a34a"
+                      strokeWidth={2}
+                    />
+                    <Tooltip
+                      formatter={(value) => [
+                        Number(value).toFixed(2),
+                        "Average",
+                      ]}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+          </div>
         </div>
       </div>
       <div
@@ -800,6 +993,49 @@ function EvaluationResultScreen({
         </Button>
       </div>
     </section>
+  );
+}
+
+function ReportField({
+  label,
+  value,
+  emphasize,
+}: {
+  label: string;
+  value: string;
+  emphasize?: "success" | "danger";
+}) {
+  return (
+    <div>
+      <dt className="text-xs font-bold uppercase tracking-wider text-slate-400">
+        {label}
+      </dt>
+      <dd
+        className={cn(
+          "mt-1 font-bold text-slate-900",
+          emphasize === "success" && "text-emerald-600",
+          emphasize === "danger" && "text-red-600",
+        )}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function ReportCheckbox({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className={cn(
+        "mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded border-2",
+        checked
+          ? "border-slate-950 bg-slate-950 text-white"
+          : "border-slate-300 bg-white",
+      )}
+      aria-hidden="true"
+    >
+      {checked && <Check className="h-4 w-4" strokeWidth={3} />}
+    </span>
   );
 }
 

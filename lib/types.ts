@@ -77,7 +77,7 @@ export type Evaluation = {
   buCode?: BusinessUnitCode;
   evaluationDate: string;
   evaluationRound?: number;
-  /** Authoritative raw category totals for historical records imported without item-level scores. */
+  /** Authoritative raw category totals for imported records or an administrator's explicit correction. */
   categoryActualScores?: Record<string, number>;
   /** Stored at submission time so lists and summaries do not need to read every question detail. */
   categorySummary?: CategorySummary[];

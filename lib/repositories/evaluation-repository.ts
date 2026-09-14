@@ -32,5 +32,6 @@ export interface EvaluationRepository {
     evaluation: Evaluation,
     details: EvaluationDetail[],
   ): Promise<void>;
+  updateEvaluation(evaluation: Evaluation): Promise<void>;
   deleteEvaluation(id: string): Promise<void>;
 }

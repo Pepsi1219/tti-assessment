@@ -124,6 +124,24 @@ body {
   background-color: rgb(69 26 3 / 0.72) !important;
 }
 
+/* PNG reports always use the same white, print-friendly palette even when the
+   application itself is currently in dark mode. */
+.dark [data-export-theme="light"],
+.dark [data-export-theme="light"] .bg-white {
+  background-color: #ffffff !important;
+}
+
+.dark [data-export-theme="light"] .bg-red-50\/70 {
+  background-color: rgb(254 242 242 / 0.7) !important;
+}
+
+.dark [data-export-theme="light"].text-slate-950,
+.dark [data-export-theme="light"] .text-slate-950,
+.dark [data-export-theme="light"] .text-slate-900,
+.dark [data-export-theme="light"] .text-slate-800 {
+  color: rgb(15 23 42) !important;
+}
+
 .dark .text-slate-950,
 .dark .text-slate-900,
 .dark .text-slate-800 {

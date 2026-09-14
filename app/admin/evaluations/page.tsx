@@ -7,6 +7,8 @@ import {
   Download,
   Eye,
   FileText,
+  Pencil,
+  Upload,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -23,7 +25,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { WrappedRadarTick } from "@/components/evaluation-category-report";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -39,7 +49,12 @@ import {
 } from "@/lib/reports/evaluation-report";
 import { useEscapeKey } from "@/lib/hooks/use-escape-key";
 import { cn } from "@/lib/utils";
-import type { EvaluationResult } from "@/lib/types";
+import type {
+  EvaluationRecipient,
+  EvaluationResult,
+  EvaluationTopic,
+  User,
+} from "@/lib/types";
 
 export default function EvaluationManagementPage() {
   const { t } = useI18n();
@@ -53,12 +68,14 @@ export default function EvaluationManagementPage() {
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<EvaluationResult | null>(null);
+  const [editing, setEditing] = useState<EvaluationResult | null>(null);
   const [pendingDelete, setPendingDelete] = useState<EvaluationResult | null>(
     null,
   );
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [importOpen, setImportOpen] = useState(false);
   useEffect(() => {
     fetch("/api/evaluations")
       .then((res) => res.json())
@@ -231,6 +248,13 @@ export default function EvaluationManagementPage() {
           <h1 className="mt-1 text-2xl font-black tracking-tight">Result</h1>
         </div>
         <div className="flex flex-wrap gap-3">
+          <Button
+            className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            onClick={() => setImportOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Import MS Forms
+          </Button>
           <Button onClick={exportExcel}>
             <Download className="h-4 w-4" />
             {t.exportExcel}
@@ -344,7 +368,7 @@ export default function EvaluationManagementPage() {
               <TableHead className="w-px whitespace-nowrap">
                 {t.result}
               </TableHead>
-              <TableHead className="w-[148px] min-w-[148px] whitespace-nowrap text-center">
+              <TableHead className="w-[192px] min-w-[192px] whitespace-nowrap text-center">
                 {t.actions}
               </TableHead>
             </TableRow>
@@ -386,7 +410,7 @@ export default function EvaluationManagementPage() {
                     {ev.result === "Pass" ? t.pass : t.fail}
                   </Badge>
                 </TableCell>
-                <TableCell className="w-[148px] min-w-[148px]">
+                <TableCell className="w-[192px] min-w-[192px]">
                   <div className="flex items-center justify-center gap-2">
                     <button
                       type="button"
@@ -403,6 +427,15 @@ export default function EvaluationManagementPage() {
                       aria-expanded={selected?.id === ev.id}
                     >
                       <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(ev)}
+                      className="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-700 transition hover:bg-amber-100 hover:text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:bg-amber-950"
+                      title={t.edit}
+                      aria-label={`${t.edit}: ${ev.recipient?.recipientName ?? ""}`}
+                    >
+                      <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
@@ -512,7 +545,8 @@ export default function EvaluationManagementPage() {
 
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-50 flex touch-pan-y items-start justify-center overflow-y-scroll overscroll-contain bg-slate-950/55 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+          style={{ WebkitOverflowScrolling: "touch" }}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setSelected(null);
           }}
@@ -522,7 +556,8 @@ export default function EvaluationManagementPage() {
             role="dialog"
             aria-modal="true"
             aria-label="Evaluation report"
-            className="scrollbar-hide max-h-[calc(100vh-1.5rem)] w-full max-w-6xl overflow-y-auto rounded-3xl shadow-2xl sm:max-h-[calc(100vh-3rem)]"
+            className="scrollbar-hide max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl overscroll-contain overflow-y-auto touch-pan-y rounded-3xl shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
+            style={{ WebkitOverflowScrolling: "touch" }}
           >
             <EvaluationReport
               evaluation={selected}
@@ -531,6 +566,22 @@ export default function EvaluationManagementPage() {
           </div>
         </div>
       )}
+
+      <EditEvaluationDialog
+        evaluation={editing}
+        onClose={() => setEditing(null)}
+        onUpdated={(updated) => {
+          setEvaluations((current) =>
+            current.map((evaluation) =>
+              evaluation.id === updated.id ? updated : evaluation,
+            ),
+          );
+          setSelected((current) =>
+            current?.id === updated.id ? updated : current,
+          );
+          setEditing(null);
+        }}
+      />
 
       <Dialog
         open={Boolean(pendingDelete)}
@@ -581,6 +632,16 @@ export default function EvaluationManagementPage() {
           </div>
         </div>
       </Dialog>
+
+      <ImportEvaluationDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={async () => {
+          setImportOpen(false);
+          const response = await fetch("/api/evaluations");
+          if (response.ok) setEvaluations(await response.json());
+        }}
+      />
     </div>
   );
 }
@@ -608,6 +669,714 @@ function getPageNumbers(
     result.push(pageNumber);
   });
   return result;
+}
+
+function EditEvaluationDialog({
+  evaluation,
+  onClose,
+  onUpdated,
+}: {
+  evaluation: EvaluationResult | null;
+  onClose: () => void;
+  onUpdated: (evaluation: EvaluationResult) => void;
+}) {
+  const [recipients, setRecipients] = useState<EvaluationRecipient[]>([]);
+  const [topics, setTopics] = useState<EvaluationTopic[]>([]);
+  const [evaluators, setEvaluators] = useState<User[]>([]);
+  const [selectedBu, setSelectedBu] = useState("");
+  const [recipientId, setRecipientId] = useState("");
+  const [topicId, setTopicId] = useState("");
+  const [evaluatorEmployeeId, setEvaluatorEmployeeId] = useState("");
+  const [date, setDate] = useState("");
+  const [round, setRound] = useState("");
+  const [comment, setComment] = useState("");
+  const [categoryScores, setCategoryScores] = useState<Record<string, string>>(
+    {},
+  );
+  const [roundPadOpen, setRoundPadOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!evaluation) return;
+    setSelectedBu(evaluation.buCode ?? "");
+    setRecipientId(evaluation.recipientId);
+    setTopicId(evaluation.topicId);
+    setEvaluatorEmployeeId(evaluation.evaluatorEmployeeId ?? "");
+    setDate(evaluation.evaluationDate);
+    setRound(String(evaluation.evaluationRound ?? ""));
+    setComment(evaluation.comment ?? "");
+    setCategoryScores(
+      Object.fromEntries(
+        evaluation.categorySummary.map((category) => [
+          category.categoryId,
+          String(category.actualScore),
+        ]),
+      ),
+    );
+    setError("");
+    setRoundPadOpen(false);
+  }, [evaluation]);
+
+  useEffect(() => {
+    if (!evaluation) return;
+    let cancelled = false;
+    void Promise.all([
+      fetch("/api/recipients"),
+      fetch("/api/topics"),
+      fetch("/api/evaluators?includeInactive=1"),
+    ])
+      .then(async ([recipientResponse, topicResponse, evaluatorResponse]) => {
+        if (!recipientResponse.ok || !topicResponse.ok || !evaluatorResponse.ok)
+          throw new Error("Unable to load data for editing");
+        const [recipientData, topicData, evaluatorData] = await Promise.all([
+          recipientResponse.json(),
+          topicResponse.json(),
+          evaluatorResponse.json(),
+        ]);
+        if (cancelled) return;
+        setRecipients(recipientData);
+        setTopics(topicData);
+        setEvaluators(evaluatorData);
+        if (!evaluation.evaluatorEmployeeId) {
+          const matchingEvaluator = (
+            evaluatorData as Array<{ name: string; employeeId: string }>
+          ).find(
+            (item) =>
+              item.name.toLowerCase() ===
+              evaluation.evaluatorName.toLowerCase(),
+          );
+          if (matchingEvaluator)
+            setEvaluatorEmployeeId(matchingEvaluator.employeeId);
+        }
+      })
+      .catch((reason) => {
+        if (!cancelled)
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : "Unable to load data for editing",
+          );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [evaluation]);
+
+  if (!evaluation) return null;
+  const currentEvaluation = evaluation;
+
+  const availableBus = Array.from(
+    new Set(recipients.map((recipient) => recipient.buCode ?? "")),
+  )
+    .filter(Boolean)
+    .sort();
+  const visibleRecipients = recipients.filter(
+    (recipient) => !selectedBu || recipient.buCode === selectedBu,
+  );
+
+  async function save() {
+    if (saving) return;
+    const parsedRound = Number(round);
+    const parsedScores = Object.fromEntries(
+      currentEvaluation.categorySummary.map((category) => [
+        category.categoryId,
+        Number(categoryScores[category.categoryId]),
+      ]),
+    );
+    const invalidCategory = currentEvaluation.categorySummary.find(
+      (category) => {
+        const score = parsedScores[category.categoryId];
+        return (
+          !Number.isFinite(score) || score < 0 || score > category.fullScore
+        );
+      },
+    );
+    if (
+      !recipientId ||
+      !topicId ||
+      !evaluatorEmployeeId ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      !Number.isInteger(parsedRound) ||
+      parsedRound < 1 ||
+      parsedRound > 99 ||
+      invalidCategory
+    ) {
+      setError(
+        invalidCategory
+          ? `${getReportCategoryName(invalidCategory)} ต้องอยู่ระหว่าง 0-${invalidCategory.fullScore}`
+          : "กรุณากรอกข้อมูลให้ครบและตรวจสอบวันที่กับรอบการประเมิน",
+      );
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/evaluations", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: currentEvaluation.id,
+          recipientId,
+          topicId,
+          evaluatorEmployeeId,
+          evaluationDate: date,
+          evaluationRound: parsedRound,
+          comment,
+          categoryScores: parsedScores,
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as {
+        evaluation?: EvaluationResult;
+        error?: string;
+      } | null;
+      if (!response.ok || !data?.evaluation)
+        throw new Error(data?.error || "Unable to update evaluation");
+
+      const selectedRecipient = recipients.find(
+        (recipient) => recipient.id === recipientId,
+      );
+      const selectedTopic = topics.find((topic) => topic.id === topicId);
+      onUpdated({
+        ...currentEvaluation,
+        ...data.evaluation,
+        recipient: selectedRecipient
+          ? {
+              ...currentEvaluation.recipient!,
+              ...selectedRecipient,
+            }
+          : currentEvaluation.recipient,
+        topic: selectedTopic
+          ? { ...currentEvaluation.topic!, ...selectedTopic }
+          : currentEvaluation.topic,
+        details: currentEvaluation.details,
+      });
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to update evaluation",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <Dialog
+        open
+        onClose={() => {
+          if (!saving) onClose();
+        }}
+        title="แก้ไขผลการประเมิน"
+        className="max-w-3xl"
+      >
+        <div className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-bold">
+              BU
+              <Select
+                value={selectedBu}
+                onValueChange={(value) => {
+                  setSelectedBu(value);
+                  setRecipientId("");
+                }}
+              >
+                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                  <SelectValue placeholder="เลือก BU" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableBus.map((bu) => (
+                    <SelectItem key={bu} value={bu}>
+                      {bu}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="text-sm font-bold">
+              ผู้รับการประเมิน
+              <Select value={recipientId} onValueChange={setRecipientId}>
+                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                  <SelectValue placeholder="เลือกผู้รับการประเมิน" />
+                </SelectTrigger>
+                <SelectContent>
+                  {visibleRecipients.map((recipient) => (
+                    <SelectItem key={recipient.id} value={recipient.id}>
+                      {recipient.employeeId} - {recipient.recipientName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="text-sm font-bold">
+              ผู้ประเมิน
+              <Select
+                value={evaluatorEmployeeId}
+                onValueChange={setEvaluatorEmployeeId}
+              >
+                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                  <SelectValue placeholder="เลือกผู้ประเมิน" />
+                </SelectTrigger>
+                <SelectContent>
+                  {evaluators.map((evaluator) => (
+                    <SelectItem key={evaluator.id} value={evaluator.employeeId}>
+                      {evaluator.employeeId} - {evaluator.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="text-sm font-bold">
+              หลักสูตร
+              <Select value={topicId} onValueChange={setTopicId}>
+                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                  <SelectValue placeholder="เลือกหลักสูตร" />
+                </SelectTrigger>
+                <SelectContent>
+                  {topics.map((topic) => (
+                    <SelectItem key={topic.id} value={topic.id}>
+                      {topic.topicName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="text-sm font-bold">
+              วันที่
+              <input
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-normal text-slate-900 outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+            </label>
+            <label className="text-sm font-bold">
+              รอบ
+              <Button
+                type="button"
+                className="mt-1 h-11 w-full justify-between rounded-xl border border-slate-200 bg-white px-3 text-left font-normal text-slate-900 shadow-none hover:bg-slate-50 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+                onClick={() => setRoundPadOpen(true)}
+              >
+                {round || "เลือกรอบ"}
+                <span>⌄</span>
+              </Button>
+            </label>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 text-sm dark:border-slate-700">
+            {evaluation.categorySummary.map((category, index) => (
+              <div
+                key={category.categoryId}
+                className="grid grid-cols-[minmax(0,1fr)_minmax(120px,32%)] border-b border-slate-200 last:border-b-0 dark:border-slate-700"
+              >
+                <label
+                  htmlFor={`edit-score-${category.categoryId}`}
+                  className="flex min-w-0 items-center px-4 py-3 font-bold text-slate-800 dark:text-slate-100"
+                >
+                  {index + 1}. {getReportCategoryName(category)}
+                </label>
+                <div className="border-l border-slate-200 px-3 py-2 dark:border-slate-700">
+                  <input
+                    id={`edit-score-${category.categoryId}`}
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    max={category.fullScore}
+                    step="any"
+                    value={categoryScores[category.categoryId] ?? ""}
+                    onChange={(event) =>
+                      setCategoryScores((current) => ({
+                        ...current,
+                        [category.categoryId]: event.target.value,
+                      }))
+                    }
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-right font-bold tabular-nums text-slate-900 outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    aria-describedby={`edit-score-max-${category.categoryId}`}
+                  />
+                  <p
+                    id={`edit-score-max-${category.categoryId}`}
+                    className="mt-1 text-right text-[10px] font-semibold text-slate-400"
+                  >
+                    เต็ม {category.fullScore}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <label className="block text-sm font-bold">
+            ความคิดเห็น
+            <textarea
+              rows={3}
+              maxLength={5_000}
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              className="mt-1 w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 font-normal text-slate-900 outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            />
+          </label>
+
+          {error && (
+            <p
+              role="alert"
+              className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950/50 dark:text-red-300"
+            >
+              {error}
+            </p>
+          )}
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              disabled={saving}
+              className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              onClick={onClose}
+            >
+              ยกเลิก
+            </Button>
+            <Button type="button" disabled={saving} onClick={save}>
+              <Check className="h-4 w-4" />
+              {saving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={roundPadOpen}
+        onClose={() => setRoundPadOpen(false)}
+        title="เลือกรอบ"
+        className="max-w-sm"
+      >
+        <div className="grid grid-cols-3 gap-3">
+          {Array.from({ length: 9 }, (_, index) => index + 1).map((value) => (
+            <button
+              key={value}
+              type="button"
+              className="h-14 rounded-xl border border-slate-200 bg-white text-lg font-black text-slate-900 transition hover:border-primary hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+              onClick={() => {
+                setRound(String(value));
+                setRoundPadOpen(false);
+              }}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+      </Dialog>
+    </>
+  );
+}
+
+function ImportEvaluationDialog({
+  open,
+  onClose,
+  onImported,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onImported: () => Promise<void>;
+}) {
+  const [recipients, setRecipients] = useState<
+    Array<{
+      id: string;
+      employeeId: string;
+      recipientName: string;
+      buCode?: string;
+      status?: string;
+    }>
+  >([]);
+  const [topics, setTopics] = useState<
+    Array<{ id: string; topicName: string }>
+  >([]);
+  const [evaluators, setEvaluators] = useState<
+    Array<{ id: string; name: string; employeeId: string; status?: string }>
+  >([]);
+  const [selectedBu, setSelectedBu] = useState("");
+  const [recipientId, setRecipientId] = useState("");
+  const [topicId, setTopicId] = useState("");
+  const [evaluatorName, setEvaluatorName] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [round, setRound] = useState("2");
+  const [roundPadOpen, setRoundPadOpen] = useState(false);
+  const [categoryScores, setCategoryScores] = useState<string[]>(
+    Array(7).fill(""),
+  );
+  const categoryLabels = [
+    "Discipline",
+    "Training Delivery Skills*",
+    "Communication Skills*",
+    "Knowledge Competency*",
+    "Training Methods & Techniques",
+    "Evaluation & Feedback Skills",
+    "Professionalism & Trainer Attitude",
+  ];
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    void Promise.all([
+      fetch("/api/recipients"),
+      fetch("/api/topics"),
+      fetch("/api/evaluators"),
+    ]).then(async ([recipientResponse, topicResponse, evaluatorResponse]) => {
+      if (recipientResponse.ok) setRecipients(await recipientResponse.json());
+      if (topicResponse.ok) setTopics(await topicResponse.json());
+      if (evaluatorResponse.ok) setEvaluators(await evaluatorResponse.json());
+    });
+  }, [open]);
+
+  async function save() {
+    if (saving) return;
+    if (
+      !recipientId ||
+      !topicId ||
+      !evaluatorName.trim() ||
+      !date ||
+      !round ||
+      categoryScores.some(
+        (score) =>
+          score.trim() === "" ||
+          !Number.isFinite(Number(score)) ||
+          Number(score) < 0,
+      )
+    ) {
+      setError("กรุณากรอกข้อมูลให้ครบทุกช่อง และตรวจสอบคะแนนทั้ง 7 หัวข้อ");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch("/api/evaluations/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientId,
+          topicId,
+          evaluationDate: date,
+          evaluationRound: Number(round),
+          evaluatorName,
+          categoryScores: categoryScores.map(Number),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok)
+        throw new Error(data.error || "Unable to import evaluations.");
+      await onImported();
+      setEvaluatorName("");
+      setCategoryScores(Array(7).fill(""));
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to import evaluations.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const availableBus = Array.from(
+    new Set(
+      recipients
+        .filter(
+          (recipient) => !recipient.status || recipient.status === "Active",
+        )
+        .map((recipient) => recipient.buCode ?? ""),
+    ),
+  )
+    .filter(Boolean)
+    .sort();
+  const visibleRecipients = recipients.filter(
+    (recipient) =>
+      (!recipient.status || recipient.status === "Active") &&
+      (!selectedBu || (recipient.buCode ?? "") === selectedBu),
+  );
+
+  return (
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        title="Import MS Forms results"
+        className="max-w-2xl"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            เลือกผู้รับการประเมิน หลักสูตร วันที่ และรอบ กรอกข้อมูลผลจาก MS
+            Forms/Teams สำหรับผู้ประเมิน 1 คน แล้วบันทึก
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="text-sm font-bold">
+              Evaluator
+              <Select value={evaluatorName} onValueChange={setEvaluatorName}>
+                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white">
+                  <SelectValue placeholder="Select evaluator" />
+                </SelectTrigger>
+                <SelectContent>
+                  {evaluators
+                    .filter(
+                      (evaluator) =>
+                        !evaluator.status || evaluator.status === "Active",
+                    )
+                    .map((evaluator) => (
+                      <SelectItem key={evaluator.id} value={evaluator.name}>
+                        {evaluator.employeeId} - {evaluator.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="text-sm font-bold">
+              BU
+              <Select
+                value={selectedBu}
+                onValueChange={(value) => {
+                  setSelectedBu(value);
+                  setRecipientId("");
+                }}
+              >
+                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white">
+                  <SelectValue placeholder="Select BU" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableBus.map((bu) => (
+                    <SelectItem key={bu} value={bu}>
+                      {bu}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="text-sm font-bold">
+              Evaluation recipient
+              <Select value={recipientId} onValueChange={setRecipientId}>
+                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white">
+                  <SelectValue placeholder="Select recipient" />
+                </SelectTrigger>
+                <SelectContent>
+                  {visibleRecipients.map((recipient) => (
+                    <SelectItem key={recipient.id} value={recipient.id}>
+                      {recipient.employeeId} - {recipient.recipientName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="text-sm font-bold">
+              Course
+              <Select value={topicId} onValueChange={setTopicId}>
+                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white">
+                  <SelectValue placeholder="Select course" />
+                </SelectTrigger>
+                <SelectContent>
+                  {topics.map((topic) => (
+                    <SelectItem key={topic.id} value={topic.id}>
+                      {topic.topicName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="text-sm font-bold">
+              Date
+              <input
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 font-normal"
+              />
+            </label>
+            <label className="text-sm font-bold">
+              Round
+              <Button
+                type="button"
+                className="mt-1 h-11 w-full justify-between rounded-xl border border-slate-200 bg-white px-3 text-left font-normal text-slate-900 shadow-none hover:bg-slate-50 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0"
+                onClick={() => setRoundPadOpen(true)}
+              >
+                {round || "Select round"}
+                <span>⌄</span>
+              </Button>
+            </label>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-slate-200 text-sm">
+            {categoryLabels.map((label, index) => (
+              <div
+                key={label}
+                className="grid grid-cols-[minmax(0,1fr)_38%] border-b border-slate-200 last:border-b-0"
+              >
+                <label
+                  htmlFor={`import-score-${index}`}
+                  className="flex items-center px-4 py-3 font-bold text-slate-800"
+                >
+                  {index + 1}. {label}
+                </label>
+                <div className="border-l border-slate-200 px-3 py-2">
+                  <input
+                    id={`import-score-${index}`}
+                    type="number"
+                    min={0}
+                    step="any"
+                    value={categoryScores[index]}
+                    onChange={(event) =>
+                      setCategoryScores((current) =>
+                        current.map((value, valueIndex) =>
+                          valueIndex === index ? event.target.value : value,
+                        ),
+                      )
+                    }
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 font-normal"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          {error && (
+            <p className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-600">
+              {error}
+            </p>
+          )}
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button type="button" disabled={saving} onClick={save}>
+              {saving ? "Saving..." : "Save to Firestore"}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+      <Dialog
+        open={roundPadOpen}
+        onClose={() => setRoundPadOpen(false)}
+        title="Select round"
+        className="max-w-sm"
+      >
+        <div className="grid grid-cols-3 gap-3">
+          {Array.from({ length: 9 }, (_, index) => index + 1).map((value) => (
+            <button
+              key={value}
+              type="button"
+              className="h-14 rounded-xl border border-slate-200 bg-white text-lg font-black text-slate-900 hover:border-primary hover:bg-blue-50"
+              onClick={() => {
+                setRound(String(value));
+                setRoundPadOpen(false);
+              }}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+      </Dialog>
+    </>
+  );
 }
 
 function EvaluationReport({
@@ -820,11 +1589,15 @@ function EvaluationReport({
             </h3>
             <div className="mt-2 h-[390px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarData} outerRadius="66%">
+                <RadarChart
+                  data={radarData}
+                  outerRadius="61%"
+                  margin={{ top: 28, right: 48, bottom: 28, left: 48 }}
+                >
                   <PolarGrid stroke="#cbd5e1" />
                   <PolarAngleAxis
                     dataKey="reportName"
-                    tick={{ fontSize: 10, fill: "#475569" }}
+                    tick={WrappedRadarTick}
                   />
                   <PolarRadiusAxis
                     angle={90}

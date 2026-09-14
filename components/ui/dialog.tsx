@@ -34,14 +34,14 @@ export function Dialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain p-3 touch-pan-y sm:items-center sm:p-6">
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
       <div
         className={cn(
-          "relative z-10 w-full max-w-lg rounded-[28px] border border-white/80 bg-white p-6 text-slate-950 shadow-2xl dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50",
+          "relative z-10 my-3 max-h-[calc(100dvh-1.5rem)] min-h-0 w-full max-w-lg overflow-y-auto overscroll-contain rounded-[28px] border border-white/80 bg-white p-5 text-slate-950 shadow-2xl scrollbar-hide touch-pan-y sm:my-6 sm:max-h-[calc(100dvh-3rem)] sm:p-6 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50",
           className,
         )}
       >

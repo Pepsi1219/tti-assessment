@@ -41,6 +41,22 @@ export const evaluationPayloadSchema = z.object({
     .refine((scores) => Object.keys(scores).length <= 100, "Too many scores"),
 });
 
+export const evaluationUpdatePayloadSchema = z.object({
+  id: identifier,
+  recipientId: identifier,
+  topicId: identifier,
+  evaluatorEmployeeId: z.string().trim().min(1).max(64),
+  evaluationDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/),
+  evaluationRound: z.number().int().min(1).max(99),
+  comment: z.string().trim().max(5_000).default(""),
+  categoryScores: z
+    .record(z.number().finite().min(0).max(10_000))
+    .refine((scores) => Object.keys(scores).length <= 20, "Too many scores"),
+});
+
 export const recipientPayloadSchema = z.object({
   id: identifier.optional(),
   employeeId: z.string().trim().min(1).max(64),

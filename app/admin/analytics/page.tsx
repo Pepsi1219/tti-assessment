@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { WrappedRadarTick } from "@/components/evaluation-category-report";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import type { EvaluationResult } from "@/lib/types";
@@ -155,9 +156,9 @@ export default function AnalyticsPage() {
               <h3 className="mb-4 text-lg font-black">{t.categoryPerformance}</h3>
               <div className="h-64">
                 <ResponsiveContainer>
-                  <RadarChart data={categoryAvg}>
+                  <RadarChart data={categoryAvg} outerRadius="61%" margin={{ top: 28, right: 48, bottom: 28, left: 48 }}>
                     <PolarGrid stroke="#dbe3ef" />
-                    <PolarAngleAxis dataKey="categoryName" tick={{ fontSize: 9, fill: "#475569" }} />
+                    <PolarAngleAxis dataKey="categoryName" tick={WrappedRadarTick} />
                     <Radar dataKey="average" fill="#2563EB" fillOpacity={0.28} stroke="#2563EB" strokeWidth={2} />
                     <Tooltip />
                   </RadarChart>

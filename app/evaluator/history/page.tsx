@@ -184,7 +184,7 @@ function ResultModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/55 p-3 backdrop-blur-sm sm:items-center sm:p-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -193,7 +193,7 @@ function ResultModal({
         role="dialog"
         aria-modal="true"
         aria-label={t.resultReport}
-        className="max-h-[calc(100vh-1.5rem)] w-full max-w-6xl overflow-y-auto rounded-3xl border-0 bg-white p-0 shadow-2xl sm:max-h-[calc(100vh-3rem)]"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl overflow-y-auto rounded-3xl border-0 bg-white p-0 shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
       >
         <div className="flex items-start justify-between gap-4 bg-slate-950 px-5 py-6 text-white md:px-8">
           <div>

@@ -19,6 +19,43 @@ type EvaluationCategoryReportProps = {
   scoresTitle?: string;
 };
 
+type RadarTickProps = {
+  x?: number;
+  y?: number;
+  textAnchor?: "start" | "middle" | "end" | "inherit";
+  payload?: { value?: string };
+};
+
+/** Render complete category names on multiple lines instead of clipping them. */
+export function WrappedRadarTick({
+  x = 0,
+  y = 0,
+  textAnchor = "middle",
+  payload,
+}: RadarTickProps) {
+  const words = String(payload?.value ?? "")
+    .split(/\s+/)
+    .filter(Boolean);
+  const lines: string[] = [];
+  for (const word of words) {
+    const current = lines.at(-1);
+    if (current && `${current} ${word}`.length <= 22) {
+      lines[lines.length - 1] = `${current} ${word}`;
+    } else {
+      lines.push(word);
+    }
+  }
+  return (
+    <text x={x} y={y} textAnchor={textAnchor} fill="#475569" fontSize={10}>
+      {lines.map((line, index) => (
+        <tspan key={`${line}-${index}`} x={x} dy={index === 0 ? 0 : 13}>
+          {line}
+        </tspan>
+      ))}
+    </text>
+  );
+}
+
 export function EvaluationCategoryReport({
   categories,
   profileTitle = "Competency Profile",
@@ -35,12 +72,13 @@ export function EvaluationCategoryReport({
         <h3 className="text-center text-lg font-black">{profileTitle}</h3>
         <div className="h-[360px]">
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={radarData} outerRadius="67%">
+            <RadarChart
+              data={radarData}
+              outerRadius="61%"
+              margin={{ top: 28, right: 48, bottom: 28, left: 48 }}
+            >
               <PolarGrid stroke="#cbd5e1" />
-              <PolarAngleAxis
-                dataKey="reportName"
-                tick={{ fontSize: 10, fill: "#475569" }}
-              />
+              <PolarAngleAxis dataKey="reportName" tick={WrappedRadarTick} />
               <PolarRadiusAxis
                 angle={90}
                 domain={[0, 5]}
