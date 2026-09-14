@@ -7,7 +7,6 @@ import {
   ChevronRight,
   ClipboardCheck,
   ImageDown,
-  RotateCcw,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -182,15 +181,6 @@ export default function EvaluatorPage() {
       scrollToSection();
     }
   }
-  function startNextEvaluation() {
-    setLatest(null);
-    setSelectedRecipientId("");
-    setScores({});
-    setComment("");
-    setSubmitError("");
-    setStep(0);
-  }
-
   function returnToSetup() {
     setLatest(null);
     setSelectedBu("");
@@ -243,13 +233,7 @@ export default function EvaluatorPage() {
   }
 
   if (latest)
-    return (
-      <EvaluationResultScreen
-        result={latest}
-        onBack={returnToSetup}
-        onNext={startNextEvaluation}
-      />
-    );
+    return <EvaluationResultScreen result={latest} onBack={returnToSetup} />;
 
   return (
     <section className="mx-auto min-w-0 max-w-5xl space-y-6">
@@ -333,8 +317,7 @@ export default function EvaluatorPage() {
                       value={recipient.id}
                       className="py-3 text-[15px]"
                     >
-                      {recipient.employeeId} - {recipient.recipientName} (
-                      {recipient.buCode ?? "-"} / {recipient.bu})
+                      {recipient.employeeId} - {recipient.recipientName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -673,11 +656,9 @@ function WizardActions({
 function EvaluationResultScreen({
   result,
   onBack,
-  onNext,
 }: {
   result: EvaluationResult;
   onBack: () => void;
-  onNext: () => void;
 }) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [savingPng, setSavingPng] = useState(false);
@@ -710,10 +691,36 @@ function EvaluationResultScreen({
         width: captureRoot.scrollWidth,
         height: captureRoot.scrollHeight,
       });
+      const filename = `evaluation-${result.recipient?.employeeId ?? result.recipientId}-${result.evaluationDate}.png`;
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((value) => {
+          if (value) resolve(value);
+          else reject(new Error("Unable to create PNG"));
+        }, "image/png");
+      });
+      const file = new File([blob], filename, { type: "image/png" });
+      const canShareFile =
+        typeof navigator.share === "function" &&
+        (!navigator.canShare || navigator.canShare({ files: [file] }));
+      if (canShareFile) {
+        try {
+          await navigator.share({ files: [file], title: "Evaluation result" });
+          return;
+        } catch (error) {
+          // Cancellation is expected on mobile and should not trigger a second
+          // download attempt.
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
+        }
+      }
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.download = `evaluation-${result.recipient?.employeeId ?? result.recipientId}-${result.evaluationDate}.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.download = filename;
+      link.href = url;
+      link.rel = "noopener";
       link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
     } finally {
       captureRoot?.remove();
       setSavingPng(false);
@@ -790,10 +797,6 @@ function EvaluationResultScreen({
         >
           <ImageDown className="h-4 w-4" />
           {savingPng ? "Saving PNG..." : "Save PNG"}
-        </Button>
-        <Button type="button" onClick={onNext}>
-          <RotateCcw className="h-4 w-4" />
-          Evaluate next
         </Button>
       </div>
     </section>

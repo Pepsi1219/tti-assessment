@@ -13,19 +13,30 @@ function clientKey(request: NextRequest): string {
   // Prefer identity supplied by the deployment proxy. The proxy must overwrite
   // these headers; on a direct self-hosted deployment, configure that at the
   // reverse proxy instead of trusting client-supplied values.
-  return (
+  const networkKey =
     request.headers.get("x-vercel-forwarded-for")?.trim() ||
     request.headers.get("x-real-ip")?.trim() ||
     request.headers.get("cf-connecting-ip")?.trim() ||
     request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() ||
-    "unknown"
-  );
+    "unknown";
+  const sessionCookie =
+    request.cookies.get("authjs.session-token")?.value ||
+    request.cookies.get("__Secure-authjs.session-token")?.value;
+  // Isolate logged-in users so a shared office/Wi-Fi address does not throttle
+  // every normal user together. The deployment proxy must overwrite IP headers.
+  return sessionCookie
+    ? `${networkKey}:session:${sessionCookie.slice(-16)}`
+    : networkKey;
 }
 
-function limitFor(pathname: string, method: string): number {
-  if (pathname.startsWith("/api/auth/")) return 12;
-  if (method === "GET" || method === "HEAD") return 120;
-  return 30;
+function limitFor(
+  pathname: string,
+  method: string,
+  authenticated: boolean,
+): number {
+  if (pathname.startsWith("/api/auth/")) return 30;
+  if (method === "GET" || method === "HEAD") return authenticated ? 600 : 240;
+  return authenticated ? 60 : 30;
 }
 
 function prune(now: number) {
@@ -38,10 +49,13 @@ function prune(now: number) {
 export function middleware(request: NextRequest) {
   const now = Date.now();
   const pathname = request.nextUrl.pathname;
+  const authenticated =
+    request.cookies.has("authjs.session-token") ||
+    request.cookies.has("__Secure-authjs.session-token");
   // Keep one bucket per client and API class so rotating endpoints cannot
   // multiply the allowed traffic against the backend.
   const key = `${clientKey(request)}:${pathname.startsWith("/api/auth/") ? "auth" : "api"}`;
-  const limit = limitFor(pathname, request.method);
+  const limit = limitFor(pathname, request.method, authenticated);
   const bucket = buckets.get(key);
 
   if (!bucket || now - bucket.windowStart >= WINDOW_MS) {
