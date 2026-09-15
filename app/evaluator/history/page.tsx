@@ -7,6 +7,13 @@ import { Card } from "@/components/ui/card";
 import { EvaluationCategoryReport } from "@/components/evaluation-category-report";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -18,6 +25,11 @@ import { useI18n } from "@/lib/i18n/context";
 import { useEscapeKey } from "@/lib/hooks/use-escape-key";
 import { cn } from "@/lib/utils";
 import type { EvaluationResult } from "@/lib/types";
+
+const filterSelectTriggerClass =
+  "h-11 rounded-2xl border-slate-200 bg-slate-50 px-4 shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100";
+const filterSelectContentClass =
+  "rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl";
 
 export default function HistoryPage() {
   const { t } = useI18n();
@@ -118,8 +130,8 @@ export default function HistoryPage() {
       )}
       {!loading && !loadError && evaluations.length > 0 && (
         <Card className="p-5">
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="relative w-full max-w-xs">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="relative w-full max-w-none">
               <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
               <Input
                 className="rounded-2xl pl-11"
@@ -128,39 +140,63 @@ export default function HistoryPage() {
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
-            <select
-              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+            <Select
               value={filterCourse}
-              onChange={(event) => setFilterCourse(event.target.value)}
+              onValueChange={setFilterCourse}
             >
-              <option value="all">{t.course}</option>
-              {filterOptions.courses.map((course) => (
-                <option key={course} value={course}>
-                  {course}
-                </option>
-              ))}
-            </select>
-            <select
-              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              <SelectTrigger aria-label={t.course} className={filterSelectTriggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent
+                position="popper"
+                sideOffset={8}
+                className={filterSelectContentClass}
+              >
+                <SelectItem value="all">{t.course}</SelectItem>
+                {filterOptions.courses.map((course) => (
+                  <SelectItem key={course} value={course}>
+                    {course}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={filterYear}
-              onChange={(event) => setFilterYear(event.target.value)}
+              onValueChange={setFilterYear}
             >
-              <option value="all">{t.year}</option>
-              {filterOptions.years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-            <select
-              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              <SelectTrigger aria-label={t.year} className={filterSelectTriggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent
+                position="popper"
+                sideOffset={8}
+                className={filterSelectContentClass}
+              >
+                <SelectItem value="all">{t.year}</SelectItem>
+                {filterOptions.years.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={filterResult}
-              onChange={(event) => setFilterResult(event.target.value)}
+              onValueChange={setFilterResult}
             >
-              <option value="all">{t.result}</option>
-              <option value="Pass">{t.pass}</option>
-              <option value="Fail">{t.fail}</option>
-            </select>
+              <SelectTrigger aria-label={t.result} className={filterSelectTriggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent
+                position="popper"
+                sideOffset={8}
+                className={filterSelectContentClass}
+              >
+                <SelectItem value="all">{t.result}</SelectItem>
+                <SelectItem value="Pass">{t.pass}</SelectItem>
+                <SelectItem value="Fail">{t.fail}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {filteredEvaluations.length === 0 ? (
             <p className="py-10 text-center text-sm font-semibold text-slate-400">
@@ -183,7 +219,14 @@ export default function HistoryPage() {
             </TableHeader>
             <TableBody>
               {filteredEvaluations.map((evaluation) => (
-                <TableRow key={evaluation.id}>
+                <TableRow
+                  key={evaluation.id}
+                  className={
+                    evaluation.result === "Pass"
+                      ? "bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/45"
+                      : "bg-red-50/80 hover:bg-red-100/80 dark:bg-red-950/30 dark:hover:bg-red-950/45"
+                  }
+                >
                   <TableCell className="whitespace-nowrap font-bold">
                     {evaluation.recipient?.employeeId ?? "—"}
                   </TableCell>
@@ -250,7 +293,7 @@ function ResultModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/55 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-stretch justify-center overflow-y-auto bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -259,17 +302,17 @@ function ResultModal({
         role="dialog"
         aria-modal="true"
         aria-label={t.resultReport}
-        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl overflow-y-auto rounded-3xl border-0 bg-white p-0 shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
+        className="min-h-[100dvh] w-full max-w-6xl overflow-y-auto rounded-none border-0 bg-white p-0 shadow-2xl sm:min-h-0 sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl"
       >
-        <div className="flex items-start justify-between gap-4 bg-slate-950 px-5 py-6 text-white md:px-8">
-          <div>
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 bg-slate-950 px-4 py-4 text-white sm:gap-4 sm:px-5 sm:py-6 md:px-8">
+          <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-blue-300">
               {t.resultReport}
             </p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">
+            <h2 className="mt-2 break-words text-xl font-black tracking-tight sm:text-2xl md:text-3xl">
               {evaluation.recipient?.recipientName ?? "—"}
             </h2>
-            <p className="mt-1 text-sm text-slate-300">
+            <p className="mt-1 break-words text-sm text-slate-300">
               {evaluation.topicName} · {t.round}{" "}
               {evaluation.evaluationRound ?? "—"} · {evaluation.evaluationDate}
             </p>
@@ -283,8 +326,8 @@ function ResultModal({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="space-y-6 bg-white p-5 md:p-8">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-4 bg-white p-4 sm:space-y-6 sm:p-5 md:p-8">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <ResultTile
               label="Employee ID"
               value={evaluation.recipient?.employeeId ?? "—"}
@@ -336,7 +379,7 @@ function ResultTile({
       </p>
       <p
         className={cn(
-          "mt-2 text-2xl font-black tracking-tight",
+          "mt-2 break-words text-xl font-black tracking-tight sm:text-2xl",
           success ? "text-emerald-500" : "text-slate-950",
         )}
       >

@@ -261,24 +261,17 @@ export default function EvaluationManagementPage() {
             onClick={() => setImportOpen(true)}
           >
             <Upload className="h-4 w-4" />
-            Import MS Forms
+            Import Result
           </Button>
           <Button onClick={exportExcel}>
             <Download className="h-4 w-4" />
             {t.exportExcel}
           </Button>
-          <Button
-            className="bg-slate-950 hover:bg-slate-800"
-            onClick={() => exportPdf()}
-          >
-            <FileText className="h-4 w-4" />
-            {t.exportPdf}
-          </Button>
         </div>
       </div>
 
       <Card className="p-5">
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
           <Input
             className="rounded-2xl"
             placeholder={t.employeeId}
@@ -399,7 +392,12 @@ export default function EvaluationManagementPage() {
             {paginated.map((ev) => (
               <TableRow
                 key={ev.id}
-                className={selected?.id === ev.id ? "bg-blue-50/50" : ""}
+                className={cn(
+                  ev.result === "Pass"
+                    ? "bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/45"
+                    : "bg-red-50/80 hover:bg-red-100/80 dark:bg-red-950/30 dark:hover:bg-red-950/45",
+                  selected?.id === ev.id && "ring-1 ring-inset ring-primary/40",
+                )}
               >
                 <TableCell className="whitespace-nowrap font-bold tabular-nums">
                   {ev.recipient?.employeeId ?? "—"}

@@ -6,6 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { WrappedRadarTick } from "@/components/evaluation-category-report";
 import {
   Table,
@@ -32,6 +39,11 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import type { EvaluationSummary } from "@/lib/types";
+
+const filterSelectTriggerClass =
+  "h-11 rounded-2xl border-slate-200 bg-slate-50 px-4 shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100";
+const filterSelectContentClass =
+  "rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl";
 
 export default function EvaluationSummariesPage() {
   const { t } = useI18n();
@@ -249,82 +261,106 @@ export default function EvaluationSummariesPage() {
               View selected results
             </Button>
           </div>
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
             <Input
               className="rounded-2xl"
               placeholder={t.employeeId}
               value={filterEmployeeId}
               onChange={(event) => setFilterEmployeeId(event.target.value)}
             />
-            <select
-              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+            <Select
               value={filterEvaluator}
-              onChange={(event) => setFilterEvaluator(event.target.value)}
+              onValueChange={setFilterEvaluator}
             >
-              <option value="all">{t.evaluatedBy}</option>
-              {filterOptions.evaluators.map((evaluator) => (
-                <option key={evaluator} value={evaluator}>
-                  {evaluator}
-                </option>
-              ))}
-            </select>
-            <select
-              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              <SelectTrigger aria-label={t.evaluatedBy} className={filterSelectTriggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={8} className={filterSelectContentClass}>
+                <SelectItem value="all">{t.evaluatedBy}</SelectItem>
+                {filterOptions.evaluators.map((evaluator) => (
+                  <SelectItem key={evaluator} value={evaluator}>
+                    {evaluator}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={filterBuCode}
-              onChange={(event) => setFilterBuCode(event.target.value)}
+              onValueChange={setFilterBuCode}
             >
-              <option value="all">BU</option>
-              {filterOptions.buCodes.map((buCode) => (
-                <option key={buCode} value={buCode}>
-                  {buCode}
-                </option>
-              ))}
-            </select>
-            <select
-              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              <SelectTrigger aria-label="BU" className={filterSelectTriggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={8} className={filterSelectContentClass}>
+                <SelectItem value="all">BU</SelectItem>
+                {filterOptions.buCodes.map((buCode) => (
+                  <SelectItem key={buCode} value={buCode}>
+                    {buCode}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={filterDepartment}
-              onChange={(event) => setFilterDepartment(event.target.value)}
+              onValueChange={setFilterDepartment}
             >
-              <option value="all">{t.department}</option>
-              {filterOptions.departments.map((department) => (
-                <option key={department} value={department}>
-                  {department}
-                </option>
-              ))}
-            </select>
-            <select
-              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              <SelectTrigger aria-label={t.department} className={filterSelectTriggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={8} className={filterSelectContentClass}>
+                <SelectItem value="all">{t.department}</SelectItem>
+                {filterOptions.departments.map((department) => (
+                  <SelectItem key={department} value={department}>
+                    {department}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={filterCourse}
-              onChange={(event) => setFilterCourse(event.target.value)}
+              onValueChange={setFilterCourse}
             >
-              <option value="all">{t.course}</option>
-              {filterOptions.courses.map((course) => (
-                <option key={course} value={course}>
-                  {course}
-                </option>
-              ))}
-            </select>
-            <select
-              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              <SelectTrigger aria-label={t.course} className={filterSelectTriggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={8} className={filterSelectContentClass}>
+                <SelectItem value="all">{t.course}</SelectItem>
+                {filterOptions.courses.map((course) => (
+                  <SelectItem key={course} value={course}>
+                    {course}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={filterYear}
-              onChange={(event) => setFilterYear(event.target.value)}
+              onValueChange={setFilterYear}
             >
-              <option value="all">{t.year}</option>
-              {filterOptions.years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-            <select
-              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              <SelectTrigger aria-label={t.year} className={filterSelectTriggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={8} className={filterSelectContentClass}>
+                <SelectItem value="all">{t.year}</SelectItem>
+                {filterOptions.years.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={filterResult}
-              onChange={(event) => setFilterResult(event.target.value)}
+              onValueChange={setFilterResult}
             >
-              <option value="all">{t.result}</option>
-              <option value="Pass">{t.pass}</option>
-              <option value="Fail">{t.fail}</option>
-            </select>
+              <SelectTrigger aria-label={t.result} className={filterSelectTriggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={8} className={filterSelectContentClass}>
+                <SelectItem value="all">{t.result}</SelectItem>
+                <SelectItem value="Pass">{t.pass}</SelectItem>
+                <SelectItem value="Fail">{t.fail}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <Table className="min-w-[1180px]">
             <TableHeader>
@@ -353,7 +389,14 @@ export default function EvaluationSummariesPage() {
             </TableHeader>
             <TableBody>
               {filteredSummaries.map((summary) => (
-                <TableRow key={summary.id}>
+                <TableRow
+                  key={summary.id}
+                  className={
+                    summary.result === "Pass"
+                      ? "bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/45"
+                      : "bg-red-50/80 hover:bg-red-100/80 dark:bg-red-950/30 dark:hover:bg-red-950/45"
+                  }
+                >
                   <TableCell className="text-center">
                     <input
                       type="checkbox"
@@ -434,7 +477,7 @@ export default function EvaluationSummariesPage() {
 
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex touch-pan-y items-start justify-center overflow-y-scroll overscroll-contain bg-slate-950/55 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+          className="fixed inset-0 z-50 flex touch-pan-y items-stretch justify-center overflow-y-scroll overscroll-contain bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-6"
           style={{ WebkitOverflowScrolling: "touch" }}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setSelected(null);
@@ -547,7 +590,7 @@ function SummaryComparisonModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 touch-pan-y overflow-y-scroll overscroll-contain bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-50 touch-pan-y overflow-y-scroll overscroll-contain bg-slate-950/60 p-0 backdrop-blur-sm sm:p-6"
       style={{ WebkitOverflowScrolling: "touch" }}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
@@ -558,19 +601,19 @@ function SummaryComparisonModal({
         role="dialog"
         aria-modal="true"
         aria-label="Selected summary results"
-        className="mx-auto min-h-0 w-full max-w-[1600px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
+        className="mx-auto min-h-[100dvh] w-full max-w-[1600px] overflow-hidden rounded-none border-0 bg-white shadow-2xl sm:min-h-0 sm:rounded-3xl sm:border sm:border-slate-200"
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 bg-slate-950 px-5 py-5 text-white md:px-8">
-          <div>
+        <div className="sticky top-0 z-10 flex flex-col gap-3 bg-slate-950 px-4 py-4 text-white sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-5 md:px-8">
+          <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">
               Summary Result Comparison
             </p>
-            <h2 className="mt-1 text-2xl font-black">
+            <h2 className="mt-1 text-xl font-black sm:text-2xl">
               {summaries.length} selected employees
             </h2>
           </div>
           <div
-            className="flex shrink-0 items-center gap-2"
+            className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto"
             data-html2canvas-ignore="true"
           >
             <button
@@ -602,7 +645,7 @@ function SummaryComparisonModal({
           </div>
         </div>
 
-        <div className="grid gap-5 bg-white p-4 md:p-6 xl:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid gap-4 bg-white p-3 sm:gap-5 sm:p-4 md:p-6 xl:grid-cols-2 2xl:grid-cols-3">
           {summaries.map((summary, index) => {
             const color = COMPARISON_COLORS[index % COMPARISON_COLORS.length];
             const radarData = summary.categorySummary.map((category) => ({
@@ -614,7 +657,7 @@ function SummaryComparisonModal({
                 key={summary.id}
                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
               >
-                <div className="border-b border-slate-200 p-5">
+                <div className="border-b border-slate-200 p-4 sm:p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h3 className="text-xl font-black text-slate-950">
@@ -652,7 +695,7 @@ function SummaryComparisonModal({
                   </dl>
                 </div>
 
-                <div className="h-[390px] p-3">
+                <div className="h-[320px] p-2 sm:h-[390px] sm:p-3">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart
                       data={radarData}
@@ -873,20 +916,20 @@ function SummaryModal({
         role="dialog"
         aria-modal="true"
         aria-label="Summary evaluation report"
-        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl overscroll-contain overflow-y-auto touch-pan-y rounded-3xl border-0 bg-white p-0 shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
+        className="min-h-[100dvh] w-full max-w-6xl overscroll-contain overflow-y-auto touch-pan-y rounded-none border-0 bg-white p-0 shadow-2xl sm:min-h-0 sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
-        <div className="flex items-start justify-between gap-4 bg-slate-950 px-5 py-6 text-white md:px-8">
-          <div>
+        <div className="sticky top-0 z-10 flex flex-col gap-3 bg-slate-950 px-4 py-4 text-white sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-5 sm:py-6 md:px-8">
+          <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">
               Evaluation Report
             </p>
-            <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">
+            <h2 className="mt-2 break-words text-xl font-black tracking-tight sm:text-2xl md:text-3xl">
               Nanyang Trainer Certification Evaluation Form
             </h2>
           </div>
           <div
-            className="flex shrink-0 items-center gap-2"
+            className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto"
             data-html2canvas-ignore="true"
           >
             <button
@@ -909,8 +952,8 @@ function SummaryModal({
           </div>
         </div>
 
-        <div className="space-y-8 bg-white p-5 text-slate-950 md:p-8">
-          <dl className="grid gap-x-8 gap-y-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="space-y-5 bg-white p-4 text-slate-950 sm:space-y-8 sm:p-5 md:p-8">
+          <dl className="grid gap-x-8 gap-y-4 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-4">
             <ReportField
               label="Evaluation Recipient"
               value={summary.recipient?.recipientName ?? "—"}
@@ -1084,7 +1127,7 @@ function SummaryModal({
               <h3 className="text-center text-lg font-black text-slate-950">
                 Competency Profile
               </h3>
-              <div className="mt-2 h-[390px] w-full">
+              <div className="mt-2 h-[320px] w-full sm:h-[390px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart
                     data={summary.categorySummary.map((category) => ({
