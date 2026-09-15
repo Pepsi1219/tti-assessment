@@ -60,6 +60,7 @@ export default function EvaluationManagementPage() {
   const { t } = useI18n();
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [filterEmployeeId, setFilterEmployeeId] = useState("");
+  const [filterEvaluator, setFilterEvaluator] = useState<string>("all");
   const [filterBuCode, setFilterBuCode] = useState<string>("all");
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [filterCourse, setFilterCourse] = useState<string>("all");
@@ -105,6 +106,9 @@ export default function EvaluationManagementPage() {
       buCodes: unique(evaluations.map((evaluation) => evaluation.buCode)),
       departments: unique(evaluations.map((evaluation) => evaluation.bu)),
       courses: unique(evaluations.map((evaluation) => evaluation.topicName)),
+      evaluators: unique(
+        evaluations.map((evaluation) => evaluation.evaluatorName),
+      ),
       years: unique(
         evaluations.map((evaluation) => evaluation.evaluationDate?.slice(0, 4)),
       )
@@ -116,6 +120,8 @@ export default function EvaluationManagementPage() {
   const filtered = useMemo(() => {
     return evaluations.filter((ev) => {
       if (filterResult !== "all" && ev.result !== filterResult) return false;
+      if (filterEvaluator !== "all" && ev.evaluatorName !== filterEvaluator)
+        return false;
       if (filterBuCode !== "all" && ev.buCode !== filterBuCode) return false;
       if (filterDepartment !== "all" && ev.bu !== filterDepartment)
         return false;
@@ -134,6 +140,7 @@ export default function EvaluationManagementPage() {
   }, [
     evaluations,
     filterEmployeeId,
+    filterEvaluator,
     filterBuCode,
     filterDepartment,
     filterCourse,
@@ -155,6 +162,7 @@ export default function EvaluationManagementPage() {
     setPage(1);
   }, [
     filterEmployeeId,
+    filterEvaluator,
     filterBuCode,
     filterDepartment,
     filterCourse,
@@ -270,13 +278,27 @@ export default function EvaluationManagementPage() {
       </div>
 
       <Card className="p-5">
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
           <Input
             className="rounded-2xl"
             placeholder={t.employeeId}
             value={filterEmployeeId}
             onChange={(event) => setFilterEmployeeId(event.target.value)}
           />
+          <select
+            className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+            value={filterEvaluator}
+            onChange={(event) => setFilterEvaluator(event.target.value)}
+          >
+            <option value="all">
+              {t.all} {t.evaluatedBy}
+            </option>
+            {filterOptions.evaluators.map((evaluator) => (
+              <option key={evaluator} value={evaluator}>
+                {evaluator}
+              </option>
+            ))}
+          </select>
           <select
             className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
             value={filterBuCode}
@@ -1097,7 +1119,7 @@ function ImportEvaluationDialog({
   const [selectedBu, setSelectedBu] = useState("");
   const [recipientId, setRecipientId] = useState("");
   const [topicId, setTopicId] = useState("");
-  const [evaluatorName, setEvaluatorName] = useState("");
+  const [evaluatorEmployeeId, setEvaluatorEmployeeId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [round, setRound] = useState("2");
   const [roundPadOpen, setRoundPadOpen] = useState(false);
@@ -1134,7 +1156,7 @@ function ImportEvaluationDialog({
     if (
       !recipientId ||
       !topicId ||
-      !evaluatorName.trim() ||
+      !evaluatorEmployeeId.trim() ||
       !date ||
       !round ||
       categoryScores.some(
@@ -1158,7 +1180,7 @@ function ImportEvaluationDialog({
           topicId,
           evaluationDate: date,
           evaluationRound: Number(round),
-          evaluatorName,
+          evaluatorEmployeeId,
           categoryScores: categoryScores.map(Number),
         }),
       });
@@ -1166,7 +1188,7 @@ function ImportEvaluationDialog({
       if (!response.ok)
         throw new Error(data.error || "Unable to import evaluations.");
       await onImported();
-      setEvaluatorName("");
+      setEvaluatorEmployeeId("");
       setCategoryScores(Array(7).fill(""));
     } catch (reason) {
       setError(
@@ -1212,7 +1234,10 @@ function ImportEvaluationDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-bold">
               Evaluator
-              <Select value={evaluatorName} onValueChange={setEvaluatorName}>
+              <Select
+                value={evaluatorEmployeeId}
+                onValueChange={setEvaluatorEmployeeId}
+              >
                 <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white">
                   <SelectValue placeholder="Select evaluator" />
                 </SelectTrigger>
@@ -1223,7 +1248,10 @@ function ImportEvaluationDialog({
                         !evaluator.status || evaluator.status === "Active",
                     )
                     .map((evaluator) => (
-                      <SelectItem key={evaluator.id} value={evaluator.name}>
+                      <SelectItem
+                        key={evaluator.id}
+                        value={evaluator.employeeId}
+                      >
                         {evaluator.employeeId} - {evaluator.name}
                       </SelectItem>
                     ))}

@@ -26,8 +26,10 @@ export async function POST(request: Request) {
   const recipientId =
     typeof body?.recipientId === "string" ? body.recipientId.trim() : "";
   const topicId = typeof body?.topicId === "string" ? body.topicId.trim() : "";
-  const evaluatorName =
-    typeof body?.evaluatorName === "string" ? body.evaluatorName.trim() : "";
+  const evaluatorEmployeeId =
+    typeof body?.evaluatorEmployeeId === "string"
+      ? body.evaluatorEmployeeId.trim()
+      : "";
   const evaluationDate =
     typeof body?.evaluationDate === "string" ? body.evaluationDate.trim() : "";
   const evaluationRound = body?.evaluationRound;
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
   if (
     !recipientId ||
     !topicId ||
-    !evaluatorName ||
+    !evaluatorEmployeeId ||
     !/^\d{4}-\d{2}-\d{2}$/.test(evaluationDate) ||
     !Number.isInteger(evaluationRound) ||
     Number(evaluationRound) < 1 ||
@@ -52,12 +54,13 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   const repo = getRepository();
-  const [recipients, topics, categories, questions, existing] =
+  const [recipients, topics, categories, questions, users, existing] =
     await Promise.all([
       repo.getRecipients(),
       repo.getTopics(),
       repo.getCategories(),
       repo.getQuestions(),
+      repo.getUsers(),
       repo.getEvaluations(),
     ]);
   const recipient = recipients.find(
@@ -69,6 +72,17 @@ export async function POST(request: Request) {
   if (!recipient || !topic)
     return NextResponse.json(
       { error: "The selected recipient or course is not available." },
+      { status: 400 },
+    );
+  const evaluator = users.find(
+    (item) =>
+      item.role === "Evaluator" &&
+      item.status !== "Inactive" &&
+      item.employeeId.toLowerCase() === evaluatorEmployeeId.toLowerCase(),
+  );
+  if (!evaluator)
+    return NextResponse.json(
+      { error: "The selected evaluator is not available." },
       { status: 400 },
     );
   const orderedCategories = categories
@@ -97,11 +111,15 @@ export async function POST(request: Request) {
         evaluation.topicId === topic.id &&
         evaluation.evaluationRound === Number(evaluationRound) &&
         evaluation.evaluationDate === evaluationDate &&
-        evaluation.evaluatorName.toLowerCase() === evaluatorName.toLowerCase(),
+        (evaluation.evaluatorEmployeeId?.toLowerCase() ===
+          evaluator.employeeId.toLowerCase() ||
+          (!evaluation.evaluatorEmployeeId &&
+            evaluation.evaluatorName.toLowerCase() ===
+              evaluator.name.toLowerCase())),
     )
   )
     return NextResponse.json(
-      { error: `An evaluation for ${evaluatorName} already exists.` },
+      { error: `An evaluation for ${evaluator.name} already exists.` },
       { status: 409 },
     );
   const metrics = calculateEvaluationMetrics(
@@ -126,8 +144,9 @@ export async function POST(request: Request) {
     recipientId: recipient.id,
     topicId: topic.id,
     topicName: topic.topicName,
-    evaluatorName,
-    evaluatorEmail: "",
+    evaluatorName: evaluator.name,
+    evaluatorEmail: evaluator.email,
+    evaluatorEmployeeId: evaluator.employeeId,
     bu: recipient.bu,
     buCode: recipient.buCode,
     evaluationDate,

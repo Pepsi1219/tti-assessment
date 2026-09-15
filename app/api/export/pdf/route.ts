@@ -325,8 +325,6 @@ export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!isAdmin(user))
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const id = request.nextUrl.searchParams.get("id");
   const summaryId = request.nextUrl.searchParams.get("summaryId");
@@ -338,6 +336,16 @@ export async function GET(request: NextRequest) {
         { error: "Consolidated evaluation not found" },
         { status: 404 },
       );
+    const evaluatorHasAccess = summary.evaluations.some(
+      (evaluation) =>
+        evaluation.evaluatorEmployeeId?.toLowerCase() ===
+          user.employeeId.toLowerCase() ||
+        (!evaluation.evaluatorEmployeeId &&
+          Boolean(user.email) &&
+          evaluation.evaluatorEmail.toLowerCase() === user.email?.toLowerCase()),
+    );
+    if (!isAdmin(user) && !evaluatorHasAccess)
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const buffer = createConsolidatedReport(summary).output("arraybuffer");
     return new NextResponse(buffer, {
@@ -347,6 +355,8 @@ export async function GET(request: NextRequest) {
       },
     });
   }
+  if (!isAdmin(user))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const results = await getEvaluationResults();
   const target = id
     ? results.find((evaluation) => evaluation.id === id)

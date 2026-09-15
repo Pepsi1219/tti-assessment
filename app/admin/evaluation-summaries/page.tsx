@@ -40,6 +40,7 @@ export default function EvaluationSummariesPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [filterEmployeeId, setFilterEmployeeId] = useState("");
+  const [filterEvaluator, setFilterEvaluator] = useState("all");
   const [filterBuCode, setFilterBuCode] = useState("all");
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterCourse, setFilterCourse] = useState("all");
@@ -58,6 +59,15 @@ export default function EvaluationSummariesPage() {
       buCodes: unique(summaries.map((summary) => summary.buCode)),
       departments: unique(summaries.map((summary) => summary.bu)),
       courses: unique(summaries.map((summary) => summary.topicName)),
+      evaluators: Array.from(
+        new Set(
+          summaries.flatMap((summary) =>
+            summary.evaluations
+              .map((evaluation) => evaluation.evaluatorName)
+              .filter(Boolean),
+          ),
+        ),
+      ).sort(),
       years: unique(summaries.map((summary) => summary.evaluationYear))
         .sort()
         .reverse(),
@@ -65,8 +75,8 @@ export default function EvaluationSummariesPage() {
   }, [summaries]);
 
   const filteredSummaries = useMemo(
-    () =>
-      summaries.filter((summary) => {
+    () => {
+      const matchingSummaries = summaries.filter((summary) => {
         if (
           filterEmployeeId &&
           !(summary.recipient?.employeeId ?? "")
@@ -84,11 +94,26 @@ export default function EvaluationSummariesPage() {
           return false;
         if (filterResult !== "all" && summary.result !== filterResult)
           return false;
+        if (
+          filterEvaluator !== "all" &&
+          !summary.evaluations.some(
+            (evaluation) => evaluation.evaluatorName === filterEvaluator,
+          )
+        )
+          return false;
         return true;
-      }),
+      });
+
+      return matchingSummaries.sort(
+        (left, right) =>
+          right.evaluationRound - left.evaluationRound ||
+          right.evaluationYear.localeCompare(left.evaluationYear),
+      );
+    },
     [
       summaries,
       filterEmployeeId,
+      filterEvaluator,
       filterBuCode,
       filterDepartment,
       filterCourse,
@@ -146,6 +171,15 @@ export default function EvaluationSummariesPage() {
     };
   }, [selected, comparisonOpen]);
 
+  useEffect(() => {
+    if (!selectedIds.size || selected || comparisonOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedIds(new Set());
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [comparisonOpen, selected, selectedIds.size]);
+
   const selectedSummaries = summaries.filter((summary) =>
     selectedIds.has(summary.id),
   );
@@ -174,6 +208,15 @@ export default function EvaluationSummariesPage() {
     });
   }
 
+  function clearSelectionWhenClickingEmptySpace(
+    event: React.MouseEvent<HTMLDivElement>,
+  ) {
+    if (!selectedIds.size || selected || comparisonOpen) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("button, input, select, a")) return;
+    setSelectedIds(new Set());
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -183,16 +226,7 @@ export default function EvaluationSummariesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">
-          {t.admin}
-        </p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight">
-          {t.evaluationSummaries}
-        </h1>
-      </div>
-
+    <div onMouseDown={clearSelectionWhenClickingEmptySpace}>
       {error ? (
         <Card className="p-5 text-sm font-semibold text-danger">{error}</Card>
       ) : summaries.length === 0 ? (
@@ -215,7 +249,7 @@ export default function EvaluationSummariesPage() {
               View selected results
             </Button>
           </div>
-          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
             <Input
               className="rounded-2xl"
               placeholder={t.employeeId}
@@ -224,10 +258,22 @@ export default function EvaluationSummariesPage() {
             />
             <select
               className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              value={filterEvaluator}
+              onChange={(event) => setFilterEvaluator(event.target.value)}
+            >
+              <option value="all">{t.evaluatedBy}</option>
+              {filterOptions.evaluators.map((evaluator) => (
+                <option key={evaluator} value={evaluator}>
+                  {evaluator}
+                </option>
+              ))}
+            </select>
+            <select
+              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
               value={filterBuCode}
               onChange={(event) => setFilterBuCode(event.target.value)}
             >
-              <option value="all">{t.all} BU</option>
+              <option value="all">BU</option>
               {filterOptions.buCodes.map((buCode) => (
                 <option key={buCode} value={buCode}>
                   {buCode}
@@ -239,9 +285,7 @@ export default function EvaluationSummariesPage() {
               value={filterDepartment}
               onChange={(event) => setFilterDepartment(event.target.value)}
             >
-              <option value="all">
-                {t.all} {t.department}
-              </option>
+              <option value="all">{t.department}</option>
               {filterOptions.departments.map((department) => (
                 <option key={department} value={department}>
                   {department}
@@ -253,9 +297,7 @@ export default function EvaluationSummariesPage() {
               value={filterCourse}
               onChange={(event) => setFilterCourse(event.target.value)}
             >
-              <option value="all">
-                {t.all} {t.course}
-              </option>
+              <option value="all">{t.course}</option>
               {filterOptions.courses.map((course) => (
                 <option key={course} value={course}>
                   {course}
@@ -267,9 +309,7 @@ export default function EvaluationSummariesPage() {
               value={filterYear}
               onChange={(event) => setFilterYear(event.target.value)}
             >
-              <option value="all">
-                {t.all} {t.year}
-              </option>
+              <option value="all">{t.year}</option>
               {filterOptions.years.map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -281,9 +321,7 @@ export default function EvaluationSummariesPage() {
               value={filterResult}
               onChange={(event) => setFilterResult(event.target.value)}
             >
-              <option value="all">
-                {t.all} {t.result}
-              </option>
+              <option value="all">{t.result}</option>
               <option value="Pass">{t.pass}</option>
               <option value="Fail">{t.fail}</option>
             </select>
@@ -752,6 +790,20 @@ function ComparisonResultStamp({ result }: { result: "Pass" | "Fail" }) {
   );
 }
 
+function ReportResultStamp({ result }: { result: "Pass" | "Fail" }) {
+  return (
+    <img
+      src={
+        result === "Pass"
+          ? "/result-stamps/passed.svg"
+          : "/result-stamps/fail.svg"
+      }
+      alt={result}
+      className="h-9 w-[112px] shrink-0 overflow-visible"
+    />
+  );
+}
+
 function SummaryModal({
   summary,
   onClose,
@@ -1097,14 +1149,8 @@ function SummaryModal({
                       {evaluation.totalScore.toFixed(2)}
                     </TableCell>
                     <TableCell>{evaluation.percentage}%</TableCell>
-                    <TableCell>
-                      <Badge
-                        tone={
-                          evaluation.result === "Pass" ? "success" : "danger"
-                        }
-                      >
-                        {evaluation.result}
-                      </Badge>
+                    <TableCell className="align-middle text-center">
+                      <ReportResultStamp result={evaluation.result} />
                     </TableCell>
                   </TableRow>
                 ))}

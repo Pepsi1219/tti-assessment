@@ -5,9 +5,24 @@ import { getEvaluationSummaries } from "@/lib/services/evaluation-service";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!isAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const summaries = await getEvaluationSummaries();
+  if (isAdmin(user)) {
+    return NextResponse.json(summaries, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  }
 
-  return NextResponse.json(await getEvaluationSummaries(), {
+  const employeeId = user.employeeId.toLowerCase();
+  const evaluatorSummaries = summaries.filter((summary) =>
+    summary.evaluations.some(
+      (evaluation) =>
+        evaluation.evaluatorEmployeeId?.toLowerCase() === employeeId ||
+        (!evaluation.evaluatorEmployeeId &&
+          Boolean(user.email) &&
+          evaluation.evaluatorEmail.toLowerCase() === user.email?.toLowerCase()),
+    ),
+  );
+  return NextResponse.json(evaluatorSummaries, {
     headers: { "Cache-Control": "private, no-store" },
   });
 }

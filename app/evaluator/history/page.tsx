@@ -23,6 +23,9 @@ export default function HistoryPage() {
   const { t } = useI18n();
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [query, setQuery] = useState("");
+  const [filterCourse, setFilterCourse] = useState("all");
+  const [filterYear, setFilterYear] = useState("all");
+  const [filterResult, setFilterResult] = useState("all");
   const [selected, setSelected] = useState<EvaluationResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -42,45 +45,56 @@ export default function HistoryPage() {
     void loadHistory();
   }, []);
 
+  const filterOptions = useMemo(() => {
+    const unique = (values: string[]) =>
+      Array.from(new Set(values.filter(Boolean))).sort();
+
+    return {
+      courses: unique(evaluations.map((evaluation) => evaluation.topicName)),
+      years: unique(
+        evaluations.map((evaluation) => evaluation.evaluationDate.slice(0, 4)),
+      ).reverse(),
+    };
+  }, [evaluations]);
+
   const filteredEvaluations = useMemo(() => {
     const text = query.trim().toLowerCase();
-    if (!text) return evaluations;
-    return evaluations.filter((evaluation) =>
-      [
-        evaluation.recipient?.recipientName,
-        evaluation.recipient?.employeeId,
-        evaluation.topicName,
-        evaluation.bu,
-        evaluation.evaluationDate,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(text),
+    const matching = evaluations.filter((evaluation) => {
+      if (
+        text &&
+        ![
+          evaluation.recipient?.recipientName,
+          evaluation.recipient?.employeeId,
+          evaluation.topicName,
+          evaluation.bu,
+          evaluation.evaluationDate,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(text)
+      )
+        return false;
+      if (filterCourse !== "all" && evaluation.topicName !== filterCourse)
+        return false;
+      if (
+        filterYear !== "all" &&
+        evaluation.evaluationDate.slice(0, 4) !== filterYear
+      )
+        return false;
+      if (filterResult !== "all" && evaluation.result !== filterResult)
+        return false;
+      return true;
+    });
+
+    return [...matching].sort(
+      (left, right) =>
+        right.evaluationDate.localeCompare(left.evaluationDate) ||
+        right.createdAt.localeCompare(left.createdAt),
     );
-  }, [evaluations, query]);
+  }, [evaluations, filterCourse, filterResult, filterYear, query]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">
-            {t.evaluator}
-          </p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">
-            {t.evaluationHistory}
-          </h2>
-        </div>
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
-          <Input
-            className="rounded-2xl pl-11"
-            placeholder={t.search}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </div>
-      </div>
-
       {loading && (
         <div className="flex justify-center py-20">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -94,7 +108,7 @@ export default function HistoryPage() {
           {loadError}
         </p>
       )}
-      {!loading && !loadError && filteredEvaluations.length === 0 && (
+      {!loading && !loadError && evaluations.length === 0 && (
         <Card className="p-10 text-center">
           <Calendar className="mx-auto h-12 w-12 text-slate-300" />
           <p className="mt-4 text-sm font-semibold text-slate-500">
@@ -102,67 +116,119 @@ export default function HistoryPage() {
           </p>
         </Card>
       )}
-      {!loading && !loadError && filteredEvaluations.length > 0 && (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Employee ID</TableHead>
-              <TableHead>{t.recipient}</TableHead>
-              <TableHead>{t.evaluationTopics}</TableHead>
-              <TableHead>{t.round}</TableHead>
-              <TableHead>Score</TableHead>
-              <TableHead>{t.percentage}</TableHead>
-              <TableHead>{t.result}</TableHead>
-              <TableHead>{t.date}</TableHead>
-              <TableHead className="text-right">{t.actions}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredEvaluations.map((evaluation) => (
-              <TableRow key={evaluation.id}>
-                <TableCell className="whitespace-nowrap font-bold">
-                  {evaluation.recipient?.employeeId ?? "—"}
-                </TableCell>
-                <TableCell className="whitespace-nowrap font-bold text-slate-900">
-                  {evaluation.recipient?.recipientName ?? "—"}
-                </TableCell>
-                <TableCell className="min-w-48">
-                  {evaluation.topicName}
-                </TableCell>
-                <TableCell className="text-center">
-                  {evaluation.evaluationRound ?? "—"}
-                </TableCell>
-                <TableCell className="whitespace-nowrap font-black text-primary">
-                  {evaluation.totalScore.toFixed(2)}/5
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {evaluation.percentage.toFixed(2)}%
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    tone={evaluation.result === "Pass" ? "success" : "danger"}
-                  >
-                    {evaluation.result === "Pass" ? t.pass : t.fail}
-                  </Badge>
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {evaluation.evaluationDate}
-                </TableCell>
-                <TableCell className="text-right">
-                  <button
-                    type="button"
-                    onClick={() => setSelected(evaluation)}
-                    className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-primary transition hover:bg-blue-100"
-                    title={t.viewResult}
-                    aria-label={`${t.viewResult}: ${evaluation.recipient?.recipientName ?? ""}`}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                </TableCell>
+      {!loading && !loadError && evaluations.length > 0 && (
+        <Card className="p-5">
+          <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
+              <Input
+                className="rounded-2xl pl-11"
+                placeholder={t.search}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </div>
+            <select
+              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              value={filterCourse}
+              onChange={(event) => setFilterCourse(event.target.value)}
+            >
+              <option value="all">{t.course}</option>
+              {filterOptions.courses.map((course) => (
+                <option key={course} value={course}>
+                  {course}
+                </option>
+              ))}
+            </select>
+            <select
+              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              value={filterYear}
+              onChange={(event) => setFilterYear(event.target.value)}
+            >
+              <option value="all">{t.year}</option>
+              {filterOptions.years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+            <select
+              className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+              value={filterResult}
+              onChange={(event) => setFilterResult(event.target.value)}
+            >
+              <option value="all">{t.result}</option>
+              <option value="Pass">{t.pass}</option>
+              <option value="Fail">{t.fail}</option>
+            </select>
+          </div>
+          {filteredEvaluations.length === 0 ? (
+            <p className="py-10 text-center text-sm font-semibold text-slate-400">
+              {t.noData}
+            </p>
+          ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Employee ID</TableHead>
+                <TableHead>{t.recipient}</TableHead>
+                <TableHead>{t.evaluationTopics}</TableHead>
+                <TableHead>{t.round}</TableHead>
+                <TableHead>Score</TableHead>
+                <TableHead>{t.percentage}</TableHead>
+                <TableHead>{t.result}</TableHead>
+                <TableHead>{t.date}</TableHead>
+                <TableHead className="text-right">{t.actions}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredEvaluations.map((evaluation) => (
+                <TableRow key={evaluation.id}>
+                  <TableCell className="whitespace-nowrap font-bold">
+                    {evaluation.recipient?.employeeId ?? "—"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap font-bold text-slate-900">
+                    {evaluation.recipient?.recipientName ?? "—"}
+                  </TableCell>
+                  <TableCell className="min-w-48">
+                    {evaluation.topicName}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {evaluation.evaluationRound ?? "—"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap font-black text-primary">
+                    {evaluation.totalScore.toFixed(2)}/5
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {evaluation.percentage.toFixed(2)}%
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      tone={evaluation.result === "Pass" ? "success" : "danger"}
+                    >
+                      {evaluation.result === "Pass" ? t.pass : t.fail}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {evaluation.evaluationDate}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => setSelected(evaluation)}
+                      className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-primary transition hover:bg-blue-100"
+                      title={t.viewResult}
+                      aria-label={`${t.viewResult}: ${evaluation.recipient?.recipientName ?? ""}`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          )}
+        </Card>
       )}
 
       {selected && (

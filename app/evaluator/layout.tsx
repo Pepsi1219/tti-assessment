@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, History, LogOut, Menu, X } from "lucide-react";
+import { BarChart3, ClipboardList, History, LogOut, Menu, X } from "lucide-react";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
@@ -44,6 +44,11 @@ export default function EvaluatorLayout({
   const navItems = [
     { href: "/evaluator", label: t.newEvaluation, icon: ClipboardList },
     { href: "/evaluator/history", label: t.myEvaluations, icon: History },
+    {
+      href: "/evaluator/evaluation-summaries",
+      label: t.evaluationSummaries,
+      icon: BarChart3,
+    },
   ];
 
   return (

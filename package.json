@@ -10,7 +10,8 @@
     "test": "tsc --noEmit",
     "import:evaluations": "node --no-warnings --experimental-strip-types scripts/import-evaluations-from-excel.ts",
     "import:evaluations:commit": "node --no-warnings --experimental-strip-types scripts/import-evaluations-from-excel.ts --commit",
-    "correct:legacy-scores": "node --no-warnings --experimental-strip-types scripts/correct-legacy-evaluation-scores.ts"
+    "correct:legacy-scores": "node --no-warnings --experimental-strip-types scripts/correct-legacy-evaluation-scores.ts",
+    "backfill:evaluator-identities": "node scripts/backfill-evaluation-evaluator-identities.mjs"
   },
   "dependencies": {
     "@auth/core": "^0.37.4",
