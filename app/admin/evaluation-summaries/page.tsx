@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Eye, FileText, ImageDown, Users, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,8 @@ const filterSelectContentClass =
 
 export default function EvaluationSummariesPage() {
   const { t } = useI18n();
+  const pathname = usePathname();
+  const showEvaluatorFilter = !pathname.startsWith("/evaluator");
   const [summaries, setSummaries] = useState<EvaluationSummary[]>([]);
   const [selected, setSelected] = useState<EvaluationSummary | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -107,6 +110,7 @@ export default function EvaluationSummariesPage() {
         if (filterResult !== "all" && summary.result !== filterResult)
           return false;
         if (
+          showEvaluatorFilter &&
           filterEvaluator !== "all" &&
           !summary.evaluations.some(
             (evaluation) => evaluation.evaluatorName === filterEvaluator,
@@ -126,6 +130,7 @@ export default function EvaluationSummariesPage() {
       summaries,
       filterEmployeeId,
       filterEvaluator,
+      showEvaluatorFilter,
       filterBuCode,
       filterDepartment,
       filterCourse,
@@ -261,29 +266,35 @@ export default function EvaluationSummariesPage() {
               View selected results
             </Button>
           </div>
-          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+          <div
+            className={`mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 ${
+              showEvaluatorFilter ? "xl:grid-cols-7" : "xl:grid-cols-6"
+            }`}
+          >
             <Input
               className="rounded-2xl"
               placeholder={t.employeeId}
               value={filterEmployeeId}
               onChange={(event) => setFilterEmployeeId(event.target.value)}
             />
-            <Select
-              value={filterEvaluator}
-              onValueChange={setFilterEvaluator}
-            >
-              <SelectTrigger aria-label={t.evaluatedBy} className={filterSelectTriggerClass}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent position="popper" sideOffset={8} className={filterSelectContentClass}>
-                <SelectItem value="all">{t.evaluatedBy}</SelectItem>
-                {filterOptions.evaluators.map((evaluator) => (
-                  <SelectItem key={evaluator} value={evaluator}>
-                    {evaluator}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {showEvaluatorFilter && (
+              <Select
+                value={filterEvaluator}
+                onValueChange={setFilterEvaluator}
+              >
+                <SelectTrigger aria-label={t.evaluatedBy} className={filterSelectTriggerClass}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={8} className={filterSelectContentClass}>
+                  <SelectItem value="all">{t.evaluatedBy}</SelectItem>
+                  {filterOptions.evaluators.map((evaluator) => (
+                    <SelectItem key={evaluator} value={evaluator}>
+                      {evaluator}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Select
               value={filterBuCode}
               onValueChange={setFilterBuCode}

@@ -54,14 +54,14 @@ export default function EvaluatorLayout({
   return (
     <div className="min-h-screen text-slate-950">
       <header className="sticky top-0 z-30 border-b border-white/70 bg-white/70 backdrop-blur-2xl">
-        <div className="mx-auto flex w-full min-w-0 max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
+        <div className="flex w-full min-w-0 items-center justify-between px-4 py-3 lg:px-6">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <button
               type="button"
               aria-label={
                 mobileMenuOpen ? "Close navigation" : "Open navigation"
               }
-              className="lg:hidden"
+              className="shrink-0 lg:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? (
@@ -70,7 +70,7 @@ export default function EvaluatorLayout({
                 <Menu className="h-5 w-5" />
               )}
             </button>
-            <Link href="/evaluator" className="flex items-center gap-3">
+            <Link href="/evaluator" className="flex min-w-0 items-center gap-2 sm:gap-3">
               <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-950 p-1.5 shadow-lg shadow-slate-950/20">
                 <Image
                   src={logo}
@@ -79,11 +79,13 @@ export default function EvaluatorLayout({
                   priority
                 />
               </div>
-              <div className="hidden sm:block">
-                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+              <div className="min-w-0">
+                <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-primary sm:text-[10px] sm:tracking-[0.24em]">
                   Nanyang
                 </p>
-                <h1 className="text-sm font-bold leading-tight">{t.title}</h1>
+                <h1 className="line-clamp-2 text-[11px] font-bold leading-tight sm:text-sm">
+                  {t.title}
+                </h1>
               </div>
             </Link>
           </div>
@@ -148,7 +150,7 @@ export default function EvaluatorLayout({
           </nav>
         )}
       </header>
-      <main className="mx-auto w-full min-w-0 max-w-7xl overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
+      <main className="min-w-0 overflow-x-hidden p-4 lg:p-6">
         {children}
       </main>
     </div>

@@ -130,7 +130,7 @@ export default function HistoryPage() {
       )}
       {!loading && !loadError && evaluations.length > 0 && (
         <Card className="p-5">
-          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
             <div className="relative w-full max-w-none">
               <Search className="absolute left-4 top-3.5 h-4 w-4 text-slate-400" />
               <Input
