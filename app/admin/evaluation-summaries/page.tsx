@@ -4,8 +4,8 @@ import { Check, Eye, FileText, ImageDown, Users, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useOptionalAdminEvaluationActions } from "@/components/admin-evaluation-actions";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -48,6 +48,8 @@ const filterSelectContentClass =
 
 export default function EvaluationSummariesPage() {
   const { t } = useI18n();
+  const adminEvaluationActions = useOptionalAdminEvaluationActions();
+  const setSummaryActions = adminEvaluationActions?.setSummaryActions;
   const pathname = usePathname();
   const showEvaluatorFilter = !pathname.startsWith("/evaluator");
   const [summaries, setSummaries] = useState<EvaluationSummary[]>([]);
@@ -234,6 +236,15 @@ export default function EvaluationSummariesPage() {
     setSelectedIds(new Set());
   }
 
+  useEffect(() => {
+    if (!setSummaryActions) return;
+    setSummaryActions({
+      viewSelectedResults: () => setComparisonOpen(true),
+      disabled: selectedIds.size === 0,
+    });
+    return () => setSummaryActions(null);
+  }, [selectedIds.size, setSummaryActions]);
+
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -252,19 +263,11 @@ export default function EvaluationSummariesPage() {
         </Card>
       ) : (
         <Card className="p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-4">
             <p className="text-sm font-semibold text-slate-500">
               Selected {selectedIds.size} item
               {selectedIds.size === 1 ? "" : "s"}
             </p>
-            <Button
-              type="button"
-              disabled={selectedIds.size === 0}
-              onClick={() => setComparisonOpen(true)}
-            >
-              <Eye className="h-4 w-4" />
-              View selected results
-            </Button>
           </div>
           <div
             className={`mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 ${
@@ -601,18 +604,17 @@ function SummaryComparisonModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 touch-pan-y overflow-y-scroll overscroll-contain bg-slate-950/60 p-0 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-50 touch-pan-y overflow-y-auto overscroll-contain bg-slate-950/60 p-0 backdrop-blur-sm scrollbar-hide sm:p-6"
       style={{ WebkitOverflowScrolling: "touch" }}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <div
-        ref={reportRef}
         role="dialog"
         aria-modal="true"
         aria-label="Selected summary results"
-        className="mx-auto min-h-[100dvh] w-full max-w-[1600px] overflow-hidden rounded-none border-0 bg-white shadow-2xl sm:min-h-0 sm:rounded-3xl sm:border sm:border-slate-200"
+        className="mx-auto min-h-[100dvh] w-full max-w-[1900px] overflow-hidden rounded-none border-0 bg-white shadow-2xl sm:min-h-0 sm:rounded-3xl sm:border sm:border-slate-200"
       >
         <div className="sticky top-0 z-10 flex flex-col gap-3 bg-slate-950 px-4 py-4 text-white sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-5 md:px-8">
           <div className="min-w-0">
@@ -656,7 +658,10 @@ function SummaryComparisonModal({
           </div>
         </div>
 
-        <div className="grid gap-4 bg-white p-3 sm:gap-5 sm:p-4 md:p-6 xl:grid-cols-2 2xl:grid-cols-3">
+        <div
+          ref={reportRef}
+          className="grid grid-cols-1 gap-8 bg-white px-5 py-7 sm:px-8 md:grid-cols-2 md:gap-10 md:px-10 md:py-10 xl:grid-cols-3 xl:px-12"
+        >
           {summaries.map((summary, index) => {
             const color = COMPARISON_COLORS[index % COMPARISON_COLORS.length];
             const radarData = summary.categorySummary.map((category) => ({
@@ -666,52 +671,27 @@ function SummaryComparisonModal({
             return (
               <section
                 key={summary.id}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                className="relative min-w-0 bg-white"
               >
-                <div className="border-b border-slate-200 p-4 sm:p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="text-xl font-black text-slate-950">
-                        {summary.recipient?.recipientName ?? "—"}
-                      </h3>
-                      <p className="mt-1 text-sm font-semibold text-slate-500">
-                        {summary.recipient?.employeeId ?? "—"} ·{" "}
-                        {summary.buCode ?? "—"}
-                      </p>
-                    </div>
-                    <ComparisonResultStamp result={summary.result} />
-                  </div>
-                  <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                    <ComparisonField
-                      label="Score"
-                      value={`${summary.totalScore.toFixed(2)} / 5`}
-                    />
-                    <ComparisonField
-                      label="Percentage"
-                      value={`${summary.percentage.toFixed(2)}%`}
-                    />
-                    <ComparisonField label="Course" value={summary.topicName} />
-                    <ComparisonField
-                      label="Round / Year"
-                      value={`${summary.evaluationRound} / ${summary.evaluationYear}`}
-                    />
-                    <ComparisonField
-                      label="Department"
-                      value={summary.bu || "—"}
-                    />
-                    <ComparisonField
-                      label="Evaluators"
-                      value={String(summary.evaluatorCount)}
-                    />
-                  </dl>
+                <div className="relative min-h-[118px] px-4 pt-2 text-center">
+                  <ComparisonResultStamp result={summary.result} />
+                  <h3 className="mx-auto max-w-[82%] text-2xl font-medium leading-tight text-slate-950 sm:text-[28px]">
+                    {summary.recipient?.recipientName ?? "—"}
+                  </h3>
+                  <p className="mt-2 text-base font-medium text-slate-500 sm:text-lg">
+                    Avg score = {summary.totalScore.toFixed(2)} / 5
+                  </p>
+                  <p className="text-base font-medium text-slate-500 sm:text-lg">
+                    Percentage = {summary.percentage.toFixed(1)}%
+                  </p>
                 </div>
 
-                <div className="h-[320px] p-2 sm:h-[390px] sm:p-3">
+                <div className="h-[340px] pt-2 sm:h-[400px] md:h-[430px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart
                       data={radarData}
-                      outerRadius="58%"
-                      margin={{ top: 34, right: 56, bottom: 34, left: 56 }}
+                      outerRadius="61%"
+                      margin={{ top: 38, right: 64, bottom: 38, left: 64 }}
                     >
                       <PolarGrid stroke="#cbd5e1" />
                       <PolarAngleAxis
@@ -742,7 +722,7 @@ function SummaryComparisonModal({
                 </div>
 
                 {showDetails && (
-                  <div className="border-t border-slate-200 p-4">
+                  <div className="mt-2 border-t border-slate-200 px-4 pt-4">
                     <div className="space-y-2">
                       {summary.categorySummary.map((category) => {
                         const criticalFailure =
@@ -778,68 +758,40 @@ function SummaryComparisonModal({
   );
 }
 
-function ComparisonField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-        {label}
-      </dt>
-      <dd className="mt-0.5 break-words font-bold text-slate-800">{value}</dd>
-    </div>
-  );
-}
-
 function ComparisonResultStamp({ result }: { result: "Pass" | "Fail" }) {
   const passed = result === "Pass";
   const color = passed ? "#16a34a" : "#dc2626";
   return (
     <svg
-      viewBox="0 0 132 48"
-      width="132"
-      height="48"
+      viewBox="0 0 96 96"
+      width="96"
+      height="96"
       className={cn(
-        "h-12 w-[132px] shrink-0 overflow-visible",
+        "absolute right-2 top-0 h-16 w-16 overflow-visible sm:right-4 sm:h-20 sm:w-20",
         passed ? "-rotate-6" : "rotate-6",
       )}
       role="img"
       aria-label={result}
     >
-      <rect
-        x="3"
-        y="4"
-        width="126"
-        height="40"
-        rx="5"
-        fill="none"
-        stroke={color}
-        strokeWidth="3"
-      />
-      {passed && (
-        <>
-          <circle cx="22" cy="24" r="9" fill={color} />
-          <path
-            d="M17.5 24.2 21 27.5 26.8 20.8"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="2.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </>
-      )}
-      <text
-        x={passed ? 78 : 66}
-        y="24"
-        fill={color}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontFamily="Arial, Helvetica, sans-serif"
-        fontSize="16"
-        fontWeight="900"
-        letterSpacing="1.6"
-      >
-        {passed ? "PASSED" : "FAIL"}
-      </text>
+      <g transform="rotate(-12 48 48)">
+        <circle cx="48" cy="48" r="40" fill="#ffffff" stroke={color} strokeWidth="4" />
+        <circle cx="48" cy="48" r="32" fill="none" stroke={color} strokeWidth="2" strokeDasharray="3 2" />
+        <circle cx="48" cy="48" r="23" fill="none" stroke={color} strokeWidth="1.5" />
+        <rect x="3" y="35" width="90" height="26" rx="3" fill="#ffffff" stroke={color} strokeWidth="3" />
+        <text
+          x="48"
+          y="49"
+          fill={color}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontFamily="Arial, Helvetica, sans-serif"
+          fontSize={passed ? "15" : "17"}
+          fontWeight="900"
+          letterSpacing="1"
+        >
+          {passed ? "PASSED" : "FAIL"}
+        </text>
+      </g>
     </svg>
   );
 }

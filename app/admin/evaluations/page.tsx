@@ -4,14 +4,12 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Download,
   Eye,
   FileText,
   Pencil,
-  Upload,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   PolarAngleAxis,
   PolarGrid,
@@ -24,9 +22,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useAdminEvaluationActions } from "@/components/admin-evaluation-actions";
 import { Dialog } from "@/components/ui/dialog";
 import { WrappedRadarTick } from "@/components/evaluation-category-report";
 import { Input } from "@/components/ui/input";
+import { StandardSelect } from "@/components/ui/standard-select";
 import {
   Select,
   SelectContent,
@@ -58,6 +58,7 @@ import type {
 
 export default function EvaluationManagementPage() {
   const { t } = useI18n();
+  const { setActions } = useAdminEvaluationActions();
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [filterEmployeeId, setFilterEmployeeId] = useState("");
   const [filterEvaluator, setFilterEvaluator] = useState<string>("all");
@@ -136,7 +137,11 @@ export default function EvaluationManagementPage() {
       )
         return false;
       return true;
-    });
+    }).sort(
+      (left, right) =>
+        right.evaluationDate.localeCompare(left.evaluationDate) ||
+        right.createdAt.localeCompare(left.createdAt),
+    );
   }, [
     evaluations,
     filterEmployeeId,
@@ -175,7 +180,7 @@ export default function EvaluationManagementPage() {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
 
-  async function exportExcel() {
+  const exportExcel = useCallback(async () => {
     const res = await fetch("/api/export/excel");
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -184,7 +189,15 @@ export default function EvaluationManagementPage() {
     a.download = "nanyang-trainer-evaluations.xlsx";
     a.click();
     URL.revokeObjectURL(url);
-  }
+  }, []);
+
+  useEffect(() => {
+    setActions({
+      openImport: () => setImportOpen(true),
+      exportExcel,
+    });
+    return () => setActions(null);
+  }, [exportExcel, setActions]);
 
   async function exportPdf(evaluationId?: string) {
     const url = evaluationId
@@ -248,28 +261,6 @@ export default function EvaluationManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">
-            {t.admin}
-          </p>
-          <h1 className="mt-1 text-2xl font-black tracking-tight">Result</h1>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Button
-            className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-            onClick={() => setImportOpen(true)}
-          >
-            <Upload className="h-4 w-4" />
-            Import Result
-          </Button>
-          <Button onClick={exportExcel}>
-            <Download className="h-4 w-4" />
-            {t.exportExcel}
-          </Button>
-        </div>
-      </div>
-
       <Card className="p-5">
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
           <Input
@@ -278,85 +269,76 @@ export default function EvaluationManagementPage() {
             value={filterEmployeeId}
             onChange={(event) => setFilterEmployeeId(event.target.value)}
           />
-          <select
-            className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+          <StandardSelect
             value={filterEvaluator}
-            onChange={(event) => setFilterEvaluator(event.target.value)}
-          >
-            <option value="all">
-              {t.all} {t.evaluatedBy}
-            </option>
-            {filterOptions.evaluators.map((evaluator) => (
-              <option key={evaluator} value={evaluator}>
-                {evaluator}
-              </option>
-            ))}
-          </select>
-          <select
-            className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+            onValueChange={setFilterEvaluator}
+            ariaLabel={t.evaluatedBy}
+            options={[
+              { value: "all", label: t.evaluatedBy },
+              ...filterOptions.evaluators.map((evaluator) => ({
+                value: evaluator,
+                label: evaluator,
+              })),
+            ]}
+          />
+          <StandardSelect
             value={filterBuCode}
-            onChange={(event) => setFilterBuCode(event.target.value)}
-          >
-            <option value="all">{t.all} BU</option>
-            {filterOptions.buCodes.map((buCode) => (
-              <option key={buCode} value={buCode}>
-                {buCode}
-              </option>
-            ))}
-          </select>
-          <select
-            className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+            onValueChange={setFilterBuCode}
+            ariaLabel="BU"
+            options={[
+              { value: "all", label: "BU" },
+              ...filterOptions.buCodes.map((buCode) => ({
+                value: buCode,
+                label: buCode,
+              })),
+            ]}
+          />
+          <StandardSelect
             value={filterDepartment}
-            onChange={(event) => setFilterDepartment(event.target.value)}
-          >
-            <option value="all">
-              {t.all} {t.department}
-            </option>
-            {filterOptions.departments.map((department) => (
-              <option key={department} value={department}>
-                {department}
-              </option>
-            ))}
-          </select>
-          <select
-            className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+            onValueChange={setFilterDepartment}
+            ariaLabel={t.department}
+            options={[
+              { value: "all", label: t.department },
+              ...filterOptions.departments.map((department) => ({
+                value: department,
+                label: department,
+              })),
+            ]}
+          />
+          <StandardSelect
             value={filterCourse}
-            onChange={(event) => setFilterCourse(event.target.value)}
-          >
-            <option value="all">
-              {t.all} {t.course}
-            </option>
-            {filterOptions.courses.map((course) => (
-              <option key={course} value={course}>
-                {course}
-              </option>
-            ))}
-          </select>
-          <select
-            className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+            onValueChange={setFilterCourse}
+            ariaLabel={t.course}
+            options={[
+              { value: "all", label: t.course },
+              ...filterOptions.courses.map((course) => ({
+                value: course,
+                label: course,
+              })),
+            ]}
+          />
+          <StandardSelect
             value={filterYear}
-            onChange={(event) => setFilterYear(event.target.value)}
-          >
-            <option value="all">
-              {t.all} {t.year}
-            </option>
-            {filterOptions.years.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-          <select
-            className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none"
+            onValueChange={setFilterYear}
+            ariaLabel={t.year}
+            options={[
+              { value: "all", label: t.year },
+              ...filterOptions.years.map((year) => ({
+                value: year,
+                label: year,
+              })),
+            ]}
+          />
+          <StandardSelect
             value={filterResult}
-            onChange={(event) => setFilterResult(event.target.value)}
-          >
-            <option value="all">
-              {t.all} {t.result}
-            </option>
-            <option value="Pass">{t.pass}</option>
-            <option value="Fail">{t.fail}</option>
-          </select>
+            onValueChange={setFilterResult}
+            ariaLabel={t.result}
+            options={[
+              { value: "all", label: t.result },
+              { value: "Pass", label: t.pass },
+              { value: "Fail", label: t.fail },
+            ]}
+          />
         </div>
 
         <Table className="min-w-[1520px] table-auto">
@@ -496,18 +478,17 @@ export default function EvaluationManagementPage() {
         <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-4 text-sm text-slate-500 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <span className="whitespace-nowrap">{t.rowsPerPage}</span>
-            <select
+            <StandardSelect
               aria-label={t.rowsPerPage}
-              value={pageSize}
-              onChange={(event) => setPageSize(Number(event.target.value))}
-              className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none transition focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            >
-              {[25, 50, 100].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
+              ariaLabel={t.rowsPerPage}
+              value={String(pageSize)}
+              onValueChange={(value) => setPageSize(Number(value))}
+              className="h-9 w-20 rounded-xl px-3 text-sm font-bold"
+              options={[25, 50, 100].map((size) => ({
+                value: String(size),
+                label: String(size),
+              }))}
+            />
             <span className="whitespace-nowrap">
               {filtered.length === 0
                 ? "0"
@@ -904,7 +885,7 @@ function EditEvaluationDialog({
                   setRecipientId("");
                 }}
               >
-                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                <SelectTrigger className="mt-1 h-11">
                   <SelectValue placeholder="เลือก BU" />
                 </SelectTrigger>
                 <SelectContent>
@@ -919,7 +900,7 @@ function EditEvaluationDialog({
             <label className="text-sm font-bold">
               ผู้รับการประเมิน
               <Select value={recipientId} onValueChange={setRecipientId}>
-                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                <SelectTrigger className="mt-1 h-11">
                   <SelectValue placeholder="เลือกผู้รับการประเมิน" />
                 </SelectTrigger>
                 <SelectContent>
@@ -937,7 +918,7 @@ function EditEvaluationDialog({
                 value={evaluatorEmployeeId}
                 onValueChange={setEvaluatorEmployeeId}
               >
-                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                <SelectTrigger className="mt-1 h-11">
                   <SelectValue placeholder="เลือกผู้ประเมิน" />
                 </SelectTrigger>
                 <SelectContent>
@@ -952,7 +933,7 @@ function EditEvaluationDialog({
             <label className="text-sm font-bold">
               หลักสูตร
               <Select value={topicId} onValueChange={setTopicId}>
-                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+                <SelectTrigger className="mt-1 h-11">
                   <SelectValue placeholder="เลือกหลักสูตร" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1236,7 +1217,7 @@ function ImportEvaluationDialog({
                 value={evaluatorEmployeeId}
                 onValueChange={setEvaluatorEmployeeId}
               >
-                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white">
+                <SelectTrigger className="mt-1 h-11">
                   <SelectValue placeholder="Select evaluator" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1265,7 +1246,7 @@ function ImportEvaluationDialog({
                   setRecipientId("");
                 }}
               >
-                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white">
+                <SelectTrigger className="mt-1 h-11">
                   <SelectValue placeholder="Select BU" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1280,7 +1261,7 @@ function ImportEvaluationDialog({
             <label className="text-sm font-bold">
               Evaluation recipient
               <Select value={recipientId} onValueChange={setRecipientId}>
-                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white">
+                <SelectTrigger className="mt-1 h-11">
                   <SelectValue placeholder="Select recipient" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1295,7 +1276,7 @@ function ImportEvaluationDialog({
             <label className="text-sm font-bold">
               Course
               <Select value={topicId} onValueChange={setTopicId}>
-                <SelectTrigger className="mt-1 h-11 rounded-xl border-slate-200 bg-white">
+                <SelectTrigger className="mt-1 h-11">
                   <SelectValue placeholder="Select course" />
                 </SelectTrigger>
                 <SelectContent>

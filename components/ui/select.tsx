@@ -16,7 +16,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "touch-target flex min-w-0 w-full items-center justify-between rounded-2xl border border-white/80 bg-white/90 px-4 py-2 text-sm font-semibold text-slate-900 shadow-inner outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100",
+      "touch-target flex min-w-0 w-full items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900 shadow-none outline-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
       className,
     )}
     {...props}
@@ -35,9 +35,9 @@ const SelectContent = React.forwardRef<
 >(({ className, children, position = "popper", ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
-      ref={ref}
-      className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-2xl border bg-white text-slate-900 shadow-xl animate-in fade-in-0 zoom-in-95 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100",
+    ref={ref}
+    className={cn(
+      "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-2xl border border-slate-200 bg-white/95 text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl animate-in fade-in-0 zoom-in-95 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100",
         position === "popper" && "translate-y-1",
         className,
       )}
@@ -65,7 +65,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none items-center rounded-xl py-2.5 pl-3 pr-10 text-sm font-medium outline-none transition focus:bg-blue-50 focus:text-primary data-[state=checked]:bg-blue-50 data-[state=checked]:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-blue-950/60 dark:data-[state=checked]:bg-blue-950/60",
+      "relative flex w-full cursor-pointer select-none items-center rounded-xl py-3 pl-3 pr-10 text-[15px] font-medium outline-none transition focus:bg-blue-50 focus:text-primary data-[state=checked]:bg-blue-50 data-[state=checked]:text-primary data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-blue-950/60 dark:data-[state=checked]:bg-blue-950/60",
       className,
     )}
     {...props}

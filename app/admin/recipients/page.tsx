@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { StandardSelect } from "@/components/ui/standard-select";
 import {
   Table,
   TableBody,
@@ -59,18 +60,18 @@ function FilterSelect({
   optionLabels?: Record<string, string>;
 }) {
   return (
-    <select
+    <StandardSelect
       value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="touch-target w-full rounded-2xl border bg-white px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-    >
-      <option value="all">{label}</option>
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {optionLabels?.[option] ?? option}
-        </option>
-      ))}
-    </select>
+      onValueChange={onChange}
+      ariaLabel={label}
+      options={[
+        { value: "all", label },
+        ...options.map((option) => ({
+          value: option,
+          label: optionLabels?.[option] ?? option,
+        })),
+      ]}
+    />
   );
 }
 
@@ -302,38 +303,38 @@ export default function RecipientManagementPage() {
           <FilterSelect
             value={filterBuCode}
             onChange={setFilterBuCode}
-            label={`${t.all} BU`}
+            label="BU"
             options={filterOptions.buCodes}
           />
           <FilterSelect
             value={filterDepartment}
             onChange={setFilterDepartment}
-            label={`${t.all} ${t.department}`}
+            label={t.department}
             options={filterOptions.departments}
           />
           <FilterSelect
             value={filterCourse}
             onChange={setFilterCourse}
-            label={`${t.all} ${t.course}`}
+            label={t.course}
             options={filterOptions.courses}
           />
           <FilterSelect
             value={filterYear}
             onChange={setFilterYear}
-            label={`${t.all} ${t.year}`}
+            label={t.year}
             options={filterOptions.years}
           />
           <FilterSelect
             value={filterResult}
             onChange={setFilterResult}
-            label={`${t.all} ${t.result}`}
+            label={t.result}
             options={["Pass", "Fail"]}
             optionLabels={{ Pass: t.pass, Fail: t.fail }}
           />
           <FilterSelect
             value={filterStatus}
             onChange={setFilterStatus}
-            label={`${t.all} ${t.status}`}
+            label={t.status}
             options={["Active", "Inactive"]}
             optionLabels={{ Active: t.active, Inactive: t.inactive }}
           />
@@ -403,18 +404,16 @@ export default function RecipientManagementPage() {
         <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-4 text-sm text-slate-500 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <span className="whitespace-nowrap">{t.rowsPerPage}</span>
-            <select
-              aria-label={t.rowsPerPage}
-              value={pageSize}
-              onChange={(event) => setPageSize(Number(event.target.value))}
-              className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-primary dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            >
-              {[25, 50, 100].map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
+            <StandardSelect
+              ariaLabel={t.rowsPerPage}
+              value={String(pageSize)}
+              onValueChange={(value) => setPageSize(Number(value))}
+              className="h-9 w-20 rounded-xl px-3 text-sm font-bold"
+              options={[25, 50, 100].map((size) => ({
+                value: String(size),
+                label: String(size),
+              }))}
+            />
             <span className="whitespace-nowrap">
               {filtered.length === 0
                 ? "0"
@@ -504,39 +503,40 @@ export default function RecipientManagementPage() {
           </label>
           <label className="block space-y-1">
             <span className="text-sm font-bold text-slate-700">BU</span>
-            <select
-              className="touch-target w-full rounded-2xl border px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
-              value={form.buCode}
-              onChange={(event) =>
+            <StandardSelect
+              value={form.buCode || "unassigned"}
+              onValueChange={(value) =>
                 setForm({
                   ...form,
-                  buCode: event.target.value as RecipientForm["buCode"],
+                  buCode: (value === "unassigned" ? "" : value) as RecipientForm["buCode"],
                 })
               }
-            >
-              <option value="">BU</option>
-              {businessUnitCodes.map((code) => (
-                <option key={code} value={code}>
-                  {code}
-                </option>
-              ))}
-            </select>
+              ariaLabel="BU"
+              options={[
+                { value: "unassigned", label: "BU" },
+                ...businessUnitCodes.map((code) => ({
+                  value: code,
+                  label: code,
+                })),
+              ]}
+            />
           </label>
           <label className="block space-y-1">
             <span className="text-sm font-bold text-slate-700">{t.status}</span>
-            <select
-              className="touch-target w-full rounded-2xl border px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
+            <StandardSelect
               value={form.status}
-              onChange={(event) =>
+              onValueChange={(value) =>
                 setForm({
                   ...form,
-                  status: event.target.value as RecipientForm["status"],
+                  status: value as RecipientForm["status"],
                 })
               }
-            >
-              <option value="Active">{t.active}</option>
-              <option value="Inactive">{t.inactive}</option>
-            </select>
+              ariaLabel={t.status}
+              options={[
+                { value: "Active", label: t.active },
+                { value: "Inactive", label: t.inactive },
+              ]}
+            />
           </label>
           <div className="flex justify-end gap-3 pt-2">
             <Button

@@ -291,18 +291,23 @@ function ResultModal({
   const { t } = useI18n();
   useEscapeKey(onClose);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-stretch justify-center overflow-y-auto bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-6"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+      className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm"
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={t.resultReport}
-        className="min-h-[100dvh] w-full max-w-6xl overflow-y-auto rounded-none border-0 bg-white p-0 shadow-2xl sm:min-h-0 sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl"
+        className="h-[100dvh] w-full overflow-y-auto overscroll-contain bg-white p-0 shadow-2xl scrollbar-hide touch-pan-y"
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-3 bg-slate-950 px-4 py-4 text-white sm:gap-4 sm:px-5 sm:py-6 md:px-8">
           <div className="min-w-0">
@@ -346,17 +351,13 @@ function ResultModal({
               success={evaluation.result === "Pass"}
             />
           </div>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h3 className="text-lg font-black text-slate-950">Comments</h3>
+            <p className="mt-3 min-h-20 whitespace-pre-wrap border-b border-dashed border-slate-300 pb-3 text-sm leading-7 text-slate-700">
+              {evaluation.comment || "—"}
+            </p>
+          </section>
           <EvaluationCategoryReport categories={evaluation.categorySummary} />
-          {evaluation.comment && (
-            <div className="rounded-2xl border border-slate-200 p-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                {t.comment}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-700">
-                {evaluation.comment}
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>

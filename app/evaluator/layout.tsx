@@ -52,8 +52,8 @@ export default function EvaluatorLayout({
   ];
 
   return (
-    <div className="min-h-screen text-slate-950">
-      <header className="sticky top-0 z-30 border-b border-white/70 bg-white/70 backdrop-blur-2xl">
+    <div className="h-[100dvh] overflow-y-auto text-slate-950 scrollbar-hide">
+      <header className="relative sticky top-0 z-30 border-b border-white/70 bg-white/70 backdrop-blur-2xl">
         <div className="flex w-full min-w-0 items-center justify-between px-4 py-3 lg:px-6">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <button
@@ -125,7 +125,7 @@ export default function EvaluatorLayout({
           </div>
         </div>
         {mobileMenuOpen && (
-          <nav className="border-t border-white/60 bg-white/90 p-3 backdrop-blur-xl lg:hidden">
+          <nav className="absolute inset-x-0 top-full z-40 max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-t border-white/60 bg-white/95 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.16)] backdrop-blur-xl scrollbar-hide lg:hidden">
             {navItems.map((item) => {
               const active = pathname === item.href;
               return (

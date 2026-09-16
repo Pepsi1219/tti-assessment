@@ -277,7 +277,7 @@ export default function EvaluatorPage() {
                   aria-label="BU"
                   className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-sm shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100 dark:bg-slate-900"
                 >
-                  <SelectValue className="truncate" placeholder="All BU" />
+                  <SelectValue className="truncate" placeholder="BU" />
                 </SelectTrigger>
                 <SelectContent
                   position="popper"
@@ -285,7 +285,7 @@ export default function EvaluatorPage() {
                   className="rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl"
                 >
                   <SelectItem value="all" className="py-3 text-[15px]">
-                    All BU
+                    BU
                   </SelectItem>
                   {availableBus.map((bu) => (
                     <SelectItem

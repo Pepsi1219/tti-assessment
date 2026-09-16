@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { StandardSelect } from "@/components/ui/standard-select";
 import { useI18n } from "@/lib/i18n/context";
 import type { EvaluationTopic } from "@/lib/types";
 
@@ -54,7 +55,7 @@ export default function TopicManagementPage() {
         {!filtered.length && <Card className="p-10 text-center text-sm text-slate-400">{t.noData}</Card>}
       </div>
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} title={editing ? t.edit : t.addTopic}>
-        <div className="space-y-4"><label className="block space-y-1"><span className="text-sm font-bold text-slate-700">{t.topicName}</span><Input value={form.topicName} onChange={(event) => setForm({ ...form, topicName: event.target.value })} /></label><label className="block space-y-1"><span className="text-sm font-bold text-slate-700">{t.topicDescription}</span><textarea className="min-h-28 w-full rounded-2xl border p-3 text-sm outline-none focus:ring-2 focus:ring-primary" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label><label className="block space-y-1"><span className="text-sm font-bold text-slate-700">{t.status}</span><select className="touch-target w-full rounded-2xl border px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as TopicForm["status"] })}><option value="Active">{t.active}</option><option value="Inactive">{t.inactive}</option></select></label><div className="flex justify-end gap-3 pt-2"><Button className="bg-slate-200 text-slate-700 shadow-none hover:bg-slate-300" onClick={() => setDialogOpen(false)}>{t.cancel}</Button><Button onClick={save} disabled={saving || !form.topicName}>{saving ? t.submitting : t.save}</Button></div></div>
+        <div className="space-y-4"><label className="block space-y-1"><span className="text-sm font-bold text-slate-700">{t.topicName}</span><Input value={form.topicName} onChange={(event) => setForm({ ...form, topicName: event.target.value })} /></label><label className="block space-y-1"><span className="text-sm font-bold text-slate-700">{t.topicDescription}</span><textarea className="min-h-28 w-full rounded-2xl border p-3 text-sm outline-none focus:ring-2 focus:ring-primary" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></label><label className="block space-y-1"><span className="text-sm font-bold text-slate-700">{t.status}</span><StandardSelect value={form.status} onValueChange={(value) => setForm({ ...form, status: value as TopicForm["status"] })} ariaLabel={t.status} options={[{ value: "Active", label: t.active }, { value: "Inactive", label: t.inactive }]} /></label><div className="flex justify-end gap-3 pt-2"><Button className="bg-slate-200 text-slate-700 shadow-none hover:bg-slate-300" onClick={() => setDialogOpen(false)}>{t.cancel}</Button><Button onClick={save} disabled={saving || !form.topicName}>{saving ? t.submitting : t.save}</Button></div></div>
       </Dialog>
     </div>
   );

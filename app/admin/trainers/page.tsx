@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { StandardSelect } from "@/components/ui/standard-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n/context";
 import type { Trainer } from "@/lib/types";
@@ -164,10 +165,15 @@ export default function TrainerManagementPage() {
           </label>
           <label className="block space-y-1">
             <span className="text-sm font-bold text-slate-700">{t.status}</span>
-            <select className="touch-target w-full rounded-2xl border px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-              <option value="Active">{t.active}</option>
-              <option value="Inactive">{t.inactive}</option>
-            </select>
+            <StandardSelect
+              value={form.status}
+              onValueChange={(value) => setForm({ ...form, status: value })}
+              ariaLabel={t.status}
+              options={[
+                { value: "Active", label: t.active },
+                { value: "Inactive", label: t.inactive },
+              ]}
+            />
           </label>
           <div className="flex justify-end gap-3 pt-2">
             <Button className="bg-slate-200 text-slate-700 shadow-none hover:bg-slate-300" onClick={() => setDialogOpen(false)}>{t.cancel}</Button>

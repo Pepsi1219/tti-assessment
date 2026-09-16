@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { StandardSelect } from "@/components/ui/standard-select";
 import { useI18n } from "@/lib/i18n/context";
 import type { Category, Question } from "@/lib/types";
 
@@ -164,11 +165,16 @@ export default function QuestionManagementPage() {
         <div className="space-y-4">
           <label className="block space-y-1">
             <span className="text-sm font-bold text-slate-700">{t.category}</span>
-            <select className="touch-target w-full rounded-2xl border px-4 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary" value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.categoryName}</option>
-              ))}
-            </select>
+            <StandardSelect
+              value={form.categoryId}
+              onValueChange={(value) => setForm({ ...form, categoryId: value })}
+              ariaLabel={t.category}
+              placeholder={t.category}
+              options={categories.map((category) => ({
+                value: category.id,
+                label: category.categoryName,
+              }))}
+            />
           </label>
           <label className="block space-y-1">
             <span className="text-sm font-bold text-slate-700">{t.question}</span>
