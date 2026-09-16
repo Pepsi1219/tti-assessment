@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect } from "react";
 import { useEscapeKey } from "@/lib/hooks/use-escape-key";
+import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 type DialogProps = {
@@ -20,6 +21,7 @@ export function Dialog({
   children,
   className,
 }: DialogProps) {
+  const { t } = useI18n();
   useEscapeKey(onClose, open);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function Dialog({
           <button
             onClick={onClose}
             className="grid h-9 w-9 place-items-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
-            aria-label="Close"
+            aria-label={t.close}
           >
             <X className="h-4 w-4" />
           </button>

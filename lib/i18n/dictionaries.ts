@@ -150,6 +150,64 @@ type Dictionary = {
   options: string;
   optionsHint: string;
   optionsPlaceholder: string;
+  language: string;
+  lightMode: string;
+  darkMode: string;
+  switchToLightMode: string;
+  switchToDarkMode: string;
+  close: string;
+  openNavigation: string;
+  closeNavigation: string;
+  adminNavigation: string;
+  evaluatorNavigation: string;
+  importResults: string;
+  viewSelectedResults: string;
+  selectAllFilteredResults: string;
+  selectedSummaryResults: string;
+  evaluationReport: string;
+  summaryEvaluationReport: string;
+  closeReport: string;
+  closeComparison: string;
+  setupEvaluation: string;
+  setupEvaluationDescription: string;
+  selectionLockedAfterScoring: string;
+  selectRound: string;
+  section: string;
+  review: string;
+  readyToSubmit: string;
+  allQuestionsScored: string;
+  evaluationItem: string;
+  obtainedScore: string;
+  fullScore: string;
+  averageMaxFive: string;
+  overallAverage: string;
+  finalResult: string;
+  noComment: string;
+  competencyProfile: string;
+  categoryScores: string;
+  average: string;
+  individualEvaluations: string;
+  detail: string;
+  hideDetail: string;
+  savePng: string;
+  savingPng: string;
+  saving: string;
+  editEvaluation: string;
+  saveChanges: string;
+  allFieldsRequired: string;
+  unableToLoad: string;
+  unableToSave: string;
+  unableToUpdate: string;
+  unableToDelete: string;
+  unableToExport: string;
+  selectedEmployees: string;
+  importDescription: string;
+  saveToFirestore: string;
+  page: string;
+  securePortal: string;
+  adminAccessDescription: string;
+  or: string;
+  internalUseOnly: string;
 };
 
 export const dictionaries: Record<Locale, Dictionary> = {
@@ -306,6 +364,64 @@ export const dictionaries: Record<Locale, Dictionary> = {
     optionsHint: "ตัวเลือก (1 บรรทัดต่อ 1 ตัวเลือก)",
     optionsPlaceholder:
       "คำอธิบายระดับ 1\nคำอธิบายระดับ 2\nคำอธิบายระดับ 3\nคำอธิบายระดับ 4\nคำอธิบายระดับ 5",
+    language: "ภาษา",
+    lightMode: "โหมดสว่าง",
+    darkMode: "โหมดมืด",
+    switchToLightMode: "เปลี่ยนเป็นโหมดสว่าง",
+    switchToDarkMode: "เปลี่ยนเป็นโหมดมืด",
+    close: "ปิด",
+    openNavigation: "เปิดเมนูนำทาง",
+    closeNavigation: "ปิดเมนูนำทาง",
+    adminNavigation: "เมนูนำทางผู้ดูแลระบบ",
+    evaluatorNavigation: "เมนูนำทางผู้ประเมิน",
+    importResults: "นำเข้าผลการประเมิน",
+    viewSelectedResults: "ดูผลลัพธ์ที่เลือก",
+    selectAllFilteredResults: "เลือกผลลัพธ์ทั้งหมดที่กรองไว้",
+    selectedSummaryResults: "สรุปผลลัพธ์ที่เลือก",
+    evaluationReport: "รายงานการประเมิน",
+    summaryEvaluationReport: "รายงานสรุปการประเมิน",
+    closeReport: "ปิดรายงาน",
+    closeComparison: "ปิดการเปรียบเทียบ",
+    setupEvaluation: "ตั้งค่าการประเมิน",
+    setupEvaluationDescription: "เลือกผู้รับการประเมิน หัวข้อการประเมิน และรอบเพื่อเริ่มต้น",
+    selectionLockedAfterScoring: "ผู้รับการประเมิน หัวข้อ และรอบจะถูกล็อกหลังเริ่มให้คะแนน เลือกประเมินใหม่เพื่อเริ่มแบบฟอร์มใหม่",
+    selectRound: "เลือกรอบ",
+    section: "หมวด",
+    review: "ตรวจสอบ",
+    readyToSubmit: "พร้อมส่งแบบประเมิน",
+    allQuestionsScored: "ตอบคำถามครบทุกข้อแล้ว สามารถเพิ่มความคิดเห็นได้หากต้องการ",
+    evaluationItem: "รายการประเมิน",
+    obtainedScore: "คะแนนที่ได้",
+    fullScore: "คะแนนเต็ม",
+    averageMaxFive: "ค่าเฉลี่ย (เต็ม 5)",
+    overallAverage: "ค่าเฉลี่ยรวม",
+    finalResult: "ผลลัพธ์สุดท้าย",
+    noComment: "ไม่มีความคิดเห็น",
+    competencyProfile: "โปรไฟล์ความสามารถ",
+    categoryScores: "คะแนนตามหมวดหมู่",
+    average: "ค่าเฉลี่ย",
+    individualEvaluations: "การประเมินรายบุคคล",
+    detail: "รายละเอียด",
+    hideDetail: "ซ่อนรายละเอียด",
+    savePng: "บันทึก PNG",
+    savingPng: "กำลังบันทึก PNG...",
+    saving: "กำลังบันทึก...",
+    editEvaluation: "แก้ไขผลการประเมิน",
+    saveChanges: "บันทึกการแก้ไข",
+    allFieldsRequired: "กรุณากรอกข้อมูลให้ครบและตรวจสอบวันที่ รอบ และคะแนน",
+    unableToLoad: "ไม่สามารถโหลดข้อมูลได้ โปรดลองอีกครั้ง",
+    unableToSave: "ไม่สามารถบันทึกข้อมูลได้ โปรดลองอีกครั้ง",
+    unableToUpdate: "ไม่สามารถอัปเดตข้อมูลได้ โปรดลองอีกครั้ง",
+    unableToDelete: "ไม่สามารถลบข้อมูลได้ โปรดลองอีกครั้ง",
+    unableToExport: "ไม่สามารถส่งออกรายงานได้ โปรดลองอีกครั้ง",
+    selectedEmployees: "พนักงานที่เลือก",
+    importDescription: "เลือกผู้รับการประเมิน หลักสูตร วันที่ และรอบ กรอกผลจาก MS Forms/Teams สำหรับผู้ประเมิน 1 คน แล้วบันทึก",
+    saveToFirestore: "บันทึกลง Firestore",
+    page: "หน้า",
+    securePortal: "พอร์ทัลการประเมินภายในที่ปลอดภัย",
+    adminAccessDescription: "กรอกรหัสพนักงานเพื่อเข้าถึงเครื่องมือผู้ดูแลระบบ",
+    or: "หรือ",
+    internalUseOnly: "สำหรับใช้งานภายใน Nanyang เท่านั้น",
   },
   en: {
     title: "Trainer Certification Evaluation",
@@ -460,6 +576,64 @@ export const dictionaries: Record<Locale, Dictionary> = {
     optionsHint: "Options (1 per line)",
     optionsPlaceholder:
       "Level 1 description\nLevel 2 description\nLevel 3 description\nLevel 4 description\nLevel 5 description",
+    language: "Language",
+    lightMode: "Light mode",
+    darkMode: "Dark mode",
+    switchToLightMode: "Switch to light mode",
+    switchToDarkMode: "Switch to dark mode",
+    close: "Close",
+    openNavigation: "Open navigation",
+    closeNavigation: "Close navigation",
+    adminNavigation: "Admin navigation",
+    evaluatorNavigation: "Evaluator navigation",
+    importResults: "Import Results",
+    viewSelectedResults: "View selected results",
+    selectAllFilteredResults: "Select all filtered results",
+    selectedSummaryResults: "Selected summary results",
+    evaluationReport: "Evaluation report",
+    summaryEvaluationReport: "Summary evaluation report",
+    closeReport: "Close report",
+    closeComparison: "Close comparison",
+    setupEvaluation: "Set up the evaluation",
+    setupEvaluationDescription: "Select the recipient, evaluation topic, and round to begin.",
+    selectionLockedAfterScoring: "The recipient, topic, and round are locked after scoring begins. Select Evaluate next to begin a new form.",
+    selectRound: "Select round",
+    section: "Section",
+    review: "Review",
+    readyToSubmit: "Ready to submit",
+    allQuestionsScored: "All questions have been scored. Add a comment if needed.",
+    evaluationItem: "Evaluation Item",
+    obtainedScore: "Obtained Score",
+    fullScore: "Full Score",
+    averageMaxFive: "Average (Max 5)",
+    overallAverage: "Overall Average",
+    finalResult: "Final Result",
+    noComment: "No comment",
+    competencyProfile: "Competency Profile",
+    categoryScores: "Category Scores",
+    average: "Average",
+    individualEvaluations: "Individual Evaluations",
+    detail: "Detail",
+    hideDetail: "Hide detail",
+    savePng: "Save PNG",
+    savingPng: "Saving PNG...",
+    saving: "Saving...",
+    editEvaluation: "Edit evaluation",
+    saveChanges: "Save changes",
+    allFieldsRequired: "Please complete all fields and verify the date, round, and scores.",
+    unableToLoad: "Unable to load data. Please try again.",
+    unableToSave: "Unable to save. Please try again.",
+    unableToUpdate: "Unable to update. Please try again.",
+    unableToDelete: "Unable to delete. Please try again.",
+    unableToExport: "Unable to export the report. Please try again.",
+    selectedEmployees: "selected employees",
+    importDescription: "Select the recipient, course, date, and round. Enter MS Forms/Teams results for one evaluator, then save.",
+    saveToFirestore: "Save to Firestore",
+    page: "Page",
+    securePortal: "Secure internal assessment portal",
+    adminAccessDescription: "Enter your employee ID to access administration tools.",
+    or: "or",
+    internalUseOnly: "Nanyang internal use only",
   },
   lo: {
     title: "ລະບົບປະເມີນການຮັບຮອງຜູ້ຝຶກສອນ",
@@ -613,6 +787,64 @@ export const dictionaries: Record<Locale, Dictionary> = {
     optionsHint: "ຕົວເລືອກ (1 ແຖວຕໍ່ 1 ຕົວເລືອກ)",
     optionsPlaceholder:
       "ຄຳອະທິບາຍລະດັບ 1\nຄຳອະທິບາຍລະດັບ 2\nຄຳອະທິບາຍລະດັບ 3\nຄຳອະທິບາຍລະດັບ 4\nຄຳອະທິບາຍລະດັບ 5",
+    language: "ພາສາ",
+    lightMode: "ໂໝດສະຫວ່າງ",
+    darkMode: "ໂໝດມືດ",
+    switchToLightMode: "ປ່ຽນເປັນໂໝດສະຫວ່າງ",
+    switchToDarkMode: "ປ່ຽນເປັນໂໝດມືດ",
+    close: "ປິດ",
+    openNavigation: "ເປີດເມນູນຳທາງ",
+    closeNavigation: "ປິດເມນູນຳທາງ",
+    adminNavigation: "ເມນູນຳທາງຜູ້ດູແລ",
+    evaluatorNavigation: "ເມນູນຳທາງຜູ້ປະເມີນ",
+    importResults: "ນຳເຂົ້າຜົນການປະເມີນ",
+    viewSelectedResults: "ເບິ່ງຜົນທີ່ເລືອກ",
+    selectAllFilteredResults: "ເລືອກຜົນທີ່ກັ່ນຕອງໄວ້ທັງໝົດ",
+    selectedSummaryResults: "ສະຫຼຸບຜົນທີ່ເລືອກ",
+    evaluationReport: "ລາຍງານການປະເມີນ",
+    summaryEvaluationReport: "ລາຍງານສະຫຼຸບການປະເມີນ",
+    closeReport: "ປິດລາຍງານ",
+    closeComparison: "ປິດການປຽບທຽບ",
+    setupEvaluation: "ຕັ້ງຄ່າການປະເມີນ",
+    setupEvaluationDescription: "ເລືອກຜູ້ຮັບການປະເມີນ ຫົວຂໍ້ ແລະ ຮອບເພື່ອເລີ່ມຕົ້ນ",
+    selectionLockedAfterScoring: "ຜູ້ຮັບການປະເມີນ ຫົວຂໍ້ ແລະ ຮອບຈະຖືກລັອກຫຼັງຈາກເລີ່ມໃຫ້ຄະແນນ ເລືອກປະເມີນໃໝ່ເພື່ອເລີ່ມແບບຟອມໃໝ່",
+    selectRound: "ເລືອກຮອບ",
+    section: "ໝວດ",
+    review: "ກວດສອບ",
+    readyToSubmit: "ພ້ອມສົ່ງການປະເມີນ",
+    allQuestionsScored: "ໃຫ້ຄະແນນຄຳຖາມຄົບແລ້ວ ເພີ່ມຄຳເຫັນໄດ້ຖ້າຕ້ອງການ",
+    evaluationItem: "ລາຍການປະເມີນ",
+    obtainedScore: "ຄະແນນທີ່ໄດ້",
+    fullScore: "ຄະແນນເຕັມ",
+    averageMaxFive: "ຄ່າສະເລ່ຍ (ເຕັມ 5)",
+    overallAverage: "ຄ່າສະເລ່ຍລວມ",
+    finalResult: "ຜົນສຸດທ້າຍ",
+    noComment: "ບໍ່ມີຄຳເຫັນ",
+    competencyProfile: "ໂປຣໄຟລ໌ຄວາມສາມາດ",
+    categoryScores: "ຄະແນນຕາມໝວດໝູ່",
+    average: "ຄ່າສະເລ່ຍ",
+    individualEvaluations: "ການປະເມີນລາຍບຸກຄົນ",
+    detail: "ລາຍລະອຽດ",
+    hideDetail: "ເຊື່ອງລາຍລະອຽດ",
+    savePng: "ບັນທຶກ PNG",
+    savingPng: "ກຳລັງບັນທຶກ PNG...",
+    saving: "ກຳລັງບັນທຶກ...",
+    editEvaluation: "ແກ້ໄຂຜົນການປະເມີນ",
+    saveChanges: "ບັນທຶກການແກ້ໄຂ",
+    allFieldsRequired: "ກະລຸນາກອກຂໍ້ມູນໃຫ້ຄົບ ແລະ ກວດສອບວັນທີ ຮອບ ແລະ ຄະແນນ",
+    unableToLoad: "ບໍ່ສາມາດໂຫຼດຂໍ້ມູນໄດ້ ກະລຸນາລອງໃໝ່",
+    unableToSave: "ບໍ່ສາມາດບັນທຶກໄດ້ ກະລຸນາລອງໃໝ່",
+    unableToUpdate: "ບໍ່ສາມາດອັບເດດໄດ້ ກະລຸນາລອງໃໝ່",
+    unableToDelete: "ບໍ່ສາມາດລຶບໄດ້ ກະລຸນາລອງໃໝ່",
+    unableToExport: "ບໍ່ສາມາດສົ່ງອອກລາຍງານໄດ້ ກະລຸນາລອງໃໝ່",
+    selectedEmployees: "ພະນັກງານທີ່ເລືອກ",
+    importDescription: "ເລືອກຜູ້ຮັບການປະເມີນ ຫຼັກສູດ ວັນທີ ແລະ ຮອບ ໃສ່ຜົນຈາກ MS Forms/Teams ສຳລັບຜູ້ປະເມີນ 1 ຄົນ ແລ້ວບັນທຶກ",
+    saveToFirestore: "ບັນທຶກໃນ Firestore",
+    page: "ໜ້າ",
+    securePortal: "ພອດທັລປະເມີນພາຍໃນທີ່ປອດໄພ",
+    adminAccessDescription: "ໃສ່ລະຫັດພະນັກງານເພື່ອເຂົ້າເຖິງເຄື່ອງມືຜູ້ດູແລ",
+    or: "ຫຼື",
+    internalUseOnly: "ສຳລັບໃຊ້ງານພາຍໃນ Nanyang ເທົ່ານັ້ນ",
   },
   vi: {
     title: "Đánh giá chứng nhận giảng viên",
@@ -767,5 +999,63 @@ export const dictionaries: Record<Locale, Dictionary> = {
     optionsHint: "Tùy chọn (1 dòng mỗi tùy chọn)",
     optionsPlaceholder:
       "Mô tả mức 1\nMô tả mức 2\nMô tả mức 3\nMô tả mức 4\nMô tả mức 5",
+    language: "Ngôn ngữ",
+    lightMode: "Chế độ sáng",
+    darkMode: "Chế độ tối",
+    switchToLightMode: "Chuyển sang chế độ sáng",
+    switchToDarkMode: "Chuyển sang chế độ tối",
+    close: "Đóng",
+    openNavigation: "Mở điều hướng",
+    closeNavigation: "Đóng điều hướng",
+    adminNavigation: "Điều hướng quản trị",
+    evaluatorNavigation: "Điều hướng người đánh giá",
+    importResults: "Nhập kết quả",
+    viewSelectedResults: "Xem kết quả đã chọn",
+    selectAllFilteredResults: "Chọn tất cả kết quả đã lọc",
+    selectedSummaryResults: "Kết quả tổng hợp đã chọn",
+    evaluationReport: "Báo cáo đánh giá",
+    summaryEvaluationReport: "Báo cáo tổng hợp đánh giá",
+    closeReport: "Đóng báo cáo",
+    closeComparison: "Đóng so sánh",
+    setupEvaluation: "Thiết lập đánh giá",
+    setupEvaluationDescription: "Chọn người được đánh giá, chủ đề đánh giá và vòng để bắt đầu.",
+    selectionLockedAfterScoring: "Người được đánh giá, chủ đề và vòng sẽ bị khóa sau khi bắt đầu chấm điểm. Chọn đánh giá mới để bắt đầu biểu mẫu mới.",
+    selectRound: "Chọn vòng",
+    section: "Mục",
+    review: "Xem lại",
+    readyToSubmit: "Sẵn sàng gửi",
+    allQuestionsScored: "Tất cả câu hỏi đã được chấm điểm. Thêm nhận xét nếu cần.",
+    evaluationItem: "Hạng mục đánh giá",
+    obtainedScore: "Điểm đạt được",
+    fullScore: "Điểm tối đa",
+    averageMaxFive: "Trung bình (tối đa 5)",
+    overallAverage: "Điểm trung bình chung",
+    finalResult: "Kết quả cuối cùng",
+    noComment: "Không có nhận xét",
+    competencyProfile: "Hồ sơ năng lực",
+    categoryScores: "Điểm theo danh mục",
+    average: "Trung bình",
+    individualEvaluations: "Đánh giá cá nhân",
+    detail: "Chi tiết",
+    hideDetail: "Ẩn chi tiết",
+    savePng: "Lưu PNG",
+    savingPng: "Đang lưu PNG...",
+    saving: "Đang lưu...",
+    editEvaluation: "Chỉnh sửa kết quả đánh giá",
+    saveChanges: "Lưu thay đổi",
+    allFieldsRequired: "Vui lòng điền đủ thông tin và kiểm tra ngày, vòng và điểm.",
+    unableToLoad: "Không thể tải dữ liệu. Vui lòng thử lại.",
+    unableToSave: "Không thể lưu. Vui lòng thử lại.",
+    unableToUpdate: "Không thể cập nhật. Vui lòng thử lại.",
+    unableToDelete: "Không thể xóa. Vui lòng thử lại.",
+    unableToExport: "Không thể xuất báo cáo. Vui lòng thử lại.",
+    selectedEmployees: "nhân viên đã chọn",
+    importDescription: "Chọn người được đánh giá, khóa học, ngày và vòng. Nhập kết quả MS Forms/Teams cho một người đánh giá rồi lưu.",
+    saveToFirestore: "Lưu vào Firestore",
+    page: "Trang",
+    securePortal: "Cổng đánh giá nội bộ an toàn",
+    adminAccessDescription: "Nhập mã nhân viên để truy cập công cụ quản trị.",
+    or: "hoặc",
+    internalUseOnly: "Chỉ dùng nội bộ Nanyang",
   },
 };

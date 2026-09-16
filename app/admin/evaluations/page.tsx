@@ -46,6 +46,7 @@ import { useI18n } from "@/lib/i18n/context";
 import {
   getPassingCriteria,
   getReportCategoryName,
+  REPORT_CATEGORY_NAMES,
 } from "@/lib/reports/evaluation-report";
 import { useEscapeKey } from "@/lib/hooks/use-escape-key";
 import { cn } from "@/lib/utils";
@@ -233,7 +234,7 @@ export default function EvaluationManagementPage() {
         error?: string;
       } | null;
       if (!response.ok)
-        throw new Error(data?.error || "Unable to delete evaluation");
+        throw new Error(data?.error || t.unableToDelete);
 
       setEvaluations((current) =>
         current.filter((evaluation) => evaluation.id !== pendingDelete.id),
@@ -244,7 +245,7 @@ export default function EvaluationManagementPage() {
       setPendingDelete(null);
     } catch (error) {
       setDeleteError(
-        error instanceof Error ? error.message : "Unable to delete evaluation",
+        error instanceof Error ? error.message : t.unableToDelete,
       );
     } finally {
       setDeleting(false);
@@ -348,7 +349,7 @@ export default function EvaluationManagementPage() {
                 {t.employeeId}
               </TableHead>
               <TableHead className="min-w-44">{t.name}</TableHead>
-              <TableHead className="w-px whitespace-nowrap">BU</TableHead>
+              <TableHead className="w-px whitespace-nowrap">{t.bu}</TableHead>
               <TableHead className="min-w-36">{t.department}</TableHead>
               <TableHead className="min-w-52">{t.course}</TableHead>
               <TableHead className="w-px whitespace-nowrap">
@@ -496,7 +497,7 @@ export default function EvaluationManagementPage() {
               {t.of} {filtered.length}
             </span>
           </div>
-          <nav aria-label="Pagination" className="flex items-center gap-1">
+          <nav aria-label={t.rowsPerPage} className="flex items-center gap-1">
             <button
               type="button"
               aria-label={t.previous}
@@ -515,7 +516,7 @@ export default function EvaluationManagementPage() {
                 <button
                   key={pageNumber}
                   type="button"
-                  aria-label={`Page ${pageNumber}`}
+                  aria-label={`${t.page} ${pageNumber}`}
                   aria-current={pageNumber === page ? "page" : undefined}
                   onClick={() => setPage(pageNumber)}
                   className={cn(
@@ -556,7 +557,7 @@ export default function EvaluationManagementPage() {
             id="evaluation-report-dialog"
             role="dialog"
             aria-modal="true"
-            aria-label="Evaluation report"
+            aria-label={t.evaluationReport}
             className="scrollbar-hide max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl overscroll-contain overflow-y-auto touch-pan-y rounded-3xl shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
             style={{ WebkitOverflowScrolling: "touch" }}
           >
@@ -681,6 +682,7 @@ function EditEvaluationDialog({
   onClose: () => void;
   onUpdated: (evaluation: EvaluationResult) => void;
 }) {
+  const { t, locale } = useI18n();
   const [recipients, setRecipients] = useState<EvaluationRecipient[]>([]);
   const [topics, setTopics] = useState<EvaluationTopic[]>([]);
   const [evaluators, setEvaluators] = useState<User[]>([]);
@@ -729,7 +731,7 @@ function EditEvaluationDialog({
     ])
       .then(async ([recipientResponse, topicResponse, evaluatorResponse]) => {
         if (!recipientResponse.ok || !topicResponse.ok || !evaluatorResponse.ok)
-          throw new Error("Unable to load data for editing");
+          throw new Error(t.unableToLoad);
         const [recipientData, topicData, evaluatorData] = await Promise.all([
           recipientResponse.json(),
           topicResponse.json(),
@@ -756,13 +758,13 @@ function EditEvaluationDialog({
           setError(
             reason instanceof Error
               ? reason.message
-              : "Unable to load data for editing",
+              : t.unableToLoad,
           );
       });
     return () => {
       cancelled = true;
     };
-  }, [evaluation]);
+  }, [evaluation, t.unableToLoad]);
 
   if (!evaluation) return null;
   const currentEvaluation = evaluation;
@@ -805,8 +807,8 @@ function EditEvaluationDialog({
     ) {
       setError(
         invalidCategory
-          ? `${getReportCategoryName(invalidCategory)} ต้องอยู่ระหว่าง 0-${invalidCategory.fullScore}`
-          : "กรุณากรอกข้อมูลให้ครบและตรวจสอบวันที่กับรอบการประเมิน",
+          ? `${getReportCategoryName(invalidCategory, locale)}: 0-${invalidCategory.fullScore}`
+          : t.allFieldsRequired,
       );
       return;
     }
@@ -833,7 +835,7 @@ function EditEvaluationDialog({
         error?: string;
       } | null;
       if (!response.ok || !data?.evaluation)
-        throw new Error(data?.error || "Unable to update evaluation");
+        throw new Error(data?.error || t.unableToUpdate);
 
       const selectedRecipient = recipients.find(
         (recipient) => recipient.id === recipientId,
@@ -857,7 +859,7 @@ function EditEvaluationDialog({
       setError(
         reason instanceof Error
           ? reason.message
-          : "Unable to update evaluation",
+          : t.unableToUpdate,
       );
     } finally {
       setSaving(false);
@@ -871,13 +873,13 @@ function EditEvaluationDialog({
         onClose={() => {
           if (!saving) onClose();
         }}
-        title="แก้ไขผลการประเมิน"
+        title={t.editEvaluation}
         className="max-w-3xl"
       >
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="text-sm font-bold">
-              BU
+              {t.bu}
               <Select
                 value={selectedBu}
                 onValueChange={(value) => {
@@ -886,7 +888,7 @@ function EditEvaluationDialog({
                 }}
               >
                 <SelectTrigger className="mt-1 h-11">
-                  <SelectValue placeholder="เลือก BU" />
+                  <SelectValue placeholder={t.bu} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableBus.map((bu) => (
@@ -898,10 +900,10 @@ function EditEvaluationDialog({
               </Select>
             </label>
             <label className="text-sm font-bold">
-              ผู้รับการประเมิน
+              {t.recipient}
               <Select value={recipientId} onValueChange={setRecipientId}>
                 <SelectTrigger className="mt-1 h-11">
-                  <SelectValue placeholder="เลือกผู้รับการประเมิน" />
+                  <SelectValue placeholder={t.selectRecipient} />
                 </SelectTrigger>
                 <SelectContent>
                   {visibleRecipients.map((recipient) => (
@@ -913,13 +915,13 @@ function EditEvaluationDialog({
               </Select>
             </label>
             <label className="text-sm font-bold">
-              ผู้ประเมิน
+              {t.evaluator}
               <Select
                 value={evaluatorEmployeeId}
                 onValueChange={setEvaluatorEmployeeId}
               >
                 <SelectTrigger className="mt-1 h-11">
-                  <SelectValue placeholder="เลือกผู้ประเมิน" />
+                  <SelectValue placeholder={t.selectEvaluator} />
                 </SelectTrigger>
                 <SelectContent>
                   {evaluators.map((evaluator) => (
@@ -931,10 +933,10 @@ function EditEvaluationDialog({
               </Select>
             </label>
             <label className="text-sm font-bold">
-              หลักสูตร
+              {t.course}
               <Select value={topicId} onValueChange={setTopicId}>
                 <SelectTrigger className="mt-1 h-11">
-                  <SelectValue placeholder="เลือกหลักสูตร" />
+                  <SelectValue placeholder={t.selectTopic} />
                 </SelectTrigger>
                 <SelectContent>
                   {topics.map((topic) => (
@@ -946,7 +948,7 @@ function EditEvaluationDialog({
               </Select>
             </label>
             <label className="text-sm font-bold">
-              วันที่
+              {t.date}
               <input
                 type="date"
                 value={date}
@@ -955,13 +957,13 @@ function EditEvaluationDialog({
               />
             </label>
             <label className="text-sm font-bold">
-              รอบ
+              {t.round}
               <Button
                 type="button"
                 className="mt-1 h-11 w-full justify-between rounded-xl border border-slate-200 bg-white px-3 text-left font-normal text-slate-900 shadow-none hover:bg-slate-50 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
                 onClick={() => setRoundPadOpen(true)}
               >
-                {round || "เลือกรอบ"}
+                {round || t.selectRound}
                 <span>⌄</span>
               </Button>
             </label>
@@ -977,7 +979,7 @@ function EditEvaluationDialog({
                   htmlFor={`edit-score-${category.categoryId}`}
                   className="flex min-w-0 items-center px-4 py-3 font-bold text-slate-800 dark:text-slate-100"
                 >
-                  {index + 1}. {getReportCategoryName(category)}
+                  {index + 1}. {getReportCategoryName(category, locale)}
                 </label>
                 <div className="border-l border-slate-200 px-3 py-2 dark:border-slate-700">
                   <input
@@ -1001,7 +1003,7 @@ function EditEvaluationDialog({
                     id={`edit-score-max-${category.categoryId}`}
                     className="mt-1 text-right text-[10px] font-semibold text-slate-400"
                   >
-                    เต็ม {category.fullScore}
+                    {t.maxScore} {category.fullScore}
                   </p>
                 </div>
               </div>
@@ -1009,7 +1011,7 @@ function EditEvaluationDialog({
           </div>
 
           <label className="block text-sm font-bold">
-            ความคิดเห็น
+            {t.comment}
             <textarea
               rows={3}
               maxLength={5_000}
@@ -1035,11 +1037,11 @@ function EditEvaluationDialog({
               className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               onClick={onClose}
             >
-              ยกเลิก
+              {t.cancel}
             </Button>
             <Button type="button" disabled={saving} onClick={save}>
               <Check className="h-4 w-4" />
-              {saving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
+              {saving ? t.saving : t.saveChanges}
             </Button>
           </div>
         </div>
@@ -1048,7 +1050,7 @@ function EditEvaluationDialog({
       <Dialog
         open={roundPadOpen}
         onClose={() => setRoundPadOpen(false)}
-        title="เลือกรอบ"
+        title={t.selectRound}
         className="max-w-sm"
       >
         <div className="grid grid-cols-3 gap-3">
@@ -1080,6 +1082,7 @@ function ImportEvaluationDialog({
   onClose: () => void;
   onImported: () => Promise<void>;
 }) {
+  const { t, locale } = useI18n();
   const [recipients, setRecipients] = useState<
     Array<{
       id: string;
@@ -1106,14 +1109,16 @@ function ImportEvaluationDialog({
     Array(7).fill(""),
   );
   const categoryLabels = [
-    "Discipline",
-    "Training Delivery Skills*",
-    "Communication Skills*",
-    "Knowledge Competency*",
-    "Training Methods & Techniques",
-    "Evaluation & Feedback Skills",
-    "Professionalism & Trainer Attitude",
-  ];
+    "discipline",
+    "presentation",
+    "communication",
+    "knowledge",
+    "methods",
+    "feedback",
+    "professionalism",
+  ].map((categoryId) =>
+    `${REPORT_CATEGORY_NAMES[locale][categoryId]}${["presentation", "communication", "knowledge"].includes(categoryId) ? "*" : ""}`,
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -1145,7 +1150,7 @@ function ImportEvaluationDialog({
           Number(score) < 0,
       )
     ) {
-      setError("กรุณากรอกข้อมูลให้ครบทุกช่อง และตรวจสอบคะแนนทั้ง 7 หัวข้อ");
+      setError(t.allFieldsRequired);
       return;
     }
     setSaving(true);
@@ -1165,7 +1170,7 @@ function ImportEvaluationDialog({
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok)
-        throw new Error(data.error || "Unable to import evaluations.");
+        throw new Error(data.error || t.unableToSave);
       await onImported();
       setEvaluatorEmployeeId("");
       setCategoryScores(Array(7).fill(""));
@@ -1173,7 +1178,7 @@ function ImportEvaluationDialog({
       setError(
         reason instanceof Error
           ? reason.message
-          : "Unable to import evaluations.",
+          : t.unableToSave,
       );
     } finally {
       setSaving(false);
@@ -1202,23 +1207,22 @@ function ImportEvaluationDialog({
       <Dialog
         open={open}
         onClose={onClose}
-        title="Import MS Forms results"
+        title={t.importResults}
         className="max-w-2xl"
       >
         <div className="space-y-4">
           <p className="text-sm text-slate-500">
-            เลือกผู้รับการประเมิน หลักสูตร วันที่ และรอบ กรอกข้อมูลผลจาก MS
-            Forms/Teams สำหรับผู้ประเมิน 1 คน แล้วบันทึก
+            {t.importDescription}
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-sm font-bold">
-              Evaluator
+              {t.evaluator}
               <Select
                 value={evaluatorEmployeeId}
                 onValueChange={setEvaluatorEmployeeId}
               >
                 <SelectTrigger className="mt-1 h-11">
-                  <SelectValue placeholder="Select evaluator" />
+                  <SelectValue placeholder={t.selectEvaluator} />
                 </SelectTrigger>
                 <SelectContent>
                   {evaluators
@@ -1238,7 +1242,7 @@ function ImportEvaluationDialog({
               </Select>
             </label>
             <label className="text-sm font-bold">
-              BU
+              {t.bu}
               <Select
                 value={selectedBu}
                 onValueChange={(value) => {
@@ -1247,7 +1251,7 @@ function ImportEvaluationDialog({
                 }}
               >
                 <SelectTrigger className="mt-1 h-11">
-                  <SelectValue placeholder="Select BU" />
+                  <SelectValue placeholder={t.bu} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableBus.map((bu) => (
@@ -1259,10 +1263,10 @@ function ImportEvaluationDialog({
               </Select>
             </label>
             <label className="text-sm font-bold">
-              Evaluation recipient
+              {t.recipient}
               <Select value={recipientId} onValueChange={setRecipientId}>
                 <SelectTrigger className="mt-1 h-11">
-                  <SelectValue placeholder="Select recipient" />
+                  <SelectValue placeholder={t.selectRecipient} />
                 </SelectTrigger>
                 <SelectContent>
                   {visibleRecipients.map((recipient) => (
@@ -1274,10 +1278,10 @@ function ImportEvaluationDialog({
               </Select>
             </label>
             <label className="text-sm font-bold">
-              Course
+              {t.course}
               <Select value={topicId} onValueChange={setTopicId}>
                 <SelectTrigger className="mt-1 h-11">
-                  <SelectValue placeholder="Select course" />
+                  <SelectValue placeholder={t.selectTopic} />
                 </SelectTrigger>
                 <SelectContent>
                   {topics.map((topic) => (
@@ -1289,7 +1293,7 @@ function ImportEvaluationDialog({
               </Select>
             </label>
             <label className="text-sm font-bold">
-              Date
+              {t.date}
               <input
                 type="date"
                 value={date}
@@ -1298,13 +1302,13 @@ function ImportEvaluationDialog({
               />
             </label>
             <label className="text-sm font-bold">
-              Round
+              {t.round}
               <Button
                 type="button"
                 className="mt-1 h-11 w-full justify-between rounded-xl border border-slate-200 bg-white px-3 text-left font-normal text-slate-900 shadow-none hover:bg-slate-50 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0"
                 onClick={() => setRoundPadOpen(true)}
               >
-                {round || "Select round"}
+                {round || t.selectRound}
                 <span>⌄</span>
               </Button>
             </label>
@@ -1352,10 +1356,10 @@ function ImportEvaluationDialog({
               className="border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
               onClick={onClose}
             >
-              Cancel
+              {t.cancel}
             </Button>
             <Button type="button" disabled={saving} onClick={save}>
-              {saving ? "Saving..." : "Save to Firestore"}
+              {saving ? t.saving : t.saveToFirestore}
             </Button>
           </div>
         </div>
@@ -1363,7 +1367,7 @@ function ImportEvaluationDialog({
       <Dialog
         open={roundPadOpen}
         onClose={() => setRoundPadOpen(false)}
-        title="Select round"
+        title={t.selectRound}
         className="max-w-sm"
       >
         <div className="grid grid-cols-3 gap-3">
@@ -1393,6 +1397,7 @@ function EvaluationReport({
   evaluation: EvaluationResult;
   onClose: () => void;
 }) {
+  const { t, locale } = useI18n();
   useEscapeKey(onClose);
   const totalActual = evaluation.categorySummary.reduce(
     (sum, category) => sum + category.actualScore,
@@ -1405,10 +1410,11 @@ function EvaluationReport({
   const criteria = getPassingCriteria(
     evaluation.totalScore,
     evaluation.categorySummary,
+    locale,
   );
   const radarData = evaluation.categorySummary.map((category) => ({
     ...category,
-    reportName: getReportCategoryName(category),
+    reportName: getReportCategoryName(category, locale),
   }));
 
   return (
@@ -1417,17 +1423,17 @@ function EvaluationReport({
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">
-              Evaluation Report
+              {t.evaluationReport}
             </p>
             <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">
-              Nanyang Trainer Certification Evaluation Form
+              {t.title}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-            aria-label="Close report"
+            aria-label={t.closeReport}
           >
             <X className="h-4 w-4" />
           </button>
@@ -1437,25 +1443,25 @@ function EvaluationReport({
       <div className="space-y-8 p-5 md:p-8">
         <dl className="grid gap-x-8 gap-y-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2 xl:grid-cols-4">
           <ReportField
-            label="Evaluation Recipient"
+            label={t.recipient}
             value={evaluation.recipient?.recipientName ?? "—"}
           />
           <ReportField
-            label="Employee ID"
+            label={t.employeeId}
             value={evaluation.recipient?.employeeId ?? "—"}
           />
           <ReportField
-            label="Evaluation Topic"
+            label={t.evaluationTopic}
             value={evaluation.topicName || "—"}
           />
           <ReportField
-            label="Department / BU"
+            label={`${t.department} / ${t.bu}`}
             value={`${evaluation.bu || "—"}${evaluation.buCode ? ` / ${evaluation.buCode}` : ""}`}
           />
-          <ReportField label="Evaluator" value={evaluation.evaluatorName} />
-          <ReportField label="Date" value={evaluation.evaluationDate} />
+          <ReportField label={t.evaluator} value={evaluation.evaluatorName} />
+          <ReportField label={t.date} value={evaluation.evaluationDate} />
           <ReportField
-            label="Round"
+            label={t.round}
             value={
               evaluation.evaluationRound
                 ? String(evaluation.evaluationRound)
@@ -1463,24 +1469,24 @@ function EvaluationReport({
             }
           />
           <ReportField
-            label="Final Result"
-            value={evaluation.result}
+            label={t.finalResult}
+            value={evaluation.result === "Pass" ? t.pass : t.fail}
             emphasize={evaluation.result === "Pass" ? "success" : "danger"}
           />
         </dl>
 
         <section>
           <h3 className="mb-4 text-lg font-black text-slate-950">
-            Evaluation Summary
+            {t.categorySummary}
           </h3>
           <div className="overflow-x-auto rounded-2xl border border-slate-200">
             <table className="w-full min-w-[720px] border-collapse text-sm">
               <thead className="bg-white text-left text-xs uppercase tracking-wider text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Evaluation Item</th>
-                  <th className="px-4 py-3 text-center">Obtained Score</th>
-                  <th className="px-4 py-3 text-center">Full Score</th>
-                  <th className="px-4 py-3 text-center">Average (Max 5)</th>
+                  <th className="px-4 py-3">{t.evaluationItem}</th>
+                  <th className="px-4 py-3 text-center">{t.obtainedScore}</th>
+                  <th className="px-4 py-3 text-center">{t.fullScore}</th>
+                  <th className="px-4 py-3 text-center">{t.averageMaxFive}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -1498,7 +1504,7 @@ function EvaluationReport({
                     >
                       <td className="px-4 py-3 font-semibold text-slate-800">
                         <span className="mr-3 text-slate-400">{index + 1}</span>
-                        {getReportCategoryName(category)}
+                        {getReportCategoryName(category, locale)}
                       </td>
                       <td className="px-4 py-3 text-center tabular-nums">
                         {category.actualScore.toFixed(1)}
@@ -1520,7 +1526,7 @@ function EvaluationReport({
               </tbody>
               <tfoot className="border-t-2 border-slate-300 bg-white font-black text-slate-950">
                 <tr>
-                  <td className="px-4 py-3">Total</td>
+                  <td className="px-4 py-3">{t.total}</td>
                   <td className="px-4 py-3 text-center tabular-nums">
                     {totalActual.toFixed(1)}
                   </td>
@@ -1530,7 +1536,7 @@ function EvaluationReport({
                   <td className="px-4 py-3 text-center tabular-nums">—</td>
                 </tr>
                 <tr className="border-t border-slate-200">
-                  <td className="px-4 py-3">Overall Average</td>
+                  <td className="px-4 py-3">{t.overallAverage}</td>
                   <td colSpan={2} />
                   <td className="px-4 py-3 text-center text-lg tabular-nums">
                     {evaluation.totalScore.toFixed(2)} / 5
@@ -1545,7 +1551,7 @@ function EvaluationReport({
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 p-5">
               <h3 className="text-lg font-black text-slate-950">
-                Passing Criteria
+                {t.showCriteria}
               </h3>
               <div className="mt-4 space-y-3">
                 {criteria.map((criterion) => (
@@ -1571,28 +1577,28 @@ function EvaluationReport({
             </section>
 
             <section className="rounded-2xl border border-slate-200 p-5">
-              <h3 className="text-lg font-black text-slate-950">Result</h3>
+              <h3 className="text-lg font-black text-slate-950">{t.result}</h3>
               <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
                 <div className="flex items-center gap-3 font-bold text-slate-800">
-                  <ReportCheckbox checked={evaluation.result === "Pass"} /> Pass
+                  <ReportCheckbox checked={evaluation.result === "Pass"} /> {t.pass}
                 </div>
                 <div className="flex items-center gap-3 font-bold text-slate-800">
-                  <ReportCheckbox checked={evaluation.result === "Fail"} /> Fail
+                  <ReportCheckbox checked={evaluation.result === "Fail"} /> {t.fail}
                 </div>
               </div>
             </section>
 
             <section className="rounded-2xl border border-slate-200 p-5">
-              <h3 className="text-lg font-black text-slate-950">Comments</h3>
+              <h3 className="text-lg font-black text-slate-950">{t.comment}</h3>
               <p className="mt-3 min-h-20 whitespace-pre-wrap border-b border-dashed border-slate-300 pb-3 text-sm leading-7 text-slate-700">
-                {evaluation.comment || "No comment"}
+                {evaluation.comment || t.noComment}
               </p>
             </section>
           </div>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
             <h3 className="text-center text-lg font-black text-slate-950">
-              Competency Profile
+              {t.competencyProfile}
             </h3>
             <div className="mt-2 h-[390px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -1620,7 +1626,7 @@ function EvaluationReport({
                     strokeWidth={2}
                   />
                   <Tooltip
-                    formatter={(value) => [Number(value).toFixed(2), "Average"]}
+                    formatter={(value) => [Number(value).toFixed(2), t.average]}
                   />
                 </RadarChart>
               </ResponsiveContainer>

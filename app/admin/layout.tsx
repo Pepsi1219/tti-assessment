@@ -95,7 +95,7 @@ export default function AdminLayout({
             <button
               type="button"
               aria-label={
-                mobileMenuOpen ? "Close navigation" : "Open navigation"
+                mobileMenuOpen ? t.closeNavigation : t.openNavigation
               }
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full transition hover:bg-white/10 lg:hidden"
               onClick={() => setMobileMenuOpen((open) => !open)}
@@ -148,7 +148,7 @@ export default function AdminLayout({
         </div>
 
         <nav
-          aria-label="Admin navigation"
+          aria-label={t.adminNavigation}
           className="hidden border-t border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-950 lg:block"
         >
           <div className="flex items-center gap-2 px-3 sm:px-4 lg:px-6">
@@ -180,7 +180,7 @@ export default function AdminLayout({
         </nav>
         {mobileMenuOpen && (
           <nav
-            aria-label="Admin navigation"
+            aria-label={t.adminNavigation}
             className="absolute inset-x-0 top-full z-40 max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-t border-white/20 bg-slate-950/95 p-3 text-white shadow-[0_18px_40px_rgba(15,23,42,0.28)] backdrop-blur-xl scrollbar-hide lg:hidden"
           >
             <div className="space-y-1">
@@ -237,8 +237,8 @@ function NavigationActions({ pathname }: { pathname: string }) {
           type="button"
           onClick={actions.openImport}
           className="grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          title="Import Result"
-          aria-label="Import Result"
+          title={t.importResults}
+          aria-label={t.importResults}
         >
           <Upload className="h-4 w-4" />
         </button>
@@ -265,8 +265,8 @@ function NavigationActions({ pathname }: { pathname: string }) {
         onClick={summaryActions.viewSelectedResults}
         disabled={summaryActions.disabled}
         className="grid h-9 w-9 place-items-center rounded-full bg-primary text-white shadow-md shadow-primary/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-        title="View selected results"
-        aria-label="View selected results"
+        title={t.viewSelectedResults}
+        aria-label={t.viewSelectedResults}
       >
         <Eye className="h-4 w-4" />
       </button>

@@ -272,7 +272,7 @@ export default function EvaluatorManagementPage() {
           <FilterSelect
             value={filterBuCode}
             onChange={setFilterBuCode}
-            label="BU"
+            label={t.bu}
             options={filterOptions.buCodes}
           />
           <FilterSelect
@@ -398,7 +398,7 @@ export default function EvaluatorManagementPage() {
             {t.of} {filtered.length}
           </span>
         </div>
-        <nav aria-label="Pagination" className="flex items-center gap-1">
+        <nav aria-label={t.rowsPerPage} className="flex items-center gap-1">
           <button
             type="button"
             aria-label={t.previous}
@@ -417,7 +417,7 @@ export default function EvaluatorManagementPage() {
               <button
                 key={pageNumber}
                 type="button"
-                aria-label={`Page ${pageNumber}`}
+                aria-label={`${t.page} ${pageNumber}`}
                 aria-current={pageNumber === page ? "page" : undefined}
                 onClick={() => setPage(pageNumber)}
                 className={`grid h-9 min-w-9 place-items-center rounded-xl border px-2 font-bold transition ${pageNumber === page ? "border-primary bg-primary text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"}`}

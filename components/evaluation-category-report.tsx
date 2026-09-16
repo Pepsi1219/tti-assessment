@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from "recharts";
 import { getReportCategoryName } from "@/lib/reports/evaluation-report";
+import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import type { CategorySummary } from "@/lib/types";
 
@@ -58,18 +59,19 @@ export function WrappedRadarTick({
 
 export function EvaluationCategoryReport({
   categories,
-  profileTitle = "Competency Profile",
-  scoresTitle = "Category Scores",
+  profileTitle,
+  scoresTitle,
 }: EvaluationCategoryReportProps) {
+  const { t, locale } = useI18n();
   const radarData = categories.map((category) => ({
     ...category,
-    reportName: getReportCategoryName(category),
+    reportName: getReportCategoryName(category, locale),
   }));
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
       <section className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h3 className="text-center text-lg font-black">{profileTitle}</h3>
+        <h3 className="text-center text-lg font-black">{profileTitle ?? t.competencyProfile}</h3>
         <div className="h-[360px]">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart
@@ -93,7 +95,7 @@ export function EvaluationCategoryReport({
                 strokeWidth={2}
               />
               <Tooltip
-                formatter={(value) => [Number(value).toFixed(2), "Average"]}
+                formatter={(value) => [Number(value).toFixed(2), t.average]}
               />
             </RadarChart>
           </ResponsiveContainer>
@@ -101,7 +103,7 @@ export function EvaluationCategoryReport({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5">
-        <h3 className="text-lg font-black">{scoresTitle}</h3>
+        <h3 className="text-lg font-black">{scoresTitle ?? t.categoryScores}</h3>
         <div className="mt-4 space-y-3">
           {categories.map((category) => {
             const criticalFailure = category.isCritical && category.average < 3;
@@ -109,7 +111,7 @@ export function EvaluationCategoryReport({
               <div key={category.categoryId}>
                 <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
                   <span className="font-semibold text-slate-700">
-                    {getReportCategoryName(category)}
+                    {getReportCategoryName(category, locale)}
                   </span>
                   <span
                     className={cn(

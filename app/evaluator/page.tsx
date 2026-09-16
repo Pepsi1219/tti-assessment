@@ -48,7 +48,7 @@ import type {
 type Section = Category & { questions: Question[] };
 
 export default function EvaluatorPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [recipients, setRecipients] = useState<EvaluationRecipient[]>([]);
   const [topics, setTopics] = useState<EvaluationTopic[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -92,7 +92,7 @@ export default function EvaluatorPage() {
       } catch {
         if (isMounted)
           setLoadError(
-            "Unable to load the evaluation form. Please refresh and try again.",
+            t.unableToLoad,
           );
       } finally {
         if (isMounted) setLoading(false);
@@ -102,7 +102,7 @@ export default function EvaluatorPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t.unableToLoad]);
 
   const activeQuestions = useMemo(
     () => questions.filter((question) => question.isActive),
@@ -233,14 +233,12 @@ export default function EvaluatorPage() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setSubmitError(result.error ?? "Unable to save evaluation.");
+        setSubmitError(result.error ?? t.unableToSave);
         return;
       }
       setLatest(result as EvaluationResult);
     } catch {
-      setSubmitError(
-        "Unable to connect to the evaluation service. Please try again.",
-      );
+      setSubmitError(t.unableToSave);
     } finally {
       setSubmitting(false);
     }
@@ -263,7 +261,7 @@ export default function EvaluatorPage() {
         <div className="space-y-5 p-5 md:p-7">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-700">BU</span>
+              <span className="text-sm font-bold text-slate-700">{t.bu}</span>
               <Select
                 value={selectedBu || "all"}
                 onValueChange={(value) => {
@@ -274,10 +272,10 @@ export default function EvaluatorPage() {
                 disabled={answeredCount > 0}
               >
                 <SelectTrigger
-                  aria-label="BU"
+                  aria-label={t.bu}
                   className="h-12 rounded-2xl border-slate-200 bg-slate-50 px-4 text-sm shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100 dark:bg-slate-900"
                 >
-                  <SelectValue className="truncate" placeholder="BU" />
+                  <SelectValue className="truncate" placeholder={t.bu} />
                 </SelectTrigger>
                 <SelectContent
                   position="popper"
@@ -285,7 +283,7 @@ export default function EvaluatorPage() {
                   className="rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl"
                 >
                   <SelectItem value="all" className="py-3 text-[15px]">
-                    BU
+                    {t.bu}
                   </SelectItem>
                   {availableBus.map((bu) => (
                     <SelectItem
@@ -401,8 +399,7 @@ export default function EvaluatorPage() {
           </div>
           {answeredCount > 0 && (
             <p className="text-xs font-semibold text-slate-500">
-              The recipient, topic, and round are locked after scoring begins.
-              Select “Evaluate next” to begin a new form.
+              {t.selectionLockedAfterScoring}
             </p>
           )}
         </div>
@@ -410,7 +407,7 @@ export default function EvaluatorPage() {
       <Dialog
         open={roundPadOpen}
         onClose={() => setRoundPadOpen(false)}
-        title="Select round"
+        title={t.selectRound}
         className="max-w-sm"
       >
         <div className="grid grid-cols-3 gap-3">
@@ -432,7 +429,7 @@ export default function EvaluatorPage() {
       </Dialog>
       {loading && (
         <Card className="p-8 text-center text-sm font-semibold text-slate-500">
-          Loading evaluation form…
+          {t.loading}
         </Card>
       )}
       {loadError && (
@@ -454,9 +451,9 @@ export default function EvaluatorPage() {
       {!loading && !loadError && !readyToEvaluate && (
         <Card className="p-8 text-center">
           <ClipboardCheck className="mx-auto h-10 w-10 text-primary" />
-          <h3 className="mt-4 text-xl font-black">Set up the evaluation</h3>
+          <h3 className="mt-4 text-xl font-black">{t.setupEvaluation}</h3>
           <p className="mt-2 text-sm text-slate-500">
-            Select the recipient, evaluation topic, and round to begin.
+            {t.setupEvaluationDescription}
           </p>
         </Card>
       )}
@@ -467,7 +464,7 @@ export default function EvaluatorPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-bold text-primary">
-                  Section {step + 1} of {sections.length}
+                  {t.section} {step + 1} {t.of} {sections.length}
                 </p>
                 <h3 className="mt-1 text-2xl font-black tracking-tight">
                   {currentSection.categoryName}
@@ -511,13 +508,12 @@ export default function EvaluatorPage() {
       {!loading && !loadError && readyToEvaluate && isReviewStep && (
         <Card className="overflow-hidden p-0">
           <div className="border-b border-slate-100 px-5 py-6 md:px-7">
-            <p className="text-sm font-bold text-primary">Review</p>
+            <p className="text-sm font-bold text-primary">{t.review}</p>
             <h3 className="mt-1 text-2xl font-black tracking-tight">
-              Ready to submit
+              {t.readyToSubmit}
             </h3>
             <p className="mt-2 text-sm text-slate-500">
-              All {activeQuestions.length} questions have been scored. Add a
-              comment if needed.
+              {t.allQuestionsScored}
             </p>
           </div>
           <div className="space-y-5 p-5 md:p-7">
@@ -536,7 +532,7 @@ export default function EvaluatorPage() {
                         (question) => (scores[question.id]?.length ?? 0) > 0,
                       ).length
                     }
-                    /{section.questions.length} complete
+                    /{section.questions.length} {t.complete}
                   </p>
                 </div>
               ))}
@@ -559,7 +555,7 @@ export default function EvaluatorPage() {
                 onClick={goBack}
               >
                 <ChevronLeft className="h-4 w-4" />
-                Back
+                {t.back}
               </Button>
               <Button type="button" disabled={submitting} onClick={submit}>
                 {submitting ? t.submitting : t.submit}
@@ -648,6 +644,7 @@ function WizardActions({
   onBack: () => void;
   onNext: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-wrap justify-between gap-3 border-t border-slate-100 pt-5">
       <Button
@@ -657,10 +654,10 @@ function WizardActions({
         onClick={onBack}
       >
         <ChevronLeft className="h-4 w-4" />
-        Back
+        {t.back}
       </Button>
       <Button type="button" disabled={!canGoNext} onClick={onNext}>
-        Next
+        {t.next}
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
@@ -674,6 +671,7 @@ function EvaluationResultScreen({
   result: EvaluationResult;
   onBack: () => void;
 }) {
+  const { t, locale } = useI18n();
   const reportRef = useRef<HTMLDivElement>(null);
   const [savingPng, setSavingPng] = useState(false);
   async function savePng() {
@@ -752,10 +750,11 @@ function EvaluationResultScreen({
   const criteria = getPassingCriteria(
     result.totalScore,
     result.categorySummary,
+    locale,
   );
   const radarData = result.categorySummary.map((category) => ({
     ...category,
-    reportName: getReportCategoryName(category),
+    reportName: getReportCategoryName(category, locale),
   }));
   return (
     <section className="mx-auto max-w-6xl space-y-5">
@@ -765,61 +764,61 @@ function EvaluationResultScreen({
       >
         <div className="border-b border-slate-200 bg-slate-950 px-5 py-7 text-white md:px-8">
           <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">
-            Evaluation Report
+            {t.evaluationReport}
           </p>
           <h2 className="mt-2 text-2xl font-black tracking-tight md:text-3xl">
-            Nanyang Trainer Certification Evaluation Form
+            {t.title}
           </h2>
         </div>
 
         <div className="space-y-8 p-5 md:p-8">
           <dl className="grid gap-x-8 gap-y-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2 xl:grid-cols-4">
             <ReportField
-              label="Evaluation Recipient"
+              label={t.recipient}
               value={result.recipient?.recipientName ?? "—"}
             />
             <ReportField
-              label="Employee ID"
+              label={t.employeeId}
               value={result.recipient?.employeeId ?? result.recipientId ?? "—"}
             />
             <ReportField
-              label="Evaluation Topic"
+              label={t.evaluationTopic}
               value={result.topicName || "—"}
             />
             <ReportField
-              label="Department / BU"
+              label={`${t.department} / ${t.bu}`}
               value={`${result.bu || "—"}${result.buCode ? ` / ${result.buCode}` : ""}`}
             />
             <ReportField
-              label="Evaluator"
+              label={t.evaluator}
               value={result.evaluatorName || "—"}
             />
-            <ReportField label="Date" value={result.evaluationDate || "—"} />
+            <ReportField label={t.date} value={result.evaluationDate || "—"} />
             <ReportField
-              label="Round"
+              label={t.round}
               value={
                 result.evaluationRound ? String(result.evaluationRound) : "—"
               }
             />
             <ReportField
-              label="Final Result"
-              value={result.result}
+              label={t.finalResult}
+              value={result.result === "Pass" ? t.pass : t.fail}
               emphasize={result.result === "Pass" ? "success" : "danger"}
             />
           </dl>
 
           <section>
             <h3 className="mb-4 text-lg font-black text-slate-950">
-              Evaluation Summary
+              {t.categorySummary}
             </h3>
             <div className="overflow-x-auto rounded-2xl border border-slate-200">
               <table className="w-full border-collapse text-sm">
                 <thead className="bg-white text-left text-xs uppercase tracking-wider text-slate-600">
                   <tr>
-                    <th className="px-4 py-3">Evaluation Item</th>
-                    <th className="px-4 py-3 text-center">Obtained Score</th>
-                    <th className="px-4 py-3 text-center">Full Score</th>
-                    <th className="px-4 py-3 text-center">Average (Max 5)</th>
+                    <th className="px-4 py-3">{t.evaluationItem}</th>
+                    <th className="px-4 py-3 text-center">{t.obtainedScore}</th>
+                    <th className="px-4 py-3 text-center">{t.fullScore}</th>
+                    <th className="px-4 py-3 text-center">{t.averageMaxFive}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -837,7 +836,7 @@ function EvaluationResultScreen({
                           <span className="mr-3 text-slate-400">
                             {index + 1}
                           </span>
-                          {getReportCategoryName(category)}
+                          {getReportCategoryName(category, locale)}
                         </td>
                         <td className="px-4 py-3 text-center tabular-nums">
                           {category.actualScore.toFixed(1)}
@@ -859,7 +858,7 @@ function EvaluationResultScreen({
                 </tbody>
                 <tfoot className="border-t-2 border-slate-300 bg-white font-black text-slate-950">
                   <tr>
-                    <td className="px-4 py-3">Total</td>
+                    <td className="px-4 py-3">{t.total}</td>
                     <td className="px-4 py-3 text-center tabular-nums">
                       {totalActual.toFixed(1)}
                     </td>
@@ -869,7 +868,7 @@ function EvaluationResultScreen({
                     <td className="px-4 py-3 text-center tabular-nums">—</td>
                   </tr>
                   <tr className="border-t border-slate-200">
-                    <td className="px-4 py-3">Overall Average</td>
+                    <td className="px-4 py-3">{t.overallAverage}</td>
                     <td colSpan={2} />
                     <td className="px-4 py-3 text-center text-lg tabular-nums">
                       {result.totalScore.toFixed(2)} / 5
@@ -884,7 +883,7 @@ function EvaluationResultScreen({
             <div className="space-y-6">
               <section className="rounded-2xl border border-slate-200 p-5">
                 <h3 className="text-lg font-black text-slate-950">
-                  Passing Criteria
+                  {t.showCriteria}
                 </h3>
                 <div className="mt-4 space-y-3">
                   {criteria.map((criterion) => (
@@ -911,26 +910,26 @@ function EvaluationResultScreen({
                 </div>
               </section>
               <section className="rounded-2xl border border-slate-200 p-5">
-                <h3 className="text-lg font-black text-slate-950">Result</h3>
+                <h3 className="text-lg font-black text-slate-950">{t.result}</h3>
                 <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
                   <div className="flex items-center gap-3 font-bold text-slate-800">
-                    <ReportCheckbox checked={result.result === "Pass"} /> Pass
+                    <ReportCheckbox checked={result.result === "Pass"} /> {t.pass}
                   </div>
                   <div className="flex items-center gap-3 font-bold text-slate-800">
-                    <ReportCheckbox checked={result.result === "Fail"} /> Fail
+                    <ReportCheckbox checked={result.result === "Fail"} /> {t.fail}
                   </div>
                 </div>
               </section>
               <section className="rounded-2xl border border-slate-200 p-5">
-                <h3 className="text-lg font-black text-slate-950">Comments</h3>
+                <h3 className="text-lg font-black text-slate-950">{t.comment}</h3>
                 <p className="mt-3 min-h-20 whitespace-pre-wrap border-b border-dashed border-slate-300 pb-3 text-sm leading-7 text-slate-700">
-                  {result.comment || "No comment"}
+                  {result.comment || t.noComment}
                 </p>
               </section>
             </div>
             <section className="rounded-2xl border border-slate-200 bg-white p-4">
               <h3 className="text-center text-lg font-black text-slate-950">
-                Competency Profile
+                {t.competencyProfile}
               </h3>
               <div className="mt-2 h-[390px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -960,7 +959,7 @@ function EvaluationResultScreen({
                     <Tooltip
                       formatter={(value) => [
                         Number(value).toFixed(2),
-                        "Average",
+                        t.average,
                       ]}
                     />
                   </RadarChart>
@@ -980,7 +979,7 @@ function EvaluationResultScreen({
           onClick={onBack}
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t.back}
         </Button>
         <Button
           type="button"
@@ -989,7 +988,7 @@ function EvaluationResultScreen({
           onClick={savePng}
         >
           <ImageDown className="h-4 w-4" />
-          {savingPng ? "Saving PNG..." : "Save PNG"}
+          {savingPng ? t.savingPng : t.savePng}
         </Button>
       </div>
     </section>

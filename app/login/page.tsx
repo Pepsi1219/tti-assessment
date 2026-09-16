@@ -133,7 +133,7 @@ export default function LoginPage() {
             <div className="h-20 w-28">
               <Image
                 src={logo}
-                alt="Nanyang logo"
+                alt={t.appName}
                 priority
                 className="h-full w-full object-contain"
               />
@@ -144,7 +144,7 @@ export default function LoginPage() {
                 Train The Trainer
               </div>
               <h1 className="text-4xl font-black leading-[1.08] tracking-tight xl:text-5xl">
-                Nanyang Trainer Certification Evaluation System
+                {t.title}
               </h1>
               {topics.length > 0 && (
                 <div className="mt-8 max-h-52 space-y-2 overflow-y-auto pr-2">
@@ -164,7 +164,7 @@ export default function LoginPage() {
 
           <div className="relative flex items-center gap-3 text-sm text-slate-300">
             <ShieldCheck className="h-5 w-5 text-blue-300" />
-            Secure internal assessment portal
+            {t.securePortal}
           </div>
         </section>
 
@@ -174,13 +174,13 @@ export default function LoginPage() {
               <div className="h-11 w-16">
                 <Image
                   src={logo}
-                  alt="Nanyang logo"
+                  alt={t.appName}
                   priority
                   className="h-full w-full object-contain brightness-0 dark:brightness-100"
                 />
               </div>
               <p className="max-w-[220px] text-sm font-black leading-5 text-slate-950">
-                Nanyang Trainer Certification Evaluation System
+                {t.title}
               </p>
             </div>
             <div className="ml-auto flex items-center gap-2">
@@ -199,7 +199,7 @@ export default function LoginPage() {
                   {t.adminLogin}
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-slate-500">
-                  Enter your employee ID to access administration tools.
+                  {t.adminAccessDescription}
                 </p>
               </div>
             )}
@@ -286,7 +286,7 @@ export default function LoginPage() {
 
             <div className="my-8 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               <span className="h-px flex-1 bg-slate-200" />
-              or
+              {t.or}
               <span className="h-px flex-1 bg-slate-200" />
             </div>
 
@@ -305,7 +305,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs font-medium text-slate-400">
-            Nanyang internal use only
+            {t.internalUseOnly}
           </p>
         </section>
       </div>

@@ -11,14 +11,14 @@ import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/types";
 
 const localeOptions: Record<Locale, { code: string; label: string }> = {
-  th: { code: "TH", label: "Thai" },
+  th: { code: "TH", label: "ไทย" },
   en: { code: "EN", label: "English" },
-  lo: { code: "LO", label: "Lao" },
-  vi: { code: "VI", label: "Vietnamese" },
+  lo: { code: "LO", label: "ລາວ" },
+  vi: { code: "VI", label: "Tiếng Việt" },
 };
 
 export function LanguageSelector() {
-  const { locale, setLocale } = useI18n();
+  const { locale, setLocale, t } = useI18n();
 
   return (
     <Select
@@ -26,7 +26,7 @@ export function LanguageSelector() {
       onValueChange={(value) => setLocale(value as Locale)}
     >
       <SelectTrigger
-        aria-label="Language"
+        aria-label={t.language}
         title={localeOptions[locale].label}
         className="h-9 w-16 rounded-xl border-slate-200 bg-white px-2.5 py-0 text-[11px] font-black tracking-[0.12em] text-slate-800 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 focus:ring-primary dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700 [&>svg]:h-3.5 [&>svg]:w-3.5 [&>svg]:text-slate-400"
       >

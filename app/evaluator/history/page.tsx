@@ -49,13 +49,13 @@ export default function HistoryPage() {
         if (!response.ok) throw new Error("Unable to load evaluation history.");
         setEvaluations(await response.json());
       } catch {
-        setLoadError("Unable to load evaluation history. Please try again.");
+        setLoadError(t.unableToLoad);
       } finally {
         setLoading(false);
       }
     }
     void loadHistory();
-  }, []);
+  }, [t.unableToLoad]);
 
   const filterOptions = useMemo(() => {
     const unique = (values: string[]) =>
@@ -206,11 +206,11 @@ export default function HistoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Employee ID</TableHead>
+                <TableHead>{t.employeeId}</TableHead>
                 <TableHead>{t.recipient}</TableHead>
                 <TableHead>{t.evaluationTopics}</TableHead>
                 <TableHead>{t.round}</TableHead>
-                <TableHead>Score</TableHead>
+                <TableHead>{t.score}</TableHead>
                 <TableHead>{t.percentage}</TableHead>
                 <TableHead>{t.result}</TableHead>
                 <TableHead>{t.date}</TableHead>
@@ -326,7 +326,7 @@ function ResultModal({
             type="button"
             onClick={onClose}
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 transition hover:bg-white/20"
-            aria-label="Close"
+            aria-label={t.close}
           >
             <X className="h-4 w-4" />
           </button>
@@ -334,11 +334,11 @@ function ResultModal({
         <div className="space-y-4 bg-white p-4 sm:space-y-6 sm:p-5 md:p-8">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <ResultTile
-              label="Employee ID"
+              label={t.employeeId}
               value={evaluation.recipient?.employeeId ?? "—"}
             />
             <ResultTile
-              label="Score"
+              label={t.score}
               value={`${evaluation.totalScore.toFixed(2)} / 5`}
             />
             <ResultTile
@@ -352,7 +352,7 @@ function ResultModal({
             />
           </div>
           <section className="rounded-2xl border border-slate-200 bg-white p-5">
-            <h3 className="text-lg font-black text-slate-950">Comments</h3>
+            <h3 className="text-lg font-black text-slate-950">{t.comment}</h3>
             <p className="mt-3 min-h-20 whitespace-pre-wrap border-b border-dashed border-slate-300 pb-3 text-sm leading-7 text-slate-700">
               {evaluation.comment || "—"}
             </p>

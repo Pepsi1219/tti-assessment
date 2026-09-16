@@ -303,7 +303,7 @@ export default function RecipientManagementPage() {
           <FilterSelect
             value={filterBuCode}
             onChange={setFilterBuCode}
-            label="BU"
+            label={t.bu}
             options={filterOptions.buCodes}
           />
           <FilterSelect
@@ -347,7 +347,7 @@ export default function RecipientManagementPage() {
               </TableHead>
               <TableHead className="min-w-56">{t.recipient}</TableHead>
               <TableHead className="min-w-48">{t.department}</TableHead>
-              <TableHead className="w-px whitespace-nowrap">BU</TableHead>
+              <TableHead className="w-px whitespace-nowrap">{t.bu}</TableHead>
               <TableHead className="w-px whitespace-nowrap">
                 {t.status}
               </TableHead>
@@ -421,7 +421,7 @@ export default function RecipientManagementPage() {
               {t.of} {filtered.length}
             </span>
           </div>
-          <nav aria-label="Pagination" className="flex items-center gap-1">
+          <nav aria-label={t.rowsPerPage} className="flex items-center gap-1">
             <button
               type="button"
               aria-label={t.previous}
@@ -440,7 +440,7 @@ export default function RecipientManagementPage() {
                 <button
                   key={pageNumber}
                   type="button"
-                  aria-label={`Page ${pageNumber}`}
+                  aria-label={`${t.page} ${pageNumber}`}
                   aria-current={pageNumber === page ? "page" : undefined}
                   onClick={() => setPage(pageNumber)}
                   className={`grid h-9 min-w-9 place-items-center rounded-xl border px-2 font-bold transition ${pageNumber === page ? "border-primary bg-primary text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"}`}
@@ -502,7 +502,7 @@ export default function RecipientManagementPage() {
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-bold text-slate-700">BU</span>
+            <span className="text-sm font-bold text-slate-700">{t.bu}</span>
             <StandardSelect
               value={form.buCode || "unassigned"}
               onValueChange={(value) =>
@@ -511,9 +511,9 @@ export default function RecipientManagementPage() {
                   buCode: (value === "unassigned" ? "" : value) as RecipientForm["buCode"],
                 })
               }
-              ariaLabel="BU"
+              ariaLabel={t.bu}
               options={[
-                { value: "unassigned", label: "BU" },
+                { value: "unassigned", label: t.bu },
                 ...businessUnitCodes.map((code) => ({
                   value: code,
                   label: code,

@@ -147,7 +147,7 @@ export default function EvaluationSummariesPage() {
     );
     if (!response.ok) {
       const data = await response.json().catch(() => null);
-      setError(data?.error ?? "Unable to export the consolidated report.");
+      setError(data?.error ?? t.unableToExport);
       return;
     }
     const blobUrl = URL.createObjectURL(await response.blob());
@@ -163,18 +163,18 @@ export default function EvaluationSummariesPage() {
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok)
-          throw new Error(data.error ?? "Unable to load consolidated results.");
+          throw new Error(data.error ?? t.unableToLoad);
         setSummaries(data);
       })
       .catch((reason) =>
         setError(
           reason instanceof Error
             ? reason.message
-            : "Unable to load consolidated results.",
+            : t.unableToLoad,
         ),
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [t.unableToLoad]);
 
   useEffect(() => {
     if (!selected && !comparisonOpen) return;
@@ -302,11 +302,11 @@ export default function EvaluationSummariesPage() {
               value={filterBuCode}
               onValueChange={setFilterBuCode}
             >
-              <SelectTrigger aria-label="BU" className={filterSelectTriggerClass}>
+              <SelectTrigger aria-label={t.bu} className={filterSelectTriggerClass}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent position="popper" sideOffset={8} className={filterSelectContentClass}>
-                <SelectItem value="all">BU</SelectItem>
+                <SelectItem value="all">{t.bu}</SelectItem>
                 {filterOptions.buCodes.map((buCode) => (
                   <SelectItem key={buCode} value={buCode}>
                     {buCode}
@@ -384,13 +384,13 @@ export default function EvaluationSummariesPage() {
                     type="checkbox"
                     checked={allFilteredSelected}
                     onChange={toggleAllFiltered}
-                    aria-label="Select all filtered results"
+                    aria-label={t.selectAllFilteredResults}
                     className="h-4 w-4 rounded border-slate-300 accent-primary"
                   />
                 </TableHead>
                 <TableHead>{t.employeeId}</TableHead>
                 <TableHead>{t.name}</TableHead>
-                <TableHead>BU</TableHead>
+                <TableHead>{t.bu}</TableHead>
                 <TableHead>{t.department}</TableHead>
                 <TableHead>{t.course}</TableHead>
                 <TableHead>{t.round}</TableHead>
@@ -527,6 +527,7 @@ function SummaryComparisonModal({
   summaries: EvaluationSummary[];
   onClose: () => void;
 }) {
+  const { t, locale } = useI18n();
   useEscapeKey(onClose);
   const reportRef = useRef<HTMLDivElement>(null);
   const [isSavingPng, setIsSavingPng] = useState(false);
@@ -580,7 +581,7 @@ function SummaryComparisonModal({
         try {
           await navigator.share({
             files: [file],
-            title: "Summary Result Comparison",
+            title: t.evaluationSummaries,
           });
           return;
         } catch (error) {
@@ -613,16 +614,16 @@ function SummaryComparisonModal({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Selected summary results"
+        aria-label={t.selectedSummaryResults}
         className="mx-auto min-h-[100dvh] w-full max-w-[1900px] overflow-hidden rounded-none border-0 bg-white shadow-2xl sm:min-h-0 sm:rounded-3xl sm:border sm:border-slate-200"
       >
         <div className="sticky top-0 z-10 flex flex-col gap-3 bg-slate-950 px-4 py-4 text-white sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-5 md:px-8">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">
-              Summary Result Comparison
+              {t.evaluationSummaries}
             </p>
             <h2 className="mt-1 text-xl font-black sm:text-2xl">
-              {summaries.length} selected employees
+              {summaries.length} {t.selectedEmployees}
             </h2>
           </div>
           <div
@@ -636,7 +637,7 @@ function SummaryComparisonModal({
               className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/10 px-3 text-xs font-bold transition hover:bg-white/20"
             >
               <FileText className="h-4 w-4" />
-              {showDetails ? "Hide detail" : "Detail"}
+              {showDetails ? t.hideDetail : t.detail}
             </button>
             <button
               type="button"
@@ -645,13 +646,13 @@ function SummaryComparisonModal({
               className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/10 px-3 text-xs font-bold transition hover:bg-white/20 disabled:cursor-wait disabled:opacity-60"
             >
               <ImageDown className="h-4 w-4" />
-              {isSavingPng ? "Saving..." : "Save PNG"}
+              {isSavingPng ? t.saving : t.savePng}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="grid h-10 w-10 place-items-center rounded-full bg-white/10 transition hover:bg-white/20"
-              aria-label="Close comparison"
+              aria-label={t.closeComparison}
             >
               <X className="h-5 w-5" />
             </button>
@@ -666,7 +667,7 @@ function SummaryComparisonModal({
             const color = COMPARISON_COLORS[index % COMPARISON_COLORS.length];
             const radarData = summary.categorySummary.map((category) => ({
               ...category,
-              reportName: getReportCategoryName(category),
+              reportName: getReportCategoryName(category, locale),
             }));
             return (
               <section
@@ -679,10 +680,10 @@ function SummaryComparisonModal({
                     {summary.recipient?.recipientName ?? "—"}
                   </h3>
                   <p className="mt-2 text-base font-medium text-slate-500 sm:text-lg">
-                    Avg score = {summary.totalScore.toFixed(2)} / 5
+                    {t.averageScore} = {summary.totalScore.toFixed(2)} / 5
                   </p>
                   <p className="text-base font-medium text-slate-500 sm:text-lg">
-                    Percentage = {summary.percentage.toFixed(1)}%
+                    {t.percentage} = {summary.percentage.toFixed(1)}%
                   </p>
                 </div>
 
@@ -714,7 +715,7 @@ function SummaryComparisonModal({
                       <Tooltip
                         formatter={(value) => [
                           Number(value).toFixed(2),
-                          "Average",
+                          t.average,
                         ]}
                       />
                     </RadarChart>
@@ -733,7 +734,7 @@ function SummaryComparisonModal({
                             className="flex items-center justify-between gap-3 text-xs"
                           >
                             <span className="font-semibold text-slate-600">
-                              {getReportCategoryName(category)}
+                              {getReportCategoryName(category, locale)}
                             </span>
                             <span
                               className={cn(
@@ -759,6 +760,7 @@ function SummaryComparisonModal({
 }
 
 function ComparisonResultStamp({ result }: { result: "Pass" | "Fail" }) {
+  const { t } = useI18n();
   const passed = result === "Pass";
   const color = passed ? "#16a34a" : "#dc2626";
   return (
@@ -771,7 +773,7 @@ function ComparisonResultStamp({ result }: { result: "Pass" | "Fail" }) {
         passed ? "-rotate-6" : "rotate-6",
       )}
       role="img"
-      aria-label={result}
+      aria-label={passed ? t.pass : t.fail}
     >
       <g transform="rotate(-12 48 48)">
         <circle cx="48" cy="48" r="40" fill="#ffffff" stroke={color} strokeWidth="4" />
@@ -789,7 +791,7 @@ function ComparisonResultStamp({ result }: { result: "Pass" | "Fail" }) {
           fontWeight="900"
           letterSpacing="1"
         >
-          {passed ? "PASSED" : "FAIL"}
+          {passed ? t.pass : t.fail}
         </text>
       </g>
     </svg>
@@ -797,6 +799,7 @@ function ComparisonResultStamp({ result }: { result: "Pass" | "Fail" }) {
 }
 
 function ReportResultStamp({ result }: { result: "Pass" | "Fail" }) {
+  const { t } = useI18n();
   return (
     <img
       src={
@@ -804,7 +807,7 @@ function ReportResultStamp({ result }: { result: "Pass" | "Fail" }) {
           ? "/result-stamps/passed.svg"
           : "/result-stamps/fail.svg"
       }
-      alt={result}
+      alt={result === "Pass" ? t.pass : t.fail}
       className="h-9 w-[112px] shrink-0 overflow-visible"
     />
   );
@@ -817,6 +820,7 @@ function SummaryModal({
   summary: EvaluationSummary;
   onClose: () => void;
 }) {
+  const { t, locale } = useI18n();
   const reportRef = useRef<HTMLDivElement>(null);
   const [isSavingPng, setIsSavingPng] = useState(false);
   useEscapeKey(onClose);
@@ -878,17 +882,17 @@ function SummaryModal({
         id="summary-evaluation-report"
         role="dialog"
         aria-modal="true"
-        aria-label="Summary evaluation report"
+        aria-label={t.summaryEvaluationReport}
         className="min-h-[100dvh] w-full max-w-6xl overscroll-contain overflow-y-auto touch-pan-y rounded-none border-0 bg-white p-0 shadow-2xl sm:min-h-0 sm:max-h-[calc(100dvh-3rem)] sm:rounded-3xl"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         <div className="sticky top-0 z-10 flex flex-col gap-3 bg-slate-950 px-4 py-4 text-white sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-5 sm:py-6 md:px-8">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-300">
-              Evaluation Report
+              {t.evaluationReport}
             </p>
             <h2 className="mt-2 break-words text-xl font-black tracking-tight sm:text-2xl md:text-3xl">
-              Nanyang Trainer Certification Evaluation Form
+              {t.title}
             </h2>
           </div>
           <div
@@ -902,13 +906,13 @@ function SummaryModal({
               className="inline-flex h-10 items-center gap-2 rounded-xl bg-white/10 px-3 text-xs font-bold transition hover:bg-white/20 disabled:cursor-wait disabled:opacity-60"
             >
               <ImageDown className="h-4 w-4" />
-              {isSavingPng ? "Saving..." : "Save PNG"}
+              {isSavingPng ? t.saving : t.savePng}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="grid h-10 w-10 place-items-center rounded-full bg-white/10 transition hover:bg-white/20"
-              aria-label="Close summary"
+              aria-label={t.close}
             >
               <X className="h-4 w-4" />
             </button>
@@ -918,36 +922,36 @@ function SummaryModal({
         <div className="space-y-5 bg-white p-4 text-slate-950 sm:space-y-8 sm:p-5 md:p-8">
           <dl className="grid gap-x-8 gap-y-4 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-4">
             <ReportField
-              label="Evaluation Recipient"
+              label={t.recipient}
               value={summary.recipient?.recipientName ?? "—"}
             />
             <ReportField
-              label="Employee ID"
+              label={t.employeeId}
               value={summary.recipient?.employeeId ?? summary.recipientId}
             />
             <ReportField
-              label="Evaluation Topic"
+              label={t.evaluationTopic}
               value={summary.topicName || "—"}
             />
             <ReportField
-              label="Department / BU"
+              label={`${t.department} / ${t.bu}`}
               value={`${summary.bu || "—"}${summary.buCode ? ` / ${summary.buCode}` : ""}`}
             />
             <ReportField
-              label="Evaluator"
+              label={t.evaluator}
               value={`${summary.evaluatorCount} evaluator${summary.evaluatorCount === 1 ? "" : "s"}`}
             />
             <ReportField
-              label="Date"
+              label={t.date}
               value={summary.evaluations[0]?.evaluationDate ?? "—"}
             />
             <ReportField
-              label="Round"
+              label={t.round}
               value={String(summary.evaluationRound)}
             />
             <ReportField
-              label="Final Result"
-              value={summary.result}
+              label={t.finalResult}
+              value={summary.result === "Pass" ? t.pass : t.fail}
               emphasize={summary.result === "Pass" ? "success" : "danger"}
             />
           </dl>
@@ -960,10 +964,10 @@ function SummaryModal({
               <table className="w-full border-collapse text-sm">
                 <thead className="bg-white text-left text-xs uppercase tracking-wider text-slate-600">
                   <tr>
-                    <th className="px-4 py-3">Evaluation Item</th>
-                    <th className="px-4 py-3 text-center">Obtained Score</th>
-                    <th className="px-4 py-3 text-center">Full Score</th>
-                    <th className="px-4 py-3 text-center">Average (Max 5)</th>
+                    <th className="px-4 py-3">{t.evaluationItem}</th>
+                    <th className="px-4 py-3 text-center">{t.obtainedScore}</th>
+                    <th className="px-4 py-3 text-center">{t.fullScore}</th>
+                    <th className="px-4 py-3 text-center">{t.averageMaxFive}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -981,7 +985,7 @@ function SummaryModal({
                           <span className="mr-3 text-slate-400">
                             {index + 1}
                           </span>
-                          {getReportCategoryName(category)}
+                          {getReportCategoryName(category, locale)}
                         </td>
                         <td className="px-4 py-3 text-center tabular-nums">
                           {category.actualScore.toFixed(1)}
@@ -1003,7 +1007,7 @@ function SummaryModal({
                 </tbody>
                 <tfoot className="border-t-2 border-slate-300 bg-white font-black text-slate-950">
                   <tr>
-                    <td className="px-4 py-3">Total</td>
+                    <td className="px-4 py-3">{t.total}</td>
                     <td className="px-4 py-3 text-center tabular-nums">
                       {summary.categorySummary
                         .reduce(
@@ -1023,7 +1027,7 @@ function SummaryModal({
                     <td className="px-4 py-3 text-center">—</td>
                   </tr>
                   <tr className="border-t border-slate-200">
-                    <td className="px-4 py-3">Overall Average</td>
+                    <td className="px-4 py-3">{t.overallAverage}</td>
                     <td colSpan={2} />
                     <td className="px-4 py-3 text-center text-lg tabular-nums">
                       {summary.totalScore.toFixed(2)} / 5
@@ -1038,12 +1042,13 @@ function SummaryModal({
             <div className="space-y-6">
               <section className="rounded-2xl border border-slate-200 p-5">
                 <h3 className="text-lg font-black text-slate-950">
-                  Passing Criteria
+                  {t.showCriteria}
                 </h3>
                 <div className="mt-4 space-y-3">
                   {getPassingCriteria(
                     summary.totalScore,
-                    summary.categorySummary,
+                  summary.categorySummary,
+                  locale,
                   ).map((criterion) => (
                     <div
                       key={criterion.id}
@@ -1068,21 +1073,21 @@ function SummaryModal({
                 </div>
               </section>
               <section className="rounded-2xl border border-slate-200 p-5">
-                <h3 className="text-lg font-black text-slate-950">Result</h3>
+                <h3 className="text-lg font-black text-slate-950">{t.result}</h3>
                 <div className="mt-4 flex flex-wrap gap-x-8 gap-y-3">
                   <div className="flex items-center gap-3 font-bold text-slate-800">
-                    <ReportCheckbox checked={summary.result === "Pass"} /> Pass
+                    <ReportCheckbox checked={summary.result === "Pass"} /> {t.pass}
                   </div>
                   <div className="flex items-center gap-3 font-bold text-slate-800">
-                    <ReportCheckbox checked={summary.result === "Fail"} /> Fail
+                    <ReportCheckbox checked={summary.result === "Fail"} /> {t.fail}
                   </div>
                 </div>
               </section>
               <section className="rounded-2xl border border-slate-200 p-5">
-                <h3 className="text-lg font-black text-slate-950">Comments</h3>
+                <h3 className="text-lg font-black text-slate-950">{t.comment}</h3>
                 <p className="mt-3 min-h-20 border-b border-dashed border-slate-300 pb-3 text-sm leading-7 text-slate-700">
                   {summary.evaluations.find((evaluation) => evaluation.comment)
-                    ?.comment || "No comment"}
+                    ?.comment || t.noComment}
                 </p>
               </section>
             </div>
@@ -1095,7 +1100,7 @@ function SummaryModal({
                   <RadarChart
                     data={summary.categorySummary.map((category) => ({
                       ...category,
-                      reportName: getReportCategoryName(category),
+                      reportName: getReportCategoryName(category, locale),
                     }))}
                     outerRadius="61%"
                     margin={{ top: 28, right: 48, bottom: 28, left: 48 }}
@@ -1121,7 +1126,7 @@ function SummaryModal({
                     <Tooltip
                       formatter={(value) => [
                         Number(value).toFixed(2),
-                        "Average",
+                        t.average,
                       ]}
                     />
                   </RadarChart>
@@ -1132,16 +1137,16 @@ function SummaryModal({
 
           <section>
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h3 className="text-lg font-black">Individual Evaluations</h3>
+              <h3 className="text-lg font-black">{t.individualEvaluations}</h3>
             </div>
             <Table className="min-w-[680px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>{"Evaluator"}</TableHead>
-                  <TableHead>{"Date"}</TableHead>
-                  <TableHead>{"Score"}</TableHead>
-                  <TableHead>{"Percentage"}</TableHead>
-                  <TableHead>{"Result"}</TableHead>
+                  <TableHead>{t.evaluator}</TableHead>
+                  <TableHead>{t.date}</TableHead>
+                  <TableHead>{t.score}</TableHead>
+                  <TableHead>{t.percentage}</TableHead>
+                  <TableHead>{t.result}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

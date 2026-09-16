@@ -20,11 +20,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { WrappedRadarTick } from "@/components/evaluation-category-report";
 import { useI18n } from "@/lib/i18n/context";
+import { getReportCategoryName } from "@/lib/reports/evaluation-report";
 import { cn } from "@/lib/utils";
 import type { EvaluationRecipient, EvaluationResult } from "@/lib/types";
 
 export default function AdminDashboard() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [recipients, setRecipients] = useState<EvaluationRecipient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +77,7 @@ export default function AdminDashboard() {
           return found?.average ?? 0;
         });
         return {
-          categoryName: cat.categoryName,
+          categoryName: getReportCategoryName(cat, locale),
           average: Number((allAvgs.reduce((s, v) => s + v, 0) / allAvgs.length).toFixed(2)),
           isCritical: cat.isCritical
         };
@@ -165,7 +166,7 @@ export default function AdminDashboard() {
                     <span className="grid h-8 w-8 place-items-center rounded-full bg-slate-950 text-xs font-black text-white">{idx + 1}</span>
                     <div>
                       <p className="text-sm font-bold">{recipient.recipientName}</p>
-                      <p className="text-xs text-slate-400">{recipient.employeeId} · {t.department}: {recipient.bu} · BU: {recipient.buCode ?? "-"}</p>
+                      <p className="text-xs text-slate-400">{recipient.employeeId} · {t.department}: {recipient.bu} · {t.bu}: {recipient.buCode ?? "-"}</p>
                     </div>
                   </div>
                   <div className="text-right">

@@ -21,11 +21,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { WrappedRadarTick } from "@/components/evaluation-category-report";
 import { useI18n } from "@/lib/i18n/context";
+import { getReportCategoryName } from "@/lib/reports/evaluation-report";
 import { cn } from "@/lib/utils";
 import type { EvaluationResult } from "@/lib/types";
 
 export default function AnalyticsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,7 +77,7 @@ export default function AnalyticsPage() {
           return found?.average ?? 0;
         });
         return {
-          categoryName: cat.categoryName,
+          categoryName: getReportCategoryName(cat, locale),
           average: Number((allAvgs.reduce((s, v) => s + v, 0) / allAvgs.length).toFixed(2)),
           isCritical: cat.isCritical
         };

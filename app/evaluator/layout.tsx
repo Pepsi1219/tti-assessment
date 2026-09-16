@@ -59,7 +59,7 @@ export default function EvaluatorLayout({
             <button
               type="button"
               aria-label={
-                mobileMenuOpen ? "Close navigation" : "Open navigation"
+                mobileMenuOpen ? t.closeNavigation : t.openNavigation
               }
               className="shrink-0 lg:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -89,7 +89,7 @@ export default function EvaluatorLayout({
               </div>
             </Link>
           </div>
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav aria-label={t.evaluatorNavigation} className="hidden items-center gap-1 lg:flex">
             {navItems.map((item) => {
               const active = pathname === item.href;
               return (
@@ -125,7 +125,7 @@ export default function EvaluatorLayout({
           </div>
         </div>
         {mobileMenuOpen && (
-          <nav className="absolute inset-x-0 top-full z-40 max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-t border-white/60 bg-white/95 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.16)] backdrop-blur-xl scrollbar-hide lg:hidden">
+          <nav aria-label={t.evaluatorNavigation} className="absolute inset-x-0 top-full z-40 max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-t border-white/60 bg-white/95 p-3 shadow-[0_18px_40px_rgba(15,23,42,0.16)] backdrop-blur-xl scrollbar-hide lg:hidden">
             {navItems.map((item) => {
               const active = pathname === item.href;
               return (
