@@ -293,65 +293,56 @@ export default function RecipientManagementPage() {
       </div>
 
       <Card className="p-5">
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-          <Input
-            className="rounded-2xl"
-            placeholder={t.employeeId}
-            value={filterEmployeeId}
-            onChange={(event) => setFilterEmployeeId(event.target.value)}
-          />
-          <FilterSelect
-            value={filterBuCode}
-            onChange={setFilterBuCode}
-            label={t.bu}
-            options={filterOptions.buCodes}
-          />
-          <FilterSelect
-            value={filterDepartment}
-            onChange={setFilterDepartment}
-            label={t.department}
-            options={filterOptions.departments}
-          />
-          <FilterSelect
-            value={filterCourse}
-            onChange={setFilterCourse}
-            label={t.course}
-            options={filterOptions.courses}
-          />
-          <FilterSelect
-            value={filterYear}
-            onChange={setFilterYear}
-            label={t.year}
-            options={filterOptions.years}
-          />
-          <FilterSelect
-            value={filterResult}
-            onChange={setFilterResult}
-            label={t.result}
-            options={["Pass", "Fail"]}
-            optionLabels={{ Pass: t.pass, Fail: t.fail }}
-          />
-          <FilterSelect
-            value={filterStatus}
-            onChange={setFilterStatus}
-            label={t.status}
-            options={["Active", "Inactive"]}
-            optionLabels={{ Active: t.active, Inactive: t.inactive }}
-          />
+        <div className="mb-4 flex flex-wrap gap-3">
+          <div className="w-full max-w-[220px]">
+            <Input
+              className="rounded-2xl"
+              placeholder={t.employeeId}
+              value={filterEmployeeId}
+              onChange={(event) => setFilterEmployeeId(event.target.value)}
+            />
+          </div>
+          <div className="w-full max-w-[170px]">
+            <FilterSelect
+              value={filterBuCode}
+              onChange={setFilterBuCode}
+              label={t.bu}
+              options={filterOptions.buCodes}
+            />
+          </div>
+          <div className="w-full max-w-[200px]">
+            <FilterSelect
+              value={filterDepartment}
+              onChange={setFilterDepartment}
+              label={t.department}
+              options={filterOptions.departments}
+            />
+          </div>
+          <div className="w-full max-w-[170px]">
+            <FilterSelect
+              value={filterStatus}
+              onChange={setFilterStatus}
+              label={t.status}
+              options={["Active", "Inactive"]}
+              optionLabels={{ Active: t.active, Inactive: t.inactive }}
+            />
+          </div>
         </div>
-        <Table className="min-w-[980px] table-auto">
+        <Table className="min-w-[820px] table-auto">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-px whitespace-nowrap">
+              <TableHead className="w-[130px] min-w-[130px] whitespace-nowrap">
                 {t.employeeId}
               </TableHead>
-              <TableHead className="min-w-56">{t.recipient}</TableHead>
-              <TableHead className="min-w-48">{t.department}</TableHead>
-              <TableHead className="w-px whitespace-nowrap">{t.bu}</TableHead>
-              <TableHead className="w-px whitespace-nowrap">
+              <TableHead className="min-w-[180px]">{t.recipient}</TableHead>
+              <TableHead className="min-w-[150px]">{t.department}</TableHead>
+              <TableHead className="w-[120px] min-w-[120px] whitespace-nowrap">
+                {t.bu}
+              </TableHead>
+              <TableHead className="w-[120px] min-w-[120px] whitespace-nowrap">
                 {t.status}
               </TableHead>
-              <TableHead className="w-[104px] min-w-[104px] whitespace-nowrap text-center">
+              <TableHead className="w-[100px] min-w-[100px] whitespace-nowrap text-center">
                 {t.actions}
               </TableHead>
             </TableRow>

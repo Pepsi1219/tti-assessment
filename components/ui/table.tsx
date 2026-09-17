@@ -57,7 +57,7 @@ export function TableHead({
   return (
     <th
       className={cn(
-        "px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400",
+        "px-4 py-3 text-center text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400",
         className,
       )}
       {...props}
@@ -72,7 +72,7 @@ export function TableCell({
   return (
     <td
       className={cn(
-        "px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200",
+        "px-4 py-3 text-center text-sm font-medium text-slate-700 dark:text-slate-200",
         className,
       )}
       {...props}

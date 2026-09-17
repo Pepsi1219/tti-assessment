@@ -118,7 +118,7 @@ export default function AdminLayout({
                   Nanyang
                 </p>
                 <h1 className="truncate text-sm font-bold leading-tight text-white sm:text-base">
-                  {t.admin}
+                  {t.title}
                 </h1>
               </div>
             </Link>

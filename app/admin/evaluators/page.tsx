@@ -262,51 +262,24 @@ export default function EvaluatorManagementPage() {
       )}
 
       <Card className="p-5">
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-          <Input
-            className="rounded-2xl"
-            placeholder={t.employeeId}
-            value={filterEmployeeId}
-            onChange={(event) => setFilterEmployeeId(event.target.value)}
-          />
-          <FilterSelect
-            value={filterBuCode}
-            onChange={setFilterBuCode}
-            label={t.bu}
-            options={filterOptions.buCodes}
-          />
-          <FilterSelect
-            value={filterDepartment}
-            onChange={setFilterDepartment}
-            label={t.department}
-            options={filterOptions.departments}
-          />
-          <FilterSelect
-            value={filterCourse}
-            onChange={setFilterCourse}
-            label={t.course}
-            options={filterOptions.courses}
-          />
-          <FilterSelect
-            value={filterYear}
-            onChange={setFilterYear}
-            label={t.year}
-            options={filterOptions.years}
-          />
-          <FilterSelect
-            value={filterResult}
-            onChange={setFilterResult}
-            label={t.result}
-            options={["Pass", "Fail"]}
-            optionLabels={{ Pass: t.pass, Fail: t.fail }}
-          />
-          <FilterSelect
-            value={filterStatus}
-            onChange={setFilterStatus}
-            label={t.status}
-            options={["Active", "Inactive"]}
-            optionLabels={{ Active: t.active, Inactive: t.inactive }}
-          />
+        <div className="mb-4 flex flex-wrap gap-3">
+          <div className="w-full max-w-[220px]">
+            <Input
+              className="rounded-2xl"
+              placeholder={t.employeeId}
+              value={filterEmployeeId}
+              onChange={(event) => setFilterEmployeeId(event.target.value)}
+            />
+          </div>
+          <div className="w-full max-w-[180px]">
+            <FilterSelect
+              value={filterStatus}
+              onChange={setFilterStatus}
+              label={t.status}
+              options={["Active", "Inactive"]}
+              optionLabels={{ Active: t.active, Inactive: t.inactive }}
+            />
+          </div>
         </div>
         <Table className="min-w-[1040px] table-auto">
           <TableHeader>
@@ -314,8 +287,8 @@ export default function EvaluatorManagementPage() {
               <TableHead className="w-px whitespace-nowrap">
                 {t.employeeId}
               </TableHead>
-              <TableHead className="min-w-56">{t.evaluator}</TableHead>
-              <TableHead className="min-w-64">{t.email}</TableHead>
+              <TableHead className="min-w-56 text-left">{t.evaluator}</TableHead>
+              <TableHead className="min-w-64 text-left">{t.email}</TableHead>
               <TableHead className="w-px whitespace-nowrap">
                 {t.status}
               </TableHead>
@@ -332,8 +305,8 @@ export default function EvaluatorManagementPage() {
                   <TableCell className="whitespace-nowrap font-bold tabular-nums">
                     {evaluator.employeeId}
                   </TableCell>
-                  <TableCell>{evaluator.name}</TableCell>
-                  <TableCell>{evaluator.email}</TableCell>
+                  <TableCell className="text-left">{evaluator.name}</TableCell>
+                  <TableCell className="text-left">{evaluator.email}</TableCell>
                   <TableCell>
                     <Badge tone={active ? "success" : "danger"}>
                       {active ? t.active : t.inactive}

@@ -1,7 +1,7 @@
 "use client";
 
 import { Edit2, Plus, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,10 +9,14 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { StandardSelect } from "@/components/ui/standard-select";
 import { useI18n } from "@/lib/i18n/context";
+import {
+  getLocalizedCategoryName,
+  getLocalizedQuestion,
+} from "@/lib/i18n/question-content";
 import type { Category, Question } from "@/lib/types";
 
 export default function QuestionManagementPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [categories, setCategories] = useState<Category[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [query, setQuery] = useState("");
@@ -21,6 +25,20 @@ export default function QuestionManagementPage() {
   const [form, setForm] = useState({ categoryId: "", questionText: "", weight: "1", maxScore: "5", isActive: true, options: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const localizedCategories = useMemo(
+    () =>
+      categories.map((category) => ({
+        ...category,
+        categoryName: getLocalizedCategoryName(category, locale),
+      })),
+    [categories, locale],
+  );
+
+  const localizedQuestions = useMemo(
+    () => questions.map((question) => getLocalizedQuestion(question, locale)),
+    [questions, locale],
+  );
 
   async function load() {
     const res = await fetch("/api/questions");
@@ -32,32 +50,33 @@ export default function QuestionManagementPage() {
 
   useEffect(() => { load(); }, []);
 
-  const filtered = questions.filter((q) => {
+  const filtered = localizedQuestions.filter((q) => {
     if (!query) return true;
-    const cat = categories.find((c) => c.id === q.categoryId);
+    const cat = localizedCategories.find((c) => c.id === q.categoryId);
     return [q.questionText, cat?.categoryName].join(" ").toLowerCase().includes(query.toLowerCase());
   });
 
-  const grouped = categories.map((cat) => ({
+  const grouped = localizedCategories.map((cat) => ({
     ...cat,
     questions: filtered.filter((q) => q.categoryId === cat.id)
   })).filter((g) => g.questions.length > 0);
 
   function openCreate() {
     setEditingId(null);
-    setForm({ categoryId: categories[0]?.id ?? "", questionText: "", weight: "1", maxScore: "5", isActive: true, options: "" });
+    setForm({ categoryId: localizedCategories[0]?.id ?? "", questionText: "", weight: "1", maxScore: "5", isActive: true, options: "" });
     setDialogOpen(true);
   }
 
   function openEdit(question: Question) {
+    const localizedQuestion = getLocalizedQuestion(question, locale);
     setEditingId(question.id);
     setForm({
       categoryId: question.categoryId,
-      questionText: question.questionText,
+      questionText: localizedQuestion.questionText,
       weight: String(question.weight),
       maxScore: String(question.maxScore),
       isActive: question.isActive,
-      options: question.options.join("\n")
+      options: localizedQuestion.options.join("\n")
     });
     setDialogOpen(true);
   }
@@ -170,7 +189,7 @@ export default function QuestionManagementPage() {
               onValueChange={(value) => setForm({ ...form, categoryId: value })}
               ariaLabel={t.category}
               placeholder={t.category}
-              options={categories.map((category) => ({
+              options={localizedCategories.map((category) => ({
                 value: category.id,
                 label: category.categoryName,
               }))}
