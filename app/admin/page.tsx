@@ -9,6 +9,7 @@ import {
   Cell,
   PolarAngleAxis,
   PolarGrid,
+  PolarRadiusAxis,
   Radar,
   RadarChart,
   ResponsiveContainer,
@@ -93,11 +94,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">{t.admin}</p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">{t.certificationOverview}</h1>
-      </div>
-
       {/* Metric cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard icon={Activity} label={t.totalEvaluations} value={String(totalEvaluations)} />
@@ -111,7 +107,7 @@ export default function AdminDashboard() {
         <Card className="p-5">
           <h3 className="mb-4 text-lg font-black">{t.scoreDistribution}</h3>
           {totalEvaluations > 0 ? (
-            <div className="h-64">
+            <div className="h-80">
               <ResponsiveContainer>
                 <BarChart data={scoreDistribution}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -135,11 +131,18 @@ export default function AdminDashboard() {
         <Card className="p-5">
           <h3 className="mb-4 text-lg font-black">{t.categoryPerformance}</h3>
           {categoryAvg.length > 0 ? (
-            <div className="h-64">
+            <div className="h-80">
               <ResponsiveContainer>
-                <RadarChart data={categoryAvg} outerRadius="61%" margin={{ top: 28, right: 48, bottom: 28, left: 48 }}>
-                  <PolarGrid stroke="#dbe3ef" />
+                <RadarChart data={categoryAvg} outerRadius="99%" margin={{ top: 28, right: 48, bottom: 28, left: 48 }}>
+                  <PolarGrid gridType="polygon" radialLines={false} stroke="#dbe3ef" />
                   <PolarAngleAxis dataKey="categoryName" tick={WrappedRadarTick} />
+                  <PolarRadiusAxis
+                    domain={[0, 5]}
+                    tickCount={6}
+                    allowDecimals={false}
+                    axisLine={false}
+                    tick={false}
+                  />
                   <Radar dataKey="average" fill="#2563EB" fillOpacity={0.28} stroke="#2563EB" strokeWidth={2} />
                   <Tooltip />
                 </RadarChart>

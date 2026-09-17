@@ -2,7 +2,6 @@
 
 import {
   Award,
-  BarChart3,
   ClipboardList,
   Download,
   Eye,
@@ -78,7 +77,6 @@ export default function AdminLayout({
       label: t.evaluationSummaries,
       icon: Award,
     },
-    { href: "/admin/analytics", label: t.analytics, icon: BarChart3 },
   ];
 
   const isActive = (href: string) => {
