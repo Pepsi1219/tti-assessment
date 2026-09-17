@@ -33,6 +33,10 @@ import {
 } from "@/components/ui/select";
 import { useI18n } from "@/lib/i18n/context";
 import {
+  getLocalizedCategoryName,
+  getLocalizedQuestion,
+} from "@/lib/i18n/question-content";
+import {
   getPassingCriteria,
   getReportCategoryName,
 } from "@/lib/reports/evaluation-report";
@@ -115,12 +119,13 @@ export default function EvaluatorPage() {
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((category) => ({
           ...category,
-          questions: activeQuestions.filter(
-            (question) => question.categoryId === category.id,
-          ),
+          categoryName: getLocalizedCategoryName(category, locale),
+          questions: activeQuestions
+            .filter((question) => question.categoryId === category.id)
+            .map((question) => getLocalizedQuestion(question, locale)),
         }))
         .filter((category) => category.questions.length > 0),
-    [activeQuestions, categories],
+    [activeQuestions, categories, locale],
   );
   const isReviewStep = step === sections.length;
   const answeredCount = activeQuestions.filter(
