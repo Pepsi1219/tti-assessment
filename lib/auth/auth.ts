@@ -13,8 +13,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const employeeId = credentials?.employeeId as string | undefined;
         if (!employeeId) return null;
 
-        const users = await getRepository().getUsers();
-        const user = users.find(
+        const repository = getRepository();
+        const [admins, evaluators] = await Promise.all([
+          repository.getUsers(),
+          repository.getEvaluators(),
+        ]);
+        const user = [...admins, ...evaluators].find(
           (u) =>
             u.employeeId.toLowerCase() === employeeId.toLowerCase() &&
             u.status !== "Inactive",

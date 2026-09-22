@@ -8,9 +8,20 @@ type Dictionary = {
   signOut: string;
   loginError: string;
   loginTemporaryError: string;
+  evaluationClosedTitle: string;
+  evaluationClosedDescription: string;
+  evaluationOpenDescription: string;
+  evaluationAccess: string;
+  evaluationsOpen: string;
+  evaluationsClosed: string;
+  openEvaluations: string;
+  closeEvaluations: string;
+  closeEvaluationConfirm: string;
   selectEvaluator: string;
   evaluatorManagement: string;
   addEvaluator: string;
+  adminManagement: string;
+  addAdmin: string;
   email: string;
   continue: string;
   adminLogin: string;
@@ -43,6 +54,7 @@ type Dictionary = {
   users: string;
   analytics: string;
   settings: string;
+  system: string;
   search: string;
   searchTrainer: string;
   selectTrainer: string;
@@ -219,9 +231,20 @@ export const dictionaries: Record<Locale, Dictionary> = {
     signOut: "ออกจากระบบ",
     loginError: "ไม่พบรหัสพนักงานนี้ในระบบ",
     loginTemporaryError: "ไม่สามารถเข้าสู่ระบบได้ โปรดลองอีกครั้ง",
+    evaluationClosedTitle: "ระบบยังไม่เปิดให้ทำการประเมิน",
+    evaluationClosedDescription: "ขณะนี้ปิดรับแบบประเมิน กรุณารอให้ผู้ดูแลระบบเปิดรับอีกครั้ง",
+    evaluationOpenDescription: "ผู้ประเมินสามารถเปิดลิงก์และทำแบบประเมินได้",
+    evaluationAccess: "การเปิดรับแบบประเมิน",
+    evaluationsOpen: "เปิดรับแบบประเมิน",
+    evaluationsClosed: "ปิดรับแบบประเมิน",
+    openEvaluations: "เปิดรับแบบประเมิน",
+    closeEvaluations: "ปิดรับแบบประเมิน",
+    closeEvaluationConfirm: "ยืนยันการปิดรับแบบประเมินหรือไม่? ผู้ที่เปิดลิงก์จะเห็นหน้าแจ้งว่าระบบยังไม่เปิดให้ทำการประเมิน",
     selectEvaluator: "เลือกชื่อผู้ประเมินของคุณ",
     evaluatorManagement: "จัดการผู้ประเมิน",
     addEvaluator: "เพิ่มผู้ประเมิน",
+    adminManagement: "จัดการผู้ดูแลระบบ",
+    addAdmin: "เพิ่มผู้ดูแลระบบ",
     email: "อีเมล",
     continue: "เริ่มทำการประเมิน",
     adminLogin: "เข้าสู่ระบบผู้ดูแล",
@@ -254,6 +277,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     users: "ผู้ใช้งาน",
     analytics: "วิเคราะห์",
     settings: "ตั้งค่า",
+    system: "ระบบ",
     search: "ค้นหา",
     searchTrainer: "ค้นหาผู้ฝึกสอน",
     selectTrainer: "เลือกผู้ฝึกสอน",
@@ -431,9 +455,20 @@ export const dictionaries: Record<Locale, Dictionary> = {
     signOut: "Sign Out",
     loginError: "Employee ID not found",
     loginTemporaryError: "Unable to sign in. Please try again.",
+    evaluationClosedTitle: "Evaluations are not open yet",
+    evaluationClosedDescription: "Evaluation submissions are currently closed. Please wait for an administrator to open them.",
+    evaluationOpenDescription: "Evaluators can open the link and submit evaluations.",
+    evaluationAccess: "Evaluation availability",
+    evaluationsOpen: "Evaluations open",
+    evaluationsClosed: "Evaluations closed",
+    openEvaluations: "Open evaluations",
+    closeEvaluations: "Close evaluations",
+    closeEvaluationConfirm: "Close evaluations? Anyone opening the link will see the closed page.",
     selectEvaluator: "Select your evaluator name",
     evaluatorManagement: "Manage Evaluators",
     addEvaluator: "Add Evaluator",
+    adminManagement: "Manage Administrators",
+    addAdmin: "Add Administrator",
     email: "Email",
     continue: "Start Evaluation",
     adminLogin: "Administrator sign in",
@@ -466,6 +501,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     users: "Users",
     analytics: "Analytics",
     settings: "Settings",
+    system: "System",
     search: "Search",
     searchTrainer: "Search Trainer",
     selectTrainer: "Select Trainer",
@@ -643,9 +679,20 @@ export const dictionaries: Record<Locale, Dictionary> = {
     signOut: "ອອກຈາກລະບົບ",
     loginError: "ບໍ່ພົບລະຫັດພະນັກງານນີ້ໃນລະບົບ",
     loginTemporaryError: "ບໍ່ສາມາດເຂົ້າລະບົບໄດ້ ກະລຸນາລອງໃໝ່",
+    evaluationClosedTitle: "ລະບົບຍັງບໍ່ເປີດໃຫ້ປະເມີນ",
+    evaluationClosedDescription: "ຂະນະນີ້ປິດຮັບການປະເມີນ ກະລຸນາລໍຖ້າຜູ້ດູແລເປີດຮັບອີກຄັ້ງ",
+    evaluationOpenDescription: "ຜູ້ປະເມີນສາມາດເປີດລິ້ງ ແລະ ເຮັດການປະເມີນໄດ້",
+    evaluationAccess: "ການເປີດຮັບການປະເມີນ",
+    evaluationsOpen: "ເປີດຮັບການປະເມີນ",
+    evaluationsClosed: "ປິດຮັບການປະເມີນ",
+    openEvaluations: "ເປີດຮັບການປະເມີນ",
+    closeEvaluations: "ປິດຮັບການປະເມີນ",
+    closeEvaluationConfirm: "ຢືນຢັນການປິດຮັບການປະເມີນບໍ? ຜູ້ທີ່ເປີດລິ້ງຈະເຫັນໜ້າແຈ້ງປິດຮັບ",
     selectEvaluator: "ເລືອກຊື່ຜູ້ປະເມີນຂອງທ່ານ",
     evaluatorManagement: "ຈັດການຜູ້ປະເມີນ",
     addEvaluator: "ເພີ່ມຜູ້ປະເມີນ",
+    adminManagement: "ຈັດການຜູ້ດູແລ",
+    addAdmin: "ເພີ່ມຜູ້ດູແລ",
     email: "ອີເມວ",
     continue: "ເລີ່ມການປະເມີນ",
     adminLogin: "ເຂົ້າລະບົບຜູ້ດູແລ",
@@ -678,6 +725,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     users: "ຜູ້ໃຊ້ງານ",
     analytics: "ວິເຄາະ",
     settings: "ຕັ້ງຄ່າ",
+    system: "ລະບົບ",
     search: "ຄົ້ນຫາ",
     searchTrainer: "ຄົ້ນຫາຜູ້ຝຶກສອນ",
     selectTrainer: "ເລືອກຜູ້ຝຶກສອນ",
@@ -854,9 +902,20 @@ export const dictionaries: Record<Locale, Dictionary> = {
     signOut: "Đăng xuất",
     loginError: "Không tìm thấy mã nhân viên",
     loginTemporaryError: "Không thể đăng nhập. Vui lòng thử lại.",
+    evaluationClosedTitle: "Hệ thống chưa mở đánh giá",
+    evaluationClosedDescription: "Hiện tại không nhận đánh giá. Vui lòng chờ quản trị viên mở lại.",
+    evaluationOpenDescription: "Người đánh giá có thể mở liên kết và gửi đánh giá.",
+    evaluationAccess: "Trạng thái nhận đánh giá",
+    evaluationsOpen: "Đang nhận đánh giá",
+    evaluationsClosed: "Đã đóng nhận đánh giá",
+    openEvaluations: "Mở nhận đánh giá",
+    closeEvaluations: "Đóng nhận đánh giá",
+    closeEvaluationConfirm: "Đóng nhận đánh giá? Người mở liên kết sẽ thấy trang thông báo đã đóng.",
     selectEvaluator: "Chọn tên người đánh giá của bạn",
     evaluatorManagement: "Quản lý người đánh giá",
     addEvaluator: "Thêm người đánh giá",
+    adminManagement: "Quản lý quản trị viên",
+    addAdmin: "Thêm quản trị viên",
     email: "Email",
     continue: "Bắt đầu đánh giá",
     adminLogin: "Đăng nhập quản trị viên",
@@ -889,6 +948,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     users: "Người dùng",
     analytics: "Phân tích",
     settings: "Cài đặt",
+    system: "Hệ thống",
     search: "Tìm kiếm",
     searchTrainer: "Tìm giảng viên",
     selectTrainer: "Chọn giảng viên",

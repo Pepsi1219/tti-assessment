@@ -58,6 +58,11 @@ export async function POST(request: Request) {
       { error: "Invalid request origin" },
       { status: 403 },
     );
+  if (!isAdmin(user) && !(await getRepository().isEvaluationOpen()))
+    return NextResponse.json(
+      { error: "Evaluation is not currently open." },
+      { status: 403 },
+    );
 
   const payload = evaluationPayloadSchema.safeParse(
     await request.json().catch(() => null),
@@ -114,12 +119,12 @@ export async function PATCH(request: Request) {
 
   try {
     const repo = getRepository();
-    const [evaluations, recipients, topics, users, categories, questions] =
+    const [evaluations, recipients, topics, evaluators, categories, questions] =
       await Promise.all([
         repo.getEvaluations(),
         repo.getRecipients(),
         repo.getTopics(),
-        repo.getUsers(),
+        repo.getEvaluators(),
         repo.getCategories(),
         repo.getQuestions(),
       ]);
@@ -136,9 +141,8 @@ export async function PATCH(request: Request) {
       (item) => item.id === payload.data.recipientId,
     );
     const topic = topics.find((item) => item.id === payload.data.topicId);
-    const evaluator = users.find(
+    const evaluator = evaluators.find(
       (item) =>
-        item.role === "Evaluator" &&
         item.employeeId.toLowerCase() ===
           payload.data.evaluatorEmployeeId.toLowerCase(),
     );

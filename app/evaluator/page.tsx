@@ -76,6 +76,12 @@ export default function EvaluatorPage() {
     let isMounted = true;
     async function loadFormData() {
       try {
+        const availabilityResponse = await fetch("/api/evaluation-availability");
+        const availability = await availabilityResponse.json().catch(() => null);
+        if (!availabilityResponse.ok || availability?.isOpen !== true) {
+          window.location.replace("/evaluation-closed");
+          return;
+        }
         const [recipientRes, topicRes, questionRes] = await Promise.all([
           fetch("/api/recipients"),
           fetch("/api/topics"),

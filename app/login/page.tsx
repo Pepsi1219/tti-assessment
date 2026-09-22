@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import logo from "@/logo.png";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export default function LoginPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useI18n();
   const [employeeId, setEmployeeId] = useState("");
   const [selectedEvaluatorId, setSelectedEvaluatorId] = useState("");
@@ -38,7 +39,9 @@ export default function LoginPage() {
   const [topics, setTopics] = useState<
     Array<{ id: string; topicName: string }>
   >([]);
-  const [adminMode, setAdminMode] = useState(false);
+  const [adminMode, setAdminMode] = useState(
+    () => searchParams.get("mode") === "admin",
+  );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -49,6 +52,10 @@ export default function LoginPage() {
       router.replace(role === "Admin" ? "/admin" : "/evaluator");
     }
   }, [session, status, router]);
+
+  useEffect(() => {
+    setAdminMode(searchParams.get("mode") === "admin");
+  }, [searchParams]);
 
   useEffect(() => {
     fetch("/api/evaluators")

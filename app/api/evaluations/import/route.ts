@@ -54,13 +54,13 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   const repo = getRepository();
-  const [recipients, topics, categories, questions, users, existing] =
+  const [recipients, topics, categories, questions, evaluators, existing] =
     await Promise.all([
       repo.getRecipients(),
       repo.getTopics(),
       repo.getCategories(),
       repo.getQuestions(),
-      repo.getUsers(),
+      repo.getEvaluators(),
       repo.getEvaluations(),
     ]);
   const recipient = recipients.find(
@@ -74,9 +74,8 @@ export async function POST(request: Request) {
       { error: "The selected recipient or course is not available." },
       { status: 400 },
     );
-  const evaluator = users.find(
+  const evaluator = evaluators.find(
     (item) =>
-      item.role === "Evaluator" &&
       item.status !== "Inactive" &&
       item.employeeId.toLowerCase() === evaluatorEmployeeId.toLowerCase(),
   );

@@ -80,3 +80,11 @@ export const evaluatorPayloadSchema = z.object({
   email: z.string().trim().email().max(320),
   status: z.enum(["Active", "Inactive"]).optional(),
 });
+
+export const adminPayloadSchema = z.object({
+  id: identifier.optional(),
+  employeeId: z.string().trim().min(1).max(64),
+  name: z.string().trim().min(1).max(200),
+  email: z.string().trim().email().max(320),
+  status: z.enum(["Active", "Inactive"]).optional(),
+});

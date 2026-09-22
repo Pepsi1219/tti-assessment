@@ -54,7 +54,7 @@ import type {
   EvaluationRecipient,
   EvaluationResult,
   EvaluationTopic,
-  User,
+  Evaluator,
 } from "@/lib/types";
 
 export default function EvaluationManagementPage() {
@@ -685,7 +685,7 @@ function EditEvaluationDialog({
   const { t, locale } = useI18n();
   const [recipients, setRecipients] = useState<EvaluationRecipient[]>([]);
   const [topics, setTopics] = useState<EvaluationTopic[]>([]);
-  const [evaluators, setEvaluators] = useState<User[]>([]);
+  const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
   const [selectedBu, setSelectedBu] = useState("");
   const [recipientId, setRecipientId] = useState("");
   const [topicId, setTopicId] = useState("");

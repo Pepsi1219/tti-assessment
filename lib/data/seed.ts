@@ -1,29 +1,24 @@
-import type { Category, Evaluation, EvaluationDetail, EvaluationRecipient, EvaluationTopic, Question, Trainer, User } from "@/lib/types";
+import type { Category, Evaluation, EvaluationDetail, EvaluationRecipient, EvaluationTopic, Evaluator, Question, User } from "@/lib/types";
 
 const now = new Date().toISOString();
 
+export const systemSettings = { evaluationOpen: true };
+
 export const users: User[] = [
-  { id: "u-admin", employeeId: "ADMIN01", name: "Admin User", email: "admin@nanyang.com", role: "Admin", createdAt: now },
-  { id: "u-eval", employeeId: "NY001", name: "Evaluator User", email: "evaluator@nanyang.com", role: "Evaluator", createdAt: now }
+  { id: "u-admin", employeeId: "ADMIN01", name: "Admin User", email: "admin@nanyang.com", role: "Admin", createdAt: now }
 ];
 
-export const trainers: Trainer[] = [
-  { id: "t-001", employeeId: "NY001", trainerName: "Somchai Prasert", bu: "Sewing", status: "Active", createdAt: now, updatedAt: now },
-  { id: "t-002", employeeId: "NY002", trainerName: "Anong Srisai", bu: "Cutting", status: "Active", createdAt: now, updatedAt: now },
-  { id: "t-003", employeeId: "NY003", trainerName: "Minh Tran", bu: "Finishing", status: "Active", createdAt: now, updatedAt: now },
-  { id: "t-004", employeeId: "NY004", trainerName: "Khanh Nguyen", bu: "QC", status: "Active", createdAt: now, updatedAt: now },
-  { id: "t-005", employeeId: "NY005", trainerName: "Bounmy Souliya", bu: "Sewing", status: "Active", createdAt: now, updatedAt: now }
+export const evaluators: Evaluator[] = [
+  { id: "e-001", employeeId: "NY001", name: "Evaluator User", email: "evaluator@nanyang.com", role: "Evaluator", status: "Active", createdAt: now, updatedAt: now }
 ];
 
-export const recipients: EvaluationRecipient[] = trainers.map((trainer) => ({
-  id: `recipient-${trainer.id}`,
-  employeeId: trainer.employeeId,
-  recipientName: trainer.trainerName,
-  bu: trainer.bu,
-  status: trainer.status,
-  createdAt: trainer.createdAt,
-  updatedAt: trainer.updatedAt
-}));
+export const recipients: EvaluationRecipient[] = [
+  { id: "recipient-t-001", employeeId: "NY001", recipientName: "Somchai Prasert", bu: "Sewing", status: "Active", createdAt: now, updatedAt: now },
+  { id: "recipient-t-002", employeeId: "NY002", recipientName: "Anong Srisai", bu: "Cutting", status: "Active", createdAt: now, updatedAt: now },
+  { id: "recipient-t-003", employeeId: "NY003", recipientName: "Minh Tran", bu: "Finishing", status: "Active", createdAt: now, updatedAt: now },
+  { id: "recipient-t-004", employeeId: "NY004", recipientName: "Khanh Nguyen", bu: "QC", status: "Active", createdAt: now, updatedAt: now },
+  { id: "recipient-t-005", employeeId: "NY005", recipientName: "Bounmy Souliya", bu: "Sewing", status: "Active", createdAt: now, updatedAt: now },
+];
 
 export const evaluationTopics: EvaluationTopic[] = [
   {

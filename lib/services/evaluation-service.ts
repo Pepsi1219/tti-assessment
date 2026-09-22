@@ -88,13 +88,12 @@ export async function submitEvaluation(input: EvaluationInput, evaluator: Curren
 
 export async function getEvaluationResults(): Promise<EvaluationResult[]> {
   const repo = getRepository();
-  const [evaluations, questions, categories, recipients, topics, trainers] = await Promise.all([
+  const [evaluations, questions, categories, recipients, topics] = await Promise.all([
     repo.getEvaluations(),
     repo.getQuestions(),
     repo.getCategories(),
     repo.getRecipients(),
-    repo.getTopics(),
-    repo.getTrainers()
+    repo.getTopics()
   ]);
   const evaluationsMissingSummary = evaluations
     .filter((evaluation) => !evaluation.categoryActualScores && !evaluation.categorySummary?.length)
@@ -120,7 +119,6 @@ export async function getEvaluationResults(): Promise<EvaluationResult[]> {
       result: metrics.result,
       recipient: recipients.find((recipient) => recipient.id === evaluation.recipientId),
       topic: topics.find((topic) => topic.id === evaluation.topicId),
-      trainer: trainers.find((trainer) => trainer.id === evaluation.trainerId),
       categorySummary: metrics.categorySummary,
       details: ownDetails
     };

@@ -11,7 +11,9 @@
     "import:evaluations": "node --no-warnings --experimental-strip-types scripts/import-evaluations-from-excel.ts",
     "import:evaluations:commit": "node --no-warnings --experimental-strip-types scripts/import-evaluations-from-excel.ts --commit",
     "correct:legacy-scores": "node --no-warnings --experimental-strip-types scripts/correct-legacy-evaluation-scores.ts",
-    "backfill:evaluator-identities": "node scripts/backfill-evaluation-evaluator-identities.mjs"
+    "backfill:evaluator-identities": "node scripts/backfill-evaluation-evaluator-identities.mjs",
+    "migrate:evaluators-to-trainers": "node scripts/migrate-evaluators-to-trainers.mjs",
+    "migrate:evaluators-to-trainers:commit": "node scripts/migrate-evaluators-to-trainers.mjs --commit"
   },
   "dependencies": {
     "@auth/core": "^0.37.4",

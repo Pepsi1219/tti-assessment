@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n/context";
-import type { EvaluationResult, User } from "@/lib/types";
+import type { EvaluationResult, Evaluator } from "@/lib/types";
 
 type EvaluatorForm = {
   employeeId: string;
@@ -35,7 +35,7 @@ const emptyForm: EvaluatorForm = {
 
 export default function EvaluatorManagementPage() {
   const { t } = useI18n();
-  const [evaluators, setEvaluators] = useState<User[]>([]);
+  const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [filterEmployeeId, setFilterEmployeeId] = useState("");
   const [filterBuCode, setFilterBuCode] = useState("all");
@@ -47,7 +47,7 @@ export default function EvaluatorManagementPage() {
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<User | null>(null);
+  const [editing, setEditing] = useState<Evaluator | null>(null);
   const [form, setForm] = useState<EvaluatorForm>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -181,7 +181,7 @@ export default function EvaluatorManagementPage() {
     setDialogOpen(true);
   }
 
-  function openEdit(evaluator: User) {
+  function openEdit(evaluator: Evaluator) {
     setEditing(evaluator);
     setForm({
       employeeId: evaluator.employeeId,
@@ -214,7 +214,7 @@ export default function EvaluatorManagementPage() {
     }
   }
 
-  async function remove(evaluator: User) {
+  async function remove(evaluator: Evaluator) {
     if (!window.confirm(`${t.confirmDelete} ${evaluator.name}`)) return;
 
     setError("");

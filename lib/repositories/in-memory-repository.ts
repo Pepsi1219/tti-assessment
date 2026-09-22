@@ -5,7 +5,8 @@ import {
   evaluations,
   questions,
   recipients,
-  trainers,
+  systemSettings,
+  evaluators,
   users,
 } from "@/lib/data/seed";
 import type { EvaluationRepository } from "@/lib/repositories/evaluation-repository";
@@ -15,11 +16,19 @@ import type {
   EvaluationRecipient,
   EvaluationTopic,
   Question,
-  Trainer,
+  Evaluator,
   User,
 } from "@/lib/types";
 
 export class InMemoryEvaluationRepository implements EvaluationRepository {
+  async isEvaluationOpen() {
+    return systemSettings.evaluationOpen;
+  }
+
+  async setEvaluationOpen(isOpen: boolean) {
+    systemSettings.evaluationOpen = isOpen;
+  }
+
   async getUsers() {
     return users;
   }
@@ -31,27 +40,25 @@ export class InMemoryEvaluationRepository implements EvaluationRepository {
     return user;
   }
 
-  async deleteEvaluator(id: string) {
-    const index = users.findIndex(
-      (item) => item.id === id && item.role === "Evaluator",
-    );
+  async deleteUser(id: string) {
+    const index = users.findIndex((item) => item.id === id);
     if (index >= 0) users.splice(index, 1);
   }
 
-  async getTrainers() {
-    return trainers;
+  async getEvaluators() {
+    return evaluators;
   }
 
-  async upsertTrainer(trainer: Trainer) {
-    const index = trainers.findIndex((item) => item.id === trainer.id);
-    if (index >= 0) trainers[index] = trainer;
-    else trainers.push(trainer);
-    return trainer;
+  async upsertEvaluator(evaluator: Evaluator) {
+    const index = evaluators.findIndex((item) => item.id === evaluator.id);
+    if (index >= 0) evaluators[index] = evaluator;
+    else evaluators.push(evaluator);
+    return evaluator;
   }
 
-  async deleteTrainer(id: string) {
-    const trainer = trainers.find((item) => item.id === id);
-    if (trainer) trainer.status = "Inactive";
+  async deleteEvaluator(id: string) {
+    const index = evaluators.findIndex((item) => item.id === id);
+    if (index >= 0) evaluators.splice(index, 1);
   }
 
   async getRecipients() {

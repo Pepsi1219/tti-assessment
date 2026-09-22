@@ -11,20 +11,23 @@ export type User = {
   employeeId: string;
   name: string;
   email: string;
-  role: Role;
+  /** The Firestore `users` collection is reserved for administrator accounts. */
+  role: "Admin";
   status?: RecordStatus;
   createdAt: string;
   updatedAt?: string;
 };
 
-export type Trainer = {
+/** An account that conducts evaluations and is stored in Firestore `trainers`. */
+export type Evaluator = {
   id: string;
   employeeId: string;
-  trainerName: string;
-  bu: string;
-  status: TrainerStatus;
+  name: string;
+  email: string;
+  role: "Evaluator";
+  status?: RecordStatus;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 };
 
 export type EvaluationRecipient = {
@@ -69,7 +72,6 @@ export type Evaluation = {
   recipientId: string;
   topicId: string;
   topicName: string;
-  trainerId?: string;
   evaluatorName: string;
   evaluatorEmail: string;
   evaluatorEmployeeId?: string;
@@ -111,7 +113,6 @@ export type CategorySummary = {
 };
 
 export type EvaluationResult = Evaluation & {
-  trainer?: Trainer;
   recipient?: EvaluationRecipient;
   topic?: EvaluationTopic;
   categorySummary: CategorySummary[];

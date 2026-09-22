@@ -5,17 +5,19 @@ import type {
   EvaluationRecipient,
   EvaluationTopic,
   Question,
-  Trainer,
+  Evaluator,
   User,
 } from "@/lib/types";
 
 export interface EvaluationRepository {
+  isEvaluationOpen(): Promise<boolean>;
+  setEvaluationOpen(isOpen: boolean): Promise<void>;
   getUsers(): Promise<User[]>;
   upsertUser(user: User): Promise<User>;
+  deleteUser(id: string): Promise<void>;
+  getEvaluators(): Promise<Evaluator[]>;
+  upsertEvaluator(evaluator: Evaluator): Promise<Evaluator>;
   deleteEvaluator(id: string): Promise<void>;
-  getTrainers(): Promise<Trainer[]>;
-  upsertTrainer(trainer: Trainer): Promise<Trainer>;
-  deleteTrainer(id: string): Promise<void>;
   getRecipients(): Promise<EvaluationRecipient[]>;
   upsertRecipient(recipient: EvaluationRecipient): Promise<EvaluationRecipient>;
   getTopics(): Promise<EvaluationTopic[]>;

@@ -12,7 +12,7 @@ import type {
   EvaluationRecipient,
   EvaluationTopic,
   Question,
-  Trainer,
+  Evaluator,
   User,
 } from "@/lib/types";
 
@@ -25,6 +25,7 @@ const collectionNames = {
   questions: "questions",
   evaluations: "evaluations",
   evaluationDetails: "evaluationDetails",
+  systemSettings: "systemSettings",
 };
 
 const MASTER_DATA_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -61,6 +62,22 @@ export class FirestoreEvaluationRepository implements EvaluationRepository {
     names.forEach((name) => this.readCache.delete(name));
   }
 
+  async isEvaluationOpen(): Promise<boolean> {
+    const document = await this.collection<{ isOpen?: boolean }>(
+      collectionNames.systemSettings,
+    )
+      .doc("evaluation")
+      .get();
+    return document.data()?.isOpen !== false;
+  }
+
+  async setEvaluationOpen(isOpen: boolean): Promise<void> {
+    await this.collection(collectionNames.systemSettings).doc("evaluation").set(
+      { isOpen, updatedAt: new Date().toISOString() },
+      { merge: true },
+    );
+  }
+
   async getUsers(): Promise<User[]> {
     return this.getCachedAll<User>(
       collectionNames.users,
@@ -76,37 +93,31 @@ export class FirestoreEvaluationRepository implements EvaluationRepository {
     return user;
   }
 
-  async deleteEvaluator(id: string): Promise<void> {
+  async deleteUser(id: string): Promise<void> {
     await this.collection<User>(collectionNames.users).doc(id).delete();
     this.invalidateCache(collectionNames.users);
   }
 
-  async getTrainers(): Promise<Trainer[]> {
-    const rows = await this.getCachedAll<Trainer>(
+  async getEvaluators(): Promise<Evaluator[]> {
+    const rows = await this.getCachedAll<Evaluator>(
       collectionNames.trainers,
       MASTER_DATA_CACHE_TTL_MS,
     );
-    return rows.sort((a, b) => a.employeeId.localeCompare(b.employeeId));
+    return rows
+      .filter((evaluator) => evaluator.role === "Evaluator")
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  async upsertTrainer(trainer: Trainer): Promise<Trainer> {
-    await this.collection<Trainer>(collectionNames.trainers)
-      .doc(trainer.id)
-      .set(trainer, { merge: true });
+  async upsertEvaluator(evaluator: Evaluator): Promise<Evaluator> {
+    await this.collection<Evaluator>(collectionNames.trainers)
+      .doc(evaluator.id)
+      .set(evaluator, { merge: true });
     this.invalidateCache(collectionNames.trainers);
-    return trainer;
+    return evaluator;
   }
 
-  async deleteTrainer(id: string): Promise<void> {
-    await this.collection<Trainer>(collectionNames.trainers)
-      .doc(id)
-      .set(
-        {
-          status: "Inactive",
-          updatedAt: new Date().toISOString(),
-        } as Partial<Trainer>,
-        { merge: true },
-      );
+  async deleteEvaluator(id: string): Promise<void> {
+    await this.collection<Evaluator>(collectionNames.trainers).doc(id).delete();
     this.invalidateCache(collectionNames.trainers);
   }
 

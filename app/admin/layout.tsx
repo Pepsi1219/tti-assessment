@@ -10,6 +10,8 @@ import {
   ListChecks,
   LogOut,
   Menu,
+  Settings,
+  ShieldCheck,
   UserCheck,
   Users,
   Upload,
@@ -67,6 +69,7 @@ export default function AdminLayout({
 
   const navItems = [
     { href: "/admin", label: t.dashboard, icon: LayoutDashboard },
+    { href: "/admin/admins", label: t.admin, icon: ShieldCheck },
     { href: "/admin/evaluators", label: t.evaluator, icon: UserCheck },
     { href: "/admin/recipients", label: t.recipients, icon: Users },
     { href: "/admin/topics", label: t.evaluationTopics, icon: ListChecks },
@@ -77,6 +80,7 @@ export default function AdminLayout({
       label: t.evaluationSummaries,
       icon: Award,
     },
+    { href: "/admin/system", label: t.system, icon: Settings },
   ];
 
   const isActive = (href: string) => {

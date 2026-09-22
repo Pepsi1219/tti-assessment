@@ -19,6 +19,14 @@ import {
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { WrappedRadarTick } from "@/components/evaluation-category-report";
 import { useI18n } from "@/lib/i18n/context";
 import { getReportCategoryName } from "@/lib/reports/evaluation-report";
@@ -220,22 +228,34 @@ export default function AdminDashboard() {
       <Card className="p-5">
         <h3 className="mb-4 text-lg font-black">{t.recentEvaluations}</h3>
         {evaluations.length > 0 ? (
-          <div className="space-y-2">
+          <Table className="min-w-[860px] table-auto">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-left">{t.recipient}</TableHead>
+                <TableHead className="text-left">{t.course}</TableHead>
+                <TableHead className="text-left">{t.evaluatedBy}</TableHead>
+                <TableHead className="whitespace-nowrap">{t.evaluationDate}</TableHead>
+                <TableHead className="whitespace-nowrap">{t.totalScore}</TableHead>
+                <TableHead className="whitespace-nowrap">{t.result}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
             {evaluations.slice(0, 10).map((ev) => (
-              <div key={ev.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/75 px-4 py-3">
-                <div>
-                  <p className="text-sm font-bold">{ev.recipient?.recipientName ?? "—"}</p>
-                  <p className="text-xs text-slate-400">{t.evaluatedBy}: {ev.evaluatorName} · {ev.evaluationDate}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-black">{ev.totalScore.toFixed(2)}</span>
+              <TableRow key={ev.id}>
+                <TableCell className="text-left font-bold">{ev.recipient?.recipientName ?? "—"}</TableCell>
+                <TableCell className="text-left">{ev.topicName}</TableCell>
+                <TableCell className="text-left">{ev.evaluatorName}</TableCell>
+                <TableCell className="whitespace-nowrap">{ev.evaluationDate}</TableCell>
+                <TableCell className="font-black tabular-nums">{ev.totalScore.toFixed(2)}</TableCell>
+                <TableCell>
                   <Badge tone={ev.result === "Pass" ? "success" : "danger"}>
                     {ev.result === "Pass" ? t.pass : t.fail}
                   </Badge>
-                </div>
-              </div>
+                </TableCell>
+              </TableRow>
             ))}
-          </div>
+            </TableBody>
+          </Table>
         ) : (
           <p className="py-6 text-center text-sm text-slate-400">{t.noData}</p>
         )}

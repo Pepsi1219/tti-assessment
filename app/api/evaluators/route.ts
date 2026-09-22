@@ -19,13 +19,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const users = await getRepository().getUsers();
-  const evaluators = users
-    .filter(
-      (user) =>
-        user.role === "Evaluator" &&
-        (includeInactive || user.status !== "Inactive"),
-    )
+  const evaluators = (await getRepository().getEvaluators())
+    .filter((evaluator) => includeInactive || evaluator.status !== "Inactive")
     .map((user) =>
       includeInactive
         ? user
@@ -66,18 +61,21 @@ export async function POST(request: Request) {
     );
 
   const repo = getRepository();
-  const users = await repo.getUsers();
+  const [users, evaluators] = await Promise.all([
+    repo.getUsers(),
+    repo.getEvaluators(),
+  ]);
   const existing = payload.data.id
-    ? users.find((user) => user.id === payload.data.id)
+    ? evaluators.find((evaluator) => evaluator.id === payload.data.id)
     : undefined;
-  if (payload.data.id && (!existing || existing.role !== "Evaluator")) {
+  if (payload.data.id && !existing) {
     return NextResponse.json({ error: "Evaluator not found" }, { status: 404 });
   }
 
-  const hasDuplicateEmployeeId = users.some(
-    (user) =>
-      user.id !== payload.data.id &&
-      user.employeeId.toLowerCase() === payload.data.employeeId.toLowerCase(),
+  const hasDuplicateEmployeeId = [...users, ...evaluators].some(
+    (account) =>
+      account.id !== payload.data.id &&
+      account.employeeId.toLowerCase() === payload.data.employeeId.toLowerCase(),
   );
   if (hasDuplicateEmployeeId) {
     return NextResponse.json(
@@ -87,7 +85,7 @@ export async function POST(request: Request) {
   }
 
   const now = new Date().toISOString();
-  const evaluator = await repo.upsertUser({
+  const evaluator = await repo.upsertEvaluator({
     id: payload.data.id ?? `evaluator-${crypto.randomUUID()}`,
     employeeId: payload.data.employeeId,
     name: payload.data.name,
@@ -120,8 +118,8 @@ export async function DELETE(request: Request) {
       { status: 400 },
     );
 
-  const evaluator = (await getRepository().getUsers()).find(
-    (user) => user.id === id && user.role === "Evaluator",
+  const evaluator = (await getRepository().getEvaluators()).find(
+    (item) => item.id === id,
   );
   if (!evaluator)
     return NextResponse.json({ error: "Evaluator not found" }, { status: 404 });

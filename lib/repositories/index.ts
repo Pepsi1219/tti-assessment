@@ -12,9 +12,14 @@ export function getRepository(): EvaluationRepository {
     process.env.STORAGE_PROVIDER === "firestore" ? "firestore" : "memory";
   const hasCurrentContract =
     globalForRepo.repo &&
+    typeof globalForRepo.repo.isEvaluationOpen === "function" &&
+    typeof globalForRepo.repo.setEvaluationOpen === "function" &&
     typeof globalForRepo.repo.getRecipients === "function" &&
     typeof globalForRepo.repo.getTopics === "function" &&
     typeof globalForRepo.repo.upsertUser === "function" &&
+    typeof globalForRepo.repo.deleteUser === "function" &&
+    typeof globalForRepo.repo.getEvaluators === "function" &&
+    typeof globalForRepo.repo.upsertEvaluator === "function" &&
     typeof globalForRepo.repo.deleteEvaluator === "function" &&
     typeof globalForRepo.repo.updateEvaluation === "function" &&
     typeof globalForRepo.repo.deleteEvaluation === "function";
