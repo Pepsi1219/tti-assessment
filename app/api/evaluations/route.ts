@@ -15,6 +15,10 @@ import {
 } from "@/lib/validation/api";
 import { getRepository } from "@/lib/repositories";
 import { calculateEvaluationMetrics } from "@/lib/services/evaluation-scoring";
+import {
+  getLegacyAssessment,
+  resolveTopicAssessment,
+} from "@/lib/services/assessment-version";
 
 function isFirestoreQuotaError(error: unknown) {
   if (typeof error !== "object" || error === null) return false;
@@ -44,7 +48,19 @@ export async function GET() {
             result.evaluatorEmail.toLowerCase() === user.email?.toLowerCase()),
       );
 
-  return NextResponse.json(visibleResults, {
+  const responseResults = isAdmin(user)
+    ? visibleResults
+    : visibleResults.map((result) => result.assessmentVersion
+      ? {
+          ...result,
+          assessmentVersion: {
+            ...result.assessmentVersion,
+            questions: result.assessmentVersion.questions.map(({ correctAnswer: _correctAnswer, ...question }) => question),
+          },
+        }
+      : result);
+
+  return NextResponse.json(responseResults, {
     headers: { "Cache-Control": "private, no-store" },
   });
 }
@@ -119,14 +135,13 @@ export async function PATCH(request: Request) {
 
   try {
     const repo = getRepository();
-    const [evaluations, recipients, topics, evaluators, categories, questions] =
+    const [evaluations, recipients, topics, evaluators, versions] =
       await Promise.all([
         repo.getEvaluations(),
         repo.getRecipients(),
         repo.getTopics(),
         repo.getEvaluators(),
-        repo.getCategories(),
-        repo.getQuestions(),
+        repo.getAssessmentVersions(),
       ]);
     const existing = evaluations.find(
       (evaluation) => evaluation.id === payload.data.id,
@@ -152,6 +167,20 @@ export async function PATCH(request: Request) {
         { status: 400 },
       );
 
+    if (topic.id !== existing.topicId)
+      return NextResponse.json(
+        { error: "An evaluation cannot be moved to a different course." },
+        { status: 400 },
+      );
+    const assessment = existing.assessmentVersionId
+      ? versions.find((version) => version.id === existing.assessmentVersionId)
+      : await getLegacyAssessment(repo);
+    if (!assessment)
+      return NextResponse.json(
+        { error: "The assessment version for this result was not found." },
+        { status: 409 },
+      );
+    const categories = assessment.categories;
     const categoryIds = new Set(categories.map((category) => category.id));
     const scoreIds = Object.keys(payload.data.categoryScores);
     if (
@@ -165,9 +194,10 @@ export async function PATCH(request: Request) {
 
     const metrics = calculateEvaluationMetrics(
       categories,
-      questions.filter((question) => question.isActive),
+      assessment.questions.filter((question) => question.isActive),
       {},
       payload.data.categoryScores,
+      assessment,
     );
     const invalidCategory = metrics.categorySummary.find(
       (category) => category.actualScore > category.fullScore,

@@ -1,4 +1,4 @@
-import type { Category, Evaluation, EvaluationDetail, EvaluationRecipient, EvaluationTopic, Evaluator, Question, User } from "@/lib/types";
+import type { AssessmentVersion, Category, Evaluation, EvaluationDetail, EvaluationRecipient, EvaluationTopic, ExamAttempt, Evaluator, Question, User } from "@/lib/types";
 
 const now = new Date().toISOString();
 
@@ -213,5 +213,9 @@ export const questions: Question[] = [
   ])
 ];
 
+export const assessmentVersions: AssessmentVersion[] = [];
+
 export const evaluations: Evaluation[] = [];
+
+export const examAttempts: ExamAttempt[] = [];
 export const evaluationDetails: EvaluationDetail[] = [];

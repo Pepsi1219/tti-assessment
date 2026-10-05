@@ -16,6 +16,9 @@ export function getRepository(): EvaluationRepository {
     typeof globalForRepo.repo.setEvaluationOpen === "function" &&
     typeof globalForRepo.repo.getRecipients === "function" &&
     typeof globalForRepo.repo.getTopics === "function" &&
+    typeof globalForRepo.repo.getExamAttempts === "function" &&
+    typeof globalForRepo.repo.saveExamAttempt === "function" &&
+    typeof globalForRepo.repo.completeExamAttempt === "function" &&
     typeof globalForRepo.repo.upsertUser === "function" &&
     typeof globalForRepo.repo.deleteUser === "function" &&
     typeof globalForRepo.repo.getEvaluators === "function" &&

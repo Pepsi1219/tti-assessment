@@ -46,6 +46,7 @@ export type EvaluationTopic = {
   topicName: string;
   description: string;
   status: RecordStatus;
+  activeAssessmentVersionId?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -57,14 +58,74 @@ export type Category = {
   isCritical?: boolean;
 };
 
+export type QuestionAnswerType =
+  | "choice"
+  | "text"
+  | "rating"
+  | "date"
+  | "ranking"
+  | "likert"
+  | "nps";
+
+export type QuestionAnswer =
+  | string
+  | string[]
+  | number
+  | Record<string, number>;
+
 export type Question = {
   id: string;
   categoryId: string;
   questionText: string;
+  answerType?: QuestionAnswerType;
+  isRequired?: boolean;
+  isScored?: boolean;
+  allowMultiple?: boolean;
+  statements?: string[];
   options: string[];
+  correctAnswer?: QuestionAnswer;
   weight: number;
   maxScore: number;
   isActive: boolean;
+};
+
+export type DashboardProfile = "category-score" | "overall-score" | "pass-fail";
+export type AssessmentKind = "assessment" | "exam";
+export type OverallPassThresholdType = "average" | "percentage";
+
+export type AssessmentVersion = {
+  id: string;
+  name: string;
+  version: number;
+  status: "Draft" | "Published";
+  kind?: AssessmentKind;
+  overallPassThresholdType?: OverallPassThresholdType;
+  dashboardProfile: DashboardProfile;
+  overallPassThreshold: number;
+  criticalCategoryPassThreshold: number;
+  categories: Category[];
+  questions: Question[];
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string;
+};
+
+export type ExamAttempt = {
+  id: string;
+  recipientId: string;
+  topicId: string;
+  topicName: string;
+  assessmentVersionId: string;
+  evaluationRound: number;
+  answers: Record<string, QuestionAnswer>;
+  automaticScores: Record<string, number>;
+  status: "PendingGrading" | "Graded";
+  submittedAt: string;
+  gradedAt?: string;
+  gradedByName?: string;
+  gradedByEmail?: string;
+  gradedByEmployeeId?: string;
+  evaluationId?: string;
 };
 
 export type Evaluation = {
@@ -72,6 +133,7 @@ export type Evaluation = {
   recipientId: string;
   topicId: string;
   topicName: string;
+  assessmentVersionId?: string;
   evaluatorName: string;
   evaluatorEmail: string;
   evaluatorEmployeeId?: string;
@@ -101,6 +163,7 @@ export type EvaluationDetail = {
   evaluationId: string;
   questionId: string;
   score: number;
+  answer?: QuestionAnswer;
 };
 
 export type CategorySummary = {
@@ -117,14 +180,17 @@ export type EvaluationResult = Evaluation & {
   topic?: EvaluationTopic;
   categorySummary: CategorySummary[];
   details: EvaluationDetail[];
+  assessmentVersion?: AssessmentVersion;
 };
 
 export type EvaluationInput = {
   recipientId: string;
   topicId: string;
+  assessmentVersionId?: string;
   evaluationRound: number;
   comment: string;
   scores: Record<string, number>;
+  answers?: Record<string, QuestionAnswer>;
 };
 
 export type EvaluationSummary = {
@@ -133,6 +199,12 @@ export type EvaluationSummary = {
   recipient?: EvaluationRecipient;
   topicId: string;
   topicName: string;
+  assessmentVersionId?: string;
+  assessmentVersionName?: string;
+  assessmentVersionNumber?: number;
+  overallPassThreshold?: number;
+  overallPassThresholdType?: OverallPassThresholdType;
+  criticalCategoryPassThreshold?: number;
   evaluationRound: number;
   evaluationYear: string;
   bu: string;

@@ -44,12 +44,68 @@ type Dictionary = {
   topicManagement: string;
   addTopic: string;
   selectTopic: string;
+  selectAssessment: string;
+  selectCourseAssessment: string;
+  publishedButCourseNotUpdated: string;
+  evaluationCourseHelp: string;
   topicName: string;
   course: string;
   round: string;
   year: string;
   topicDescription: string;
+  assessmentVersions: string;
+  assessmentVersion: string;
+  assessmentName: string;
+  versionLabel: string;
+  unassignedAssessmentVersions: string;
+  assessmentType: string;
+  assessmentMode: string;
+  examMode: string;
+  correctAnswer: string;
+  selectCorrectAnswer: string;
+  startExam: string;
+  submitExam: string;
+  pendingExams: string;
+  noPendingExams: string;
+  awaitingGrading: string;
+  candidateAnswer: string;
+  manualScore: string;
+  autoScored: string;
+  examSubmitted: string;
+  gradeExam: string;
+  submitGrade: string;
+  previewAssessment: string;
+  previewModeNotice: string;
+  legacyAssessment: string;
+  dashboardProfile: string;
+  overallPassThreshold: string;
+  overallPassThresholdType: string;
+  averageOutOfFive: string;
+  criticalPassThreshold: string;
+  publishAssessment: string;
+  draft: string;
+  published: string;
+  publishedVersionHelp: string;
+  createRevision: string;
+  revisionReady: string;
+  draftSaved: string;
+  versionPublished: string;
+  assessmentVersionInUse: string;
+  assessmentVersionDeleted: string;
+  deleteAssessmentVersionWarning: string;
+  createAssessment: string;
+  addCategory: string;
+  questionType: string;
+  required: string;
+  scored: string;
+  allowMultiple: string;
+  statements: string;
+  scoreAllChoiceQuestions: string;
+  categoryScoreProfile: string;
+  overallScoreProfile: string;
+  passFailProfile: string;
   evaluations: string;
+  evaluationsLog: string;
   evaluationSummaries: string;
   users: string;
   analytics: string;
@@ -81,6 +137,7 @@ type Dictionary = {
   totalScore: string;
   percentage: string;
   date: string;
+  clearDate: string;
   trainer: string;
   trainerName: string;
   employeeId: string;
@@ -177,6 +234,7 @@ type Dictionary = {
   selectAllFilteredResults: string;
   selectedSummaryResults: string;
   evaluationReport: string;
+  responses: string;
   summaryEvaluationReport: string;
   closeReport: string;
   closeComparison: string;
@@ -262,17 +320,73 @@ export const dictionaries: Record<Locale, Dictionary> = {
     addRecipient: "เพิ่มผู้รับการประเมิน",
     selectRecipient: "เลือกผู้รับการประเมิน",
     questions: "คำถาม",
-    evaluationTopics: "หัวข้อประเมิน",
-    evaluationTopic: "หัวข้อประเมิน",
-    topicManagement: "จัดการหัวข้อประเมิน",
-    addTopic: "เพิ่มหัวข้อประเมิน",
-    selectTopic: "เลือกหัวข้อประเมิน",
-    topicName: "ชื่อหัวข้อ",
+    evaluationTopics: "หลักสูตร",
+    evaluationTopic: "หลักสูตร",
+    topicManagement: "จัดการหลักสูตร",
+    addTopic: "เพิ่มหลักสูตร",
+    selectTopic: "เลือกหลักสูตร",
+    selectAssessment: "เลือกแบบประเมิน",
+    selectCourseAssessment: "เลือกหลักสูตรเพื่อเปิดแบบประเมินที่ผูกไว้",
+    publishedButCourseNotUpdated: "เผยแพร่แบบประเมินแล้ว แต่กำหนดเวอร์ชันใหม่ให้หลักสูตรนี้ไม่สำเร็จ กรุณาเลือกเวอร์ชันในหน้าหลักสูตร",
+    evaluationCourseHelp: "เลือกหลักสูตรที่ต้องการประเมิน ระบบจะโหลดแบบประเมินที่ผูกกับหลักสูตรนี้",
+    topicName: "ชื่อหลักสูตร",
     course: "หลักสูตร",
     round: "รอบ",
     year: "ปี",
-    topicDescription: "รายละเอียดหัวข้อ",
+    topicDescription: "รายละเอียดหลักสูตร",
+    assessmentVersions: "แบบประเมิน",
+    assessmentVersion: "เวอร์ชันแบบประเมิน",
+    assessmentName: "ชื่อแบบประเมิน",
+    versionLabel: "เวอร์ชัน",
+    unassignedAssessmentVersions: "เวอร์ชันแบบประเมินที่ยังไม่ผูกกับหลักสูตร",
+    assessmentType: "ประเภทแบบประเมิน",
+    assessmentMode: "Assessment",
+    examMode: "Exam",
+    correctAnswer: "คำตอบที่ถูกต้อง",
+    selectCorrectAnswer: "เลือกคำตอบที่ถูกต้อง",
+    startExam: "เริ่มทำข้อสอบ",
+    submitExam: "ส่งข้อสอบ",
+    pendingExams: "ข้อสอบรอตรวจ",
+    noPendingExams: "ไม่มีข้อสอบที่รอตรวจ",
+    awaitingGrading: "รอตรวจคำตอบ",
+    candidateAnswer: "คำตอบของผู้เข้าสอบ",
+    manualScore: "คะแนนที่ให้",
+    autoScored: "ตรวจอัตโนมัติ",
+    examSubmitted: "ส่งข้อสอบแล้วและเพิ่มในคิวรอตรวจ",
+    gradeExam: "ตรวจข้อสอบ",
+    submitGrade: "บันทึกคะแนน",
+    previewAssessment: "ดูตัวอย่างแบบประเมิน",
+    previewModeNotice: "โหมดตัวอย่างเท่านั้น คำตอบจะไม่ถูกบันทึกหรือส่งเข้าระบบ",
+    legacyAssessment: "00",
+    dashboardProfile: "รูปแบบแดชบอร์ด",
+    overallPassThreshold: "เกณฑ์คะแนนรวมผ่าน",
+    overallPassThresholdType: "รูปแบบเกณฑ์คะแนนรวม",
+    averageOutOfFive: "คะแนนเฉลี่ย (เต็ม 5)",
+    criticalPassThreshold: "เกณฑ์หมวดสำคัญผ่าน",
+    publishAssessment: "เผยแพร่แบบประเมิน",
+    draft: "ฉบับร่าง",
+    published: "เผยแพร่แล้ว",
+    publishedVersionHelp: "เวอร์ชันที่เผยแพร่แล้วแก้ไขทับไม่ได้ ให้สร้างเวอร์ชันใหม่เพื่อเก็บผลเดิมไว้",
+    createRevision: "สร้างเวอร์ชันใหม่จากแบบนี้",
+    revisionReady: "เตรียมเวอร์ชันใหม่สำหรับแก้ไขแล้ว กดบันทึกหรือเผยแพร่เพื่อสร้างเวอร์ชันนี้ในระบบ",
+    draftSaved: "บันทึกฉบับร่างเรียบร้อยแล้ว",
+    versionPublished: "เผยแพร่เวอร์ชันเรียบร้อยแล้ว",
+    assessmentVersionInUse: "ลบไม่ได้ เพราะเวอร์ชันนี้ยังถูกใช้งานหรือมีผลประเมิน/ข้อสอบอ้างอิงอยู่",
+    assessmentVersionDeleted: "ลบเวอร์ชันแบบประเมินเรียบร้อยแล้ว",
+    deleteAssessmentVersionWarning: "การลบเวอร์ชันนี้ไม่สามารถย้อนกลับได้ หากยังมีหลักสูตรหรือผลประเมินอ้างอิง ระบบจะไม่อนุญาตให้ลบ",
+    createAssessment: "สร้างแบบประเมินใหม่",
+    addCategory: "เพิ่ม Section",
+    questionType: "ประเภทคำตอบ",
+    required: "จำเป็นต้องตอบ",
+    scored: "นำไปคำนวณคะแนน",
+    allowMultiple: "เลือกได้หลายข้อ",
+    statements: "ข้อความในแต่ละแถว",
+    scoreAllChoiceQuestions: "เปิดคะแนนให้ Choice แบบเลือกข้อเดียวทั้งหมด",
+    categoryScoreProfile: "คะแนนแยกหมวด",
+    overallScoreProfile: "คะแนนรวม",
+    passFailProfile: "ผ่าน / ไม่ผ่าน",
     evaluations: "ผลการประเมิน",
+    evaluationsLog: "บันทึกผลการประเมิน",
     evaluationSummaries: "สรุปผลรวม",
     users: "ผู้ใช้งาน",
     analytics: "วิเคราะห์",
@@ -305,6 +419,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     totalScore: "คะแนนรวม",
     percentage: "เปอร์เซ็นต์",
     date: "วันที่",
+    clearDate: "ล้างวันที่",
     trainer: "ผู้ฝึกสอน",
     trainerName: "ชื่อผู้ฝึกสอน",
     employeeId: "รหัสพนักงาน",
@@ -386,8 +501,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     performanceByBu: "ประสิทธิภาพตามแผนก",
     options: "ตัวเลือก",
     optionsHint: "ตัวเลือก (1 บรรทัดต่อ 1 ตัวเลือก)",
-    optionsPlaceholder:
-      "คำอธิบายระดับ 1\nคำอธิบายระดับ 2\nคำอธิบายระดับ 3\nคำอธิบายระดับ 4\nคำอธิบายระดับ 5",
+    optionsPlaceholder: "ตัวเลือก 1\nตัวเลือก 2\nตัวเลือก 3",
     language: "ภาษา",
     lightMode: "โหมดสว่าง",
     darkMode: "โหมดมืด",
@@ -403,6 +517,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     selectAllFilteredResults: "เลือกผลลัพธ์ทั้งหมดที่กรองไว้",
     selectedSummaryResults: "สรุปผลลัพธ์ที่เลือก",
     evaluationReport: "รายงานการประเมิน",
+    responses: "คำตอบ",
     summaryEvaluationReport: "รายงานสรุปการประเมิน",
     closeReport: "ปิดรายงาน",
     closeComparison: "ปิดการเปรียบเทียบ",
@@ -486,17 +601,73 @@ export const dictionaries: Record<Locale, Dictionary> = {
     addRecipient: "Add Recipient",
     selectRecipient: "Select Recipient",
     questions: "Questions",
-    evaluationTopics: "Evaluation Topics",
-    evaluationTopic: "Evaluation Topic",
-    topicManagement: "Manage Evaluation Topics",
-    addTopic: "Add Topic",
-    selectTopic: "Select Topic",
-    topicName: "Topic Name",
+    evaluationTopics: "Courses",
+    evaluationTopic: "Course",
+    topicManagement: "Manage Courses",
+    addTopic: "Add Course",
+    selectTopic: "Select a course",
+    selectAssessment: "Select an assessment",
+    selectCourseAssessment: "Select a course to load its assigned assessment",
+    publishedButCourseNotUpdated: "The assessment was published, but this course was not updated. Assign the new version from Courses.",
+    evaluationCourseHelp: "Choose the course to evaluate. Its assigned assessment will load automatically.",
+    topicName: "Course Name",
     course: "Course",
     round: "Round",
     year: "Year",
-    topicDescription: "Topic Description",
+    topicDescription: "Course Description",
+    assessmentVersions: "Assessments",
+    assessmentVersion: "Assessment Version",
+    assessmentName: "Assessment Name",
+    versionLabel: "Version",
+    unassignedAssessmentVersions: "Unassigned Assessment Versions",
+    assessmentType: "Type",
+    assessmentMode: "Assessment",
+    examMode: "Exam",
+    correctAnswer: "Correct answer",
+    selectCorrectAnswer: "Select the correct answer",
+    startExam: "Start exam",
+    submitExam: "Submit exam",
+    pendingExams: "Pending exams",
+    noPendingExams: "No exams are waiting for grading",
+    awaitingGrading: "Awaiting grading",
+    candidateAnswer: "Candidate answer",
+    manualScore: "Score given",
+    autoScored: "Auto-graded",
+    examSubmitted: "Exam submitted and added to the grading queue",
+    gradeExam: "Grade exam",
+    submitGrade: "Save scores",
+    previewAssessment: "Preview Assessment",
+    previewModeNotice: "Preview only. Responses will not be saved or submitted.",
+    legacyAssessment: "00",
+    dashboardProfile: "Dashboard Profile",
+    overallPassThreshold: "Overall Pass Threshold",
+    overallPassThresholdType: "Overall threshold scale",
+    averageOutOfFive: "Average (out of 5)",
+    criticalPassThreshold: "Critical Category Threshold",
+    publishAssessment: "Publish Assessment",
+    draft: "Draft",
+    published: "Published",
+    publishedVersionHelp: "Published versions are locked. Create a new version to keep previous evaluation results unchanged.",
+    createRevision: "Create New Version",
+    revisionReady: "New version is ready to edit. Save it as a draft or publish it to create the version.",
+    draftSaved: "Draft saved successfully.",
+    versionPublished: "Version published successfully.",
+    assessmentVersionInUse: "This version cannot be deleted because it is active or referenced by an evaluation or exam.",
+    assessmentVersionDeleted: "Assessment version deleted successfully.",
+    deleteAssessmentVersionWarning: "This action cannot be undone. Versions still used by a course, evaluation, or exam cannot be deleted.",
+    createAssessment: "Create New Assessment",
+    addCategory: "Add Section",
+    questionType: "Response type",
+    required: "Required",
+    scored: "Include in scoring",
+    allowMultiple: "Allow multiple selections",
+    statements: "Statements",
+    scoreAllChoiceQuestions: "Score all single-choice questions",
+    categoryScoreProfile: "Category Scores",
+    overallScoreProfile: "Overall Score",
+    passFailProfile: "Pass / Fail",
     evaluations: "Evaluations",
+    evaluationsLog: "Evaluations Log",
     evaluationSummaries: "Summary Result",
     users: "Users",
     analytics: "Analytics",
@@ -529,6 +700,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     totalScore: "Total Score",
     percentage: "Percentage",
     date: "Date",
+    clearDate: "Clear date",
     trainer: "Trainer",
     trainerName: "Trainer Name",
     employeeId: "ID",
@@ -610,8 +782,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     performanceByBu: "Performance by Department",
     options: "options",
     optionsHint: "Options (1 per line)",
-    optionsPlaceholder:
-      "Level 1 description\nLevel 2 description\nLevel 3 description\nLevel 4 description\nLevel 5 description",
+    optionsPlaceholder: "Option 1\nOption 2\nOption 3",
     language: "Language",
     lightMode: "Light mode",
     darkMode: "Dark mode",
@@ -627,6 +798,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     selectAllFilteredResults: "Select all filtered results",
     selectedSummaryResults: "Selected summary results",
     evaluationReport: "Evaluation report",
+    responses: "Responses",
     summaryEvaluationReport: "Summary evaluation report",
     closeReport: "Close report",
     closeComparison: "Close comparison",
@@ -710,17 +882,73 @@ export const dictionaries: Record<Locale, Dictionary> = {
     addRecipient: "ເພີ່ມຜູ້ຮັບການປະເມີນ",
     selectRecipient: "ເລືອກຜູ້ຮັບການປະເມີນ",
     questions: "ຄຳຖາມ",
-    evaluationTopics: "ຫົວຂໍ້ປະເມີນ",
-    evaluationTopic: "ຫົວຂໍ້ປະເມີນ",
-    topicManagement: "ຈັດການຫົວຂໍ້ປະເມີນ",
-    addTopic: "ເພີ່ມຫົວຂໍ້ປະເມີນ",
-    selectTopic: "ເລືອກຫົວຂໍ້ປະເມີນ",
-    topicName: "ຊື່ຫົວຂໍ້",
+    evaluationTopics: "ຫຼັກສູດ",
+    evaluationTopic: "ຫຼັກສູດ",
+    topicManagement: "ຈັດການຫຼັກສູດ",
+    addTopic: "ເພີ່ມຫຼັກສູດ",
+    selectTopic: "ເລືອກຫຼັກສູດ",
+    selectAssessment: "ເລືອກແບບປະເມີນ",
+    selectCourseAssessment: "ເລືອກຫຼັກສູດເພື່ອໂຫຼດແບບປະເມີນທີ່ຜູກໄວ້",
+    publishedButCourseNotUpdated: "ເຜີຍແຜ່ແບບປະເມີນແລ້ວ ແຕ່ອັບເດດຫຼັກສູດນີ້ບໍ່ສຳເລັດ ກະລຸນາເລືອກລຸ້ນໃໝ່ໃນໜ້າຫຼັກສູດ",
+    evaluationCourseHelp: "ເລືອກຫຼັກສູດທີ່ຈະປະເມີນ ລະບົບຈະໂຫຼດແບບປະເມີນທີ່ຜູກກັບຫຼັກສູດນີ້ອັດຕະໂນມັດ",
+    topicName: "ຊື່ຫຼັກສູດ",
     course: "ຫຼັກສູດ",
     round: "ຮອບ",
     year: "ປີ",
-    topicDescription: "ລາຍລະອຽດຫົວຂໍ້",
+    topicDescription: "ລາຍລະອຽດຫຼັກສູດ",
+    assessmentVersions: "ແບບປະເມີນ",
+    assessmentVersion: "ລຸ້ນແບບປະເມີນ",
+    assessmentName: "ຊື່ແບບປະເມີນ",
+    versionLabel: "ລຸ້ນ",
+    unassignedAssessmentVersions: "ສະບັບແບບປະເມີນທີ່ຍັງບໍ່ໄດ້ຜູກກັບຫຼັກສູດ",
+    assessmentType: "ປະເພດແບບປະເມີນ",
+    assessmentMode: "Assessment",
+    examMode: "Exam",
+    correctAnswer: "ຄຳຕອບທີ່ຖືກຕ້ອງ",
+    selectCorrectAnswer: "ເລືອກຄຳຕອບທີ່ຖືກຕ້ອງ",
+    startExam: "ເລີ່ມເຮັດຂໍ້ສອບ",
+    submitExam: "ສົ່ງຂໍ້ສອບ",
+    pendingExams: "ຂໍ້ສອບລໍຖ້າກວດ",
+    noPendingExams: "ບໍ່ມີຂໍ້ສອບລໍຖ້າກວດ",
+    awaitingGrading: "ລໍຖ້າກວດຄຳຕອບ",
+    candidateAnswer: "ຄຳຕອບຂອງຜູ້ເຂົ້າສອບ",
+    manualScore: "ຄະແນນທີ່ໃຫ້",
+    autoScored: "ກວດຄະແນນອັດຕະໂນມັດ",
+    examSubmitted: "ສົ່ງຂໍ້ສອບແລ້ວ ແລະເພີ່ມໃນຄິວລໍຖ້າກວດ",
+    gradeExam: "ກວດຂໍ້ສອບ",
+    submitGrade: "ບັນທຶກຄະແນນ",
+    previewAssessment: "ເບິ່ງຕົວຢ່າງແບບປະເມີນ",
+    previewModeNotice: "ໂໝດຕົວຢ່າງເທົ່ານັ້ນ ຄຳຕອບຈະບໍ່ຖືກບັນທຶກ ຫຼື ສົ່ງເຂົ້າລະບົບ",
+    legacyAssessment: "00",
+    dashboardProfile: "ຮູບແບບແດຊບອດ",
+    overallPassThreshold: "ເກນຄະແນນລວມຜ່ານ",
+    overallPassThresholdType: "ຮູບແບບເກນຄະແນນລວມ",
+    averageOutOfFive: "ຄະແນນສະເລ່ຍ (ເຕັມ 5)",
+    criticalPassThreshold: "ເກນໝວດສຳຄັນຜ່ານ",
+    publishAssessment: "ເຜີຍແຜ່ແບບປະເມີນ",
+    draft: "ສະບັບຮ່າງ",
+    published: "ເຜີຍແຜ່ແລ້ວ",
+    publishedVersionHelp: "ບໍ່ສາມາດແກ້ໄຂທັບສະບັບທີ່ເຜີຍແຜ່ແລ້ວໄດ້ ໃຫ້ສ້າງສະບັບໃໝ່ເພື່ອຮັກສາຜົນປະເມີນເກົ່າ",
+    createRevision: "ສ້າງສະບັບໃໝ່ຈາກແບບນີ້",
+    revisionReady: "ກຽມສະບັບໃໝ່ໃຫ້ແກ້ໄຂແລ້ວ ກົດບັນທຶກ ຫຼື ເຜີຍແຜ່ເພື່ອສ້າງສະບັບນີ້ໃນລະບົບ",
+    draftSaved: "ບັນທຶກສະບັບຮ່າງສຳເລັດແລ້ວ",
+    versionPublished: "ເຜີຍແຜ່ສະບັບໃໝ່ສຳເລັດແລ້ວ",
+    assessmentVersionInUse: "ລຶບບໍ່ໄດ້ ເພາະສະບັບນີ້ຍັງຖືກໃຊ້ ຫຼື ມີຜົນປະເມີນ/ຂໍ້ສອບອ້າງອີງຢູ່",
+    assessmentVersionDeleted: "ລຶບສະບັບແບບປະເມີນສຳເລັດແລ້ວ",
+    deleteAssessmentVersionWarning: "ການລຶບນີ້ບໍ່ສາມາດຍ້ອນກັບໄດ້ ຖ້າຍັງມີຫຼັກສູດ ຫຼື ຜົນປະເມີນອ້າງອີງຢູ່ ລະບົບຈະບໍ່ອະນຸຍາດໃຫ້ລຶບ",
+    createAssessment: "ສ້າງແບບປະເມີນໃໝ່",
+    addCategory: "ເພີ່ມ Section",
+    questionType: "ປະເພດຄຳຕອບ",
+    required: "ຈຳເປັນຕ້ອງຕອບ",
+    scored: "ນຳໄປຄຳນວນຄະແນນ",
+    allowMultiple: "ເລືອກໄດ້ຫຼາຍຂໍ້",
+    statements: "ຂໍ້ຄວາມແຕ່ລະແຖວ",
+    scoreAllChoiceQuestions: "ເປີດຄະແນນໃຫ້ Choice ທີ່ເລືອກຂໍ້ດຽວທັງໝົດ",
+    categoryScoreProfile: "ຄະແນນແຍກຕາມໝວດ",
+    overallScoreProfile: "ຄະແນນລວມ",
+    passFailProfile: "ຜ່ານ / ບໍ່ຜ່ານ",
     evaluations: "ຜົນການປະເມີນ",
+    evaluationsLog: "ບັນທຶກຜົນການປະເມີນ",
     evaluationSummaries: "ສະຫຼຸບຜົນລວມ",
     users: "ຜູ້ໃຊ້ງານ",
     analytics: "ວິເຄາະ",
@@ -752,6 +980,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     totalScore: "ຄະແນນລວມ",
     percentage: "ເປີເຊັນ",
     date: "ວັນທີ",
+    clearDate: "ລ້າງວັນທີ",
     trainer: "ຜູ້ຝຶກສອນ",
     trainerName: "ຊື່ຜູ້ຝຶກສອນ",
     employeeId: "ລະຫັດພະນັກງານ",
@@ -833,8 +1062,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     performanceByBu: "ປະສິດທິພາບຕາມພະແນກ",
     options: "ຕົວເລືອກ",
     optionsHint: "ຕົວເລືອກ (1 ແຖວຕໍ່ 1 ຕົວເລືອກ)",
-    optionsPlaceholder:
-      "ຄຳອະທິບາຍລະດັບ 1\nຄຳອະທິບາຍລະດັບ 2\nຄຳອະທິບາຍລະດັບ 3\nຄຳອະທິບາຍລະດັບ 4\nຄຳອະທິບາຍລະດັບ 5",
+    optionsPlaceholder: "ຕົວເລືອກ 1\nຕົວເລືອກ 2\nຕົວເລືອກ 3",
     language: "ພາສາ",
     lightMode: "ໂໝດສະຫວ່າງ",
     darkMode: "ໂໝດມືດ",
@@ -850,6 +1078,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     selectAllFilteredResults: "ເລືອກຜົນທີ່ກັ່ນຕອງໄວ້ທັງໝົດ",
     selectedSummaryResults: "ສະຫຼຸບຜົນທີ່ເລືອກ",
     evaluationReport: "ລາຍງານການປະເມີນ",
+    responses: "ຄຳຕອບ",
     summaryEvaluationReport: "ລາຍງານສະຫຼຸບການປະເມີນ",
     closeReport: "ປິດລາຍງານ",
     closeComparison: "ປິດການປຽບທຽບ",
@@ -933,17 +1162,73 @@ export const dictionaries: Record<Locale, Dictionary> = {
     addRecipient: "Thêm người được đánh giá",
     selectRecipient: "Chọn người được đánh giá",
     questions: "Câu hỏi",
-    evaluationTopics: "Chủ đề đánh giá",
-    evaluationTopic: "Chủ đề đánh giá",
-    topicManagement: "Quản lý chủ đề đánh giá",
-    addTopic: "Thêm chủ đề",
-    selectTopic: "Chọn chủ đề đánh giá",
-    topicName: "Tên chủ đề",
+    evaluationTopics: "Khóa học",
+    evaluationTopic: "Khóa học",
+    topicManagement: "Quản lý khóa học",
+    addTopic: "Thêm khóa học",
+    selectTopic: "Chọn khóa học",
+    selectAssessment: "Chọn bài đánh giá",
+    selectCourseAssessment: "Chọn khóa học để tải bài đánh giá đã gán",
+    publishedButCourseNotUpdated: "Đã xuất bản bài đánh giá nhưng chưa cập nhật khóa học này. Hãy gán phiên bản mới trong trang Courses.",
+    evaluationCourseHelp: "Chọn khóa học cần đánh giá. Bài đánh giá được gán cho khóa học sẽ tự động tải.",
+    topicName: "Tên khóa học",
     course: "Khóa học",
     round: "Vòng",
     year: "Năm",
-    topicDescription: "Mô tả chủ đề",
+    topicDescription: "Mô tả khóa học",
+    assessmentVersions: "Bài đánh giá",
+    assessmentVersion: "Phiên bản đánh giá",
+    assessmentName: "Tên bài đánh giá",
+    versionLabel: "Phiên bản",
+    unassignedAssessmentVersions: "Phiên bản đánh giá chưa gán cho khóa học",
+    assessmentType: "Loại bài đánh giá",
+    assessmentMode: "Assessment",
+    examMode: "Exam",
+    correctAnswer: "Đáp án đúng",
+    selectCorrectAnswer: "Chọn đáp án đúng",
+    startExam: "Bắt đầu làm bài",
+    submitExam: "Nộp bài thi",
+    pendingExams: "Bài thi chờ chấm",
+    noPendingExams: "Không có bài thi chờ chấm",
+    awaitingGrading: "Đang chờ chấm điểm",
+    candidateAnswer: "Câu trả lời của thí sinh",
+    manualScore: "Điểm chấm",
+    autoScored: "Chấm tự động",
+    examSubmitted: "Đã nộp bài thi và đưa vào hàng đợi chấm",
+    gradeExam: "Chấm bài thi",
+    submitGrade: "Lưu điểm",
+    previewAssessment: "Xem trước bài đánh giá",
+    previewModeNotice: "Chỉ xem trước. Câu trả lời sẽ không được lưu hoặc gửi đi.",
+    legacyAssessment: "00",
+    dashboardProfile: "Bố cục bảng điều khiển",
+    overallPassThreshold: "Ngưỡng đạt tổng điểm",
+    overallPassThresholdType: "Thang ngưỡng tổng điểm",
+    averageOutOfFive: "Điểm trung bình (trên 5)",
+    criticalPassThreshold: "Ngưỡng đạt danh mục quan trọng",
+    publishAssessment: "Xuất bản bài đánh giá",
+    draft: "Bản nháp",
+    published: "Đã xuất bản",
+    publishedVersionHelp: "Phiên bản đã xuất bản không thể sửa trực tiếp. Hãy tạo phiên bản mới để giữ nguyên kết quả đánh giá cũ.",
+    createRevision: "Tạo phiên bản mới từ bài này",
+    revisionReady: "Phiên bản mới đã sẵn sàng để chỉnh sửa. Hãy lưu bản nháp hoặc xuất bản để tạo phiên bản này.",
+    draftSaved: "Đã lưu bản nháp thành công.",
+    versionPublished: "Đã xuất bản phiên bản thành công.",
+    assessmentVersionInUse: "Không thể xóa vì phiên bản này đang được sử dụng hoặc được đánh giá/bài thi tham chiếu.",
+    assessmentVersionDeleted: "Đã xóa phiên bản bài đánh giá.",
+    deleteAssessmentVersionWarning: "Không thể hoàn tác thao tác này. Phiên bản vẫn được khóa nếu còn khóa học, bài đánh giá hoặc bài thi tham chiếu.",
+    createAssessment: "Tạo bài đánh giá mới",
+    addCategory: "Thêm phần",
+    questionType: "Loại câu trả lời",
+    required: "Bắt buộc trả lời",
+    scored: "Tính vào điểm số",
+    allowMultiple: "Cho phép chọn nhiều",
+    statements: "Các phát biểu",
+    scoreAllChoiceQuestions: "Tính điểm cho tất cả câu hỏi chọn một",
+    categoryScoreProfile: "Điểm theo danh mục",
+    overallScoreProfile: "Điểm tổng thể",
+    passFailProfile: "Đạt / Không đạt",
     evaluations: "Kết quả đánh giá",
+    evaluationsLog: "Nhật ký đánh giá",
     evaluationSummaries: "Kết quả tổng hợp",
     users: "Người dùng",
     analytics: "Phân tích",
@@ -976,6 +1261,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     totalScore: "Tổng điểm",
     percentage: "Phần trăm",
     date: "Ngày",
+    clearDate: "Xóa ngày",
     trainer: "Giảng viên",
     trainerName: "Tên giảng viên",
     employeeId: "Mã nhân viên",
@@ -1057,8 +1343,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     performanceByBu: "Hiệu suất theo bộ phận",
     options: "tùy chọn",
     optionsHint: "Tùy chọn (1 dòng mỗi tùy chọn)",
-    optionsPlaceholder:
-      "Mô tả mức 1\nMô tả mức 2\nMô tả mức 3\nMô tả mức 4\nMô tả mức 5",
+    optionsPlaceholder: "Tùy chọn 1\nTùy chọn 2\nTùy chọn 3",
     language: "Ngôn ngữ",
     lightMode: "Chế độ sáng",
     darkMode: "Chế độ tối",
@@ -1074,6 +1359,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     selectAllFilteredResults: "Chọn tất cả kết quả đã lọc",
     selectedSummaryResults: "Kết quả tổng hợp đã chọn",
     evaluationReport: "Báo cáo đánh giá",
+    responses: "Câu trả lời",
     summaryEvaluationReport: "Báo cáo tổng hợp đánh giá",
     closeReport: "Đóng báo cáo",
     closeComparison: "Đóng so sánh",

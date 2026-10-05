@@ -236,6 +236,8 @@ function createConsolidatedReport(summary: EvaluationSummary) {
   const criteria = getPassingCriteria(
     summary.totalScore,
     summary.categorySummary,
+    "en",
+    summary,
   );
   doc.setFontSize(8);
   criteria.forEach((criterion, index) => {
@@ -250,7 +252,7 @@ function createConsolidatedReport(summary: EvaluationSummary) {
       criterion.passed ? 163 : 38,
       criterion.passed ? 74 : 38,
     );
-    doc.text(criterion.actual.toFixed(2), 103, criterionY, { align: "right" });
+    doc.text(`${criterion.actual.toFixed(2)}${criterion.unit}`, 103, criterionY, { align: "right" });
   });
 
   const resultY = criteriaY + 43;
@@ -489,6 +491,8 @@ export async function GET(request: NextRequest) {
   const criteria = getPassingCriteria(
     target.totalScore,
     target.categorySummary,
+    "en",
+    target.assessmentVersion,
   );
   doc.setFontSize(8);
   criteria.forEach((criterion, index) => {
@@ -503,7 +507,7 @@ export async function GET(request: NextRequest) {
       criterion.passed ? 163 : 38,
       criterion.passed ? 74 : 38,
     );
-    doc.text(criterion.actual.toFixed(2), 103, criterionY, { align: "right" });
+    doc.text(`${criterion.actual.toFixed(2)}${criterion.unit}`, 103, criterionY, { align: "right" });
   });
 
   const resultY = sectionY + 43;

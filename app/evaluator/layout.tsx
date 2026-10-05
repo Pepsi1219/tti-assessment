@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, ClipboardList, History, LogOut, Menu, X } from "lucide-react";
+import { BarChart3, ClipboardList, FileCheck2, History, LogOut, Menu, X } from "lucide-react";
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
@@ -30,8 +30,16 @@ export default function EvaluatorLayout({
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session) router.replace("/login");
-  }, [session, status, router]);
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+    if (
+      pathname === "/evaluator" &&
+      !new URLSearchParams(window.location.search).has("topicId")
+    )
+      router.replace("/login");
+  }, [session, status, router, pathname]);
 
   if (status === "loading") {
     return (
@@ -43,6 +51,7 @@ export default function EvaluatorLayout({
 
   const navItems = [
     { href: "/evaluator", label: t.newEvaluation, icon: ClipboardList },
+    { href: "/evaluator/exams", label: t.examMode, icon: FileCheck2 },
     { href: "/evaluator/history", label: t.myEvaluations, icon: History },
     {
       href: "/evaluator/evaluation-summaries",

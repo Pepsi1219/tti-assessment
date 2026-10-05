@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
+import { CriterionQuestion } from "@/components/criterion-question";
 import { WrappedRadarTick } from "@/components/evaluation-category-report";
 import {
   PolarAngleAxis,
@@ -47,9 +48,40 @@ import type {
   EvaluationResult,
   EvaluationTopic,
   Question,
+  QuestionAnswer,
 } from "@/lib/types";
 
 type Section = Category & { questions: Question[] };
+
+function isAnswered(question: Question, answer: QuestionAnswer | undefined) {
+  if (answer === undefined || answer === null) return false;
+  switch (question.answerType ?? "rating") {
+    case "text":
+      return typeof answer === "string" && answer.trim().length > 0;
+    case "date":
+      return typeof answer === "string" && answer.length > 0;
+    case "choice":
+      return question.allowMultiple
+        ? Array.isArray(answer) && answer.length > 0
+        : typeof answer === "string" && answer.length > 0;
+    case "ranking":
+      return Array.isArray(answer) && answer.length === question.options.length && answer.every(Boolean);
+    case "likert":
+      return typeof answer === "object" && !Array.isArray(answer) &&
+        Object.keys(answer).length === (question.statements?.length ?? 0);
+    case "nps":
+      return typeof answer === "number" && Number.isInteger(answer) && answer >= 0 && answer <= 10;
+    default:
+      return typeof answer === "number" && Number.isInteger(answer) && answer >= 1;
+  }
+}
+
+function isQuestionComplete(question: Question, answers: Record<string, QuestionAnswer>) {
+  const answer = answers[question.id];
+  const isBlank = answer === undefined || answer === null || answer === "" ||
+    (Array.isArray(answer) && answer.length === 0);
+  return (question.isRequired === false && isBlank) || isAnswered(question, answer);
+}
 
 export default function EvaluatorPage() {
   const { t, locale } = useI18n();
@@ -60,9 +92,12 @@ export default function EvaluatorPage() {
   const [selectedBu, setSelectedBu] = useState("");
   const [selectedRecipientId, setSelectedRecipientId] = useState("");
   const [selectedTopicId, setSelectedTopicId] = useState("");
+  const [selectedAssessmentVersionId, setSelectedAssessmentVersionId] =
+    useState<string | null>(null);
+  const assessmentRequestId = useRef(0);
   const [evaluationRound, setEvaluationRound] = useState<number | null>(null);
   const [roundPadOpen, setRoundPadOpen] = useState(false);
-  const [scores, setScores] = useState<Record<string, number[]>>({});
+  const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>({});
   const sectionAnchorRef = useRef<HTMLDivElement>(null);
   const [comment, setComment] = useState("");
   const [step, setStep] = useState(0);
@@ -82,10 +117,17 @@ export default function EvaluatorPage() {
           window.location.replace("/evaluation-closed");
           return;
         }
+        const requestedTopicId = new URLSearchParams(window.location.search).get(
+          "topicId",
+        );
         const [recipientRes, topicRes, questionRes] = await Promise.all([
           fetch("/api/recipients"),
           fetch("/api/topics"),
-          fetch("/api/questions"),
+          fetch(
+            requestedTopicId
+              ? `/api/questions?topicId=${encodeURIComponent(requestedTopicId)}`
+              : "/api/questions",
+          ),
         ]);
         if (!recipientRes.ok || !topicRes.ok || !questionRes.ok)
           throw new Error("Unable to load evaluation form data.");
@@ -95,10 +137,28 @@ export default function EvaluatorPage() {
           questionRes.json(),
         ]);
         if (!isMounted) return;
+        if (questionData.assessmentVersion?.kind === "exam") {
+          window.location.replace(
+            `/evaluator/exams?topicId=${encodeURIComponent(requestedTopicId ?? "")}`,
+          );
+          return;
+        }
         setRecipients(recipientData);
         setTopics(topicData);
+        if (
+          requestedTopicId &&
+          topicData.some(
+            (topic: EvaluationTopic) =>
+              topic.id === requestedTopicId && topic.status === "Active",
+          )
+        ) {
+          setSelectedTopicId(requestedTopicId);
+        }
         setCategories(questionData.categories);
         setQuestions(questionData.questions);
+        setSelectedAssessmentVersionId(
+          questionData.assessmentVersion?.id ?? null,
+        );
       } catch {
         if (isMounted)
           setLoadError(
@@ -113,6 +173,45 @@ export default function EvaluatorPage() {
       isMounted = false;
     };
   }, [t.unableToLoad]);
+
+  async function selectTopic(topicId: string) {
+    const requestId = ++assessmentRequestId.current;
+    setSelectedTopicId(topicId);
+    setSelectedAssessmentVersionId(null);
+    setAnswers({});
+    setComment("");
+    setStep(0);
+    setLoadError("");
+    if (!topicId) {
+      setCategories([]);
+      setQuestions([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/questions?topicId=${encodeURIComponent(topicId)}`,
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? t.unableToLoad);
+      if (requestId !== assessmentRequestId.current) return;
+      if (data.assessmentVersion?.kind === "exam") {
+        window.location.replace(`/evaluator/exams?topicId=${encodeURIComponent(topicId)}`);
+        return;
+      }
+      setCategories(data.categories);
+      setQuestions(data.questions);
+      setSelectedAssessmentVersionId(data.assessmentVersion?.id ?? null);
+    } catch (reason) {
+      if (requestId === assessmentRequestId.current)
+        setLoadError(
+          reason instanceof Error ? reason.message : t.unableToLoad,
+        );
+    } finally {
+      if (requestId === assessmentRequestId.current) setLoading(false);
+    }
+  }
 
   const activeQuestions = useMemo(
     () => questions.filter((question) => question.isActive),
@@ -134,9 +233,7 @@ export default function EvaluatorPage() {
     [activeQuestions, categories, locale],
   );
   const isReviewStep = step === sections.length;
-  const answeredCount = activeQuestions.filter(
-    (question) => (scores[question.id]?.length ?? 0) > 0,
-  ).length;
+  const answeredCount = activeQuestions.filter((question) => isQuestionComplete(question, answers)).length;
   const progress = activeQuestions.length
     ? Math.round((answeredCount / activeQuestions.length) * 100)
     : 0;
@@ -172,16 +269,15 @@ export default function EvaluatorPage() {
   const currentSectionComplete =
     Boolean(currentSection) &&
     currentSection.questions.every(
-      (question) => (scores[question.id]?.length ?? 0) > 0,
+      (question) => isQuestionComplete(question, answers),
     );
 
-  function setScore(questionId: string, score: number) {
-    setScores((current) => {
-      const selected = current[questionId] ?? [];
-      const next = selected.includes(score)
-        ? selected.filter((value) => value !== score)
-        : [...selected, score].sort((left, right) => left - right);
-      return { ...current, [questionId]: next };
+  function setAnswer(questionId: string, answer: QuestionAnswer | undefined) {
+    setAnswers((current) => {
+      const next = { ...current };
+      if (answer === undefined) delete next[questionId];
+      else next[questionId] = answer;
+      return next;
     });
   }
   function scrollToSection() {
@@ -211,8 +307,11 @@ export default function EvaluatorPage() {
     setSelectedBu("");
     setSelectedRecipientId("");
     setSelectedTopicId("");
+    setSelectedAssessmentVersionId(null);
+    setCategories([]);
+    setQuestions([]);
     setEvaluationRound(null);
-    setScores({});
+    setAnswers({});
     setComment("");
     setSubmitError("");
     setStep(0);
@@ -237,9 +336,13 @@ export default function EvaluatorPage() {
         body: JSON.stringify({
           recipientId: selectedRecipient.id,
           topicId: selectedTopic.id,
+          ...(selectedAssessmentVersionId
+            ? { assessmentVersionId: selectedAssessmentVersionId }
+            : {}),
           evaluationRound: round,
           comment,
-          scores,
+          scores: {},
+          answers,
         }),
       });
       const result = await response.json().catch(() => ({}));
@@ -307,6 +410,7 @@ export default function EvaluatorPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs leading-5 text-slate-500">{t.evaluationCourseHelp}</p>
             </label>
             <label className="space-y-2">
               <span className="text-sm font-bold text-slate-700">
@@ -352,10 +456,7 @@ export default function EvaluatorPage() {
               </span>
               <Select
                 value={selectedTopicId}
-                onValueChange={(value) => {
-                  setSelectedTopicId(value);
-                  setStep(0);
-                }}
+                onValueChange={(value) => void selectTopic(value)}
                 disabled={answeredCount > 0}
               >
                 <SelectTrigger
@@ -503,8 +604,8 @@ export default function EvaluatorPage() {
                 key={question.id}
                 index={index + 1}
                 question={question}
-                scores={scores[question.id]}
-                onScore={(score) => setScore(question.id, score)}
+                answer={answers[question.id]}
+                onAnswer={(answer) => setAnswer(question.id, answer)}
               />
             ))}
             <WizardActions
@@ -540,7 +641,7 @@ export default function EvaluatorPage() {
                   <p className="mt-1 text-sm text-emerald-600">
                     {
                       section.questions.filter(
-                        (question) => (scores[question.id]?.length ?? 0) > 0,
+                        (question) => isQuestionComplete(question, answers),
                       ).length
                     }
                     /{section.questions.length} {t.complete}
@@ -577,70 +678,6 @@ export default function EvaluatorPage() {
         </Card>
       )}
     </section>
-  );
-}
-
-function CriterionQuestion({
-  index,
-  question,
-  scores,
-  onScore,
-}: {
-  index: number;
-  question: Question;
-  scores?: number[];
-  onScore: (score: number) => void;
-}) {
-  const criteria = question.options.slice(0, question.maxScore || 5);
-  return (
-    <fieldset className="rounded-[24px] border border-slate-200 bg-white p-4 md:p-5">
-      <legend className="sr-only">{question.questionText}</legend>
-      <div className="flex gap-3">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-950 text-xs font-black text-white">
-          {index}
-        </span>
-        <p className="pt-1 text-sm font-bold leading-6 text-slate-800">
-          {question.questionText}
-        </p>
-      </div>
-      <div className="mt-4 space-y-2">
-        {criteria.map((criterion, index) => {
-          const value = index + 1;
-          const selected = scores?.includes(value) ?? false;
-          return (
-            <button
-              key={value}
-              type="button"
-              onClick={() => onScore(value)}
-              aria-pressed={selected}
-              className={cn(
-                "flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition",
-                selected
-                  ? "border-primary bg-blue-50 text-slate-950 shadow-[0_10px_22px_rgba(37,99,235,0.10)]"
-                  : "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/40",
-              )}
-            >
-              <span
-                className={cn(
-                  "grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black",
-                  selected
-                    ? "bg-primary text-white"
-                    : "bg-slate-100 text-slate-600",
-                )}
-              >
-                {value}
-              </span>
-              <span className="pt-0.5 text-sm font-medium leading-6">
-                {criterion}
-              </span>
-              {selected && (
-                <CheckCircle2 className="ml-auto mt-1 h-4 w-4 shrink-0 text-primary" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </fieldset>
   );
 }
 
@@ -762,6 +799,7 @@ function EvaluationResultScreen({
     result.totalScore,
     result.categorySummary,
     locale,
+    result.assessmentVersion,
   );
   const radarData = result.categorySummary.map((category) => ({
     ...category,
@@ -914,7 +952,7 @@ function EvaluationResultScreen({
                             : "text-red-600",
                         )}
                       >
-                        {criterion.actual.toFixed(2)}
+                        {criterion.unit === "%" ? `${criterion.actual.toFixed(2)}%` : criterion.actual.toFixed(2)}
                       </span>
                     </div>
                   ))}

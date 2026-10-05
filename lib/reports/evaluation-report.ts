@@ -55,25 +55,46 @@ export function getPassingCriteria(
   overallAverage: number,
   categories: CategorySummary[],
   locale: Locale = "en",
+  policy: {
+    overallPassThreshold?: number;
+    overallPassThresholdType?: "average" | "percentage";
+    criticalCategoryPassThreshold?: number;
+  } = {},
 ) {
+  const overallThreshold = policy.overallPassThreshold ?? OVERALL_PASS_THRESHOLD;
+  const overallThresholdType = policy.overallPassThresholdType ?? "average";
+  const criticalThreshold =
+    policy.criticalCategoryPassThreshold ?? CRITICAL_CATEGORY_PASS_THRESHOLD;
+  const overallActual = overallThresholdType === "percentage"
+    ? overallAverage * 20
+    : overallAverage;
   const overallLabels: Record<Locale, string> = {
-    th: `ค่าเฉลี่ยรวมต้องไม่น้อยกว่า ${OVERALL_PASS_THRESHOLD.toFixed(1)} จาก 5`,
-    en: `Overall average must be at least ${OVERALL_PASS_THRESHOLD.toFixed(1)} out of 5`,
-    lo: `ຄ່າສະເລ່ຍລວມຕ້ອງບໍ່ຕໍ່າກວ່າ ${OVERALL_PASS_THRESHOLD.toFixed(1)} ຈາກ 5`,
-    vi: `Điểm trung bình chung phải đạt ít nhất ${OVERALL_PASS_THRESHOLD.toFixed(1)} trên 5`,
+    th: overallThresholdType === "percentage"
+      ? `คะแนนรวมต้องไม่น้อยกว่า ${overallThreshold.toFixed(1)}%`
+      : `ค่าเฉลี่ยรวมต้องไม่น้อยกว่า ${overallThreshold.toFixed(1)} จาก 5`,
+    en: overallThresholdType === "percentage"
+      ? `Overall score must be at least ${overallThreshold.toFixed(1)}%`
+      : `Overall average must be at least ${overallThreshold.toFixed(1)} out of 5`,
+    lo: overallThresholdType === "percentage"
+      ? `ຄະແນນລວມຕ້ອງບໍ່ຕໍ່າກວ່າ ${overallThreshold.toFixed(1)}%`
+      : `ຄ່າສະເລ່ຍລວມຕ້ອງບໍ່ຕໍ່າກວ່າ ${overallThreshold.toFixed(1)} ຈາກ 5`,
+    vi: overallThresholdType === "percentage"
+      ? `Điểm tổng thể phải đạt ít nhất ${overallThreshold.toFixed(1)}%`
+      : `Điểm trung bình chung phải đạt ít nhất ${overallThreshold.toFixed(1)} trên 5`,
   };
   const criticalLabels: Record<Locale, (name: string) => string> = {
-    th: (name) => `${name} ต้องไม่ต่ำกว่า ${CRITICAL_CATEGORY_PASS_THRESHOLD.toFixed(1)}`,
-    en: (name) => `${name} must not be below ${CRITICAL_CATEGORY_PASS_THRESHOLD.toFixed(1)}`,
-    lo: (name) => `${name} ຕ້ອງບໍ່ຕໍ່າກວ່າ ${CRITICAL_CATEGORY_PASS_THRESHOLD.toFixed(1)}`,
-    vi: (name) => `${name} không được thấp hơn ${CRITICAL_CATEGORY_PASS_THRESHOLD.toFixed(1)}`,
+    th: (name) => `${name} ต้องไม่ต่ำกว่า ${criticalThreshold.toFixed(1)}`,
+    en: (name) => `${name} must not be below ${criticalThreshold.toFixed(1)}`,
+    lo: (name) => `${name} ຕ້ອງບໍ່ຕໍ່າກວ່າ ${criticalThreshold.toFixed(1)}`,
+    vi: (name) => `${name} không được thấp hơn ${criticalThreshold.toFixed(1)}`,
   };
   return [
     {
       id: "overall",
       label: overallLabels[locale],
-      actual: overallAverage,
-      passed: overallAverage >= OVERALL_PASS_THRESHOLD,
+      actual: overallActual,
+      unit: overallThresholdType === "percentage" ? "%" : "",
+      passed: overallActual >= overallThreshold,
     },
     ...categories.filter((category) => category.isCritical).map((category) => ({
       id: category.categoryId,
@@ -81,7 +102,8 @@ export function getPassingCriteria(
         REPORT_CATEGORY_NAMES[locale][category.categoryId] ?? category.categoryName,
       ),
       actual: category.average,
-      passed: category.average >= CRITICAL_CATEGORY_PASS_THRESHOLD,
+      unit: "",
+      passed: category.average >= criticalThreshold,
     })),
   ];
 }

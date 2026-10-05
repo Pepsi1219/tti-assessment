@@ -202,11 +202,27 @@ export default function EvaluationSummariesPage() {
   const selectedSummaries = summaries.filter((summary) =>
     selectedIds.has(summary.id),
   );
+  const selectedVersionKey = selectedSummaries.length
+    ? selectedSummaries[0].assessmentVersionId ?? "legacy"
+    : null;
+  const comparisonCandidates = filteredSummaries.filter(
+    (summary) =>
+      (summary.assessmentVersionId ?? "legacy") ===
+      (selectedVersionKey ??
+        (filteredSummaries[0]?.assessmentVersionId ?? "legacy")),
+  );
   const allFilteredSelected =
-    filteredSummaries.length > 0 &&
-    filteredSummaries.every((summary) => selectedIds.has(summary.id));
+    comparisonCandidates.length > 0 &&
+    comparisonCandidates.every((summary) => selectedIds.has(summary.id));
 
   function toggleSummary(id: string) {
+    const target = summaries.find((summary) => summary.id === id);
+    if (
+      !target ||
+      (selectedVersionKey &&
+        (target.assessmentVersionId ?? "legacy") !== selectedVersionKey)
+    )
+      return;
     setSelectedIds((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -219,9 +235,9 @@ export default function EvaluationSummariesPage() {
     setSelectedIds((current) => {
       const next = new Set(current);
       if (allFilteredSelected) {
-        filteredSummaries.forEach((summary) => next.delete(summary.id));
+        comparisonCandidates.forEach((summary) => next.delete(summary.id));
       } else {
-        filteredSummaries.forEach((summary) => next.add(summary.id));
+        comparisonCandidates.forEach((summary) => next.add(summary.id));
       }
       return next;
     });
@@ -393,6 +409,7 @@ export default function EvaluationSummariesPage() {
                 <TableHead>{t.bu}</TableHead>
                 <TableHead>{t.department}</TableHead>
                 <TableHead>{t.course}</TableHead>
+                <TableHead>{t.assessmentVersion}</TableHead>
                 <TableHead>{t.round}</TableHead>
                 <TableHead>{t.year}</TableHead>
                 <TableHead>{t.evaluator}</TableHead>
@@ -415,6 +432,11 @@ export default function EvaluationSummariesPage() {
                     <input
                       type="checkbox"
                       checked={selectedIds.has(summary.id)}
+                      disabled={Boolean(
+                        selectedVersionKey &&
+                        (summary.assessmentVersionId ?? "legacy") !==
+                          selectedVersionKey,
+                      )}
                       onChange={() => toggleSummary(summary.id)}
                       aria-label={`Select ${summary.recipient?.recipientName ?? summary.recipientId}`}
                       className="h-4 w-4 rounded border-slate-300 accent-primary"
@@ -429,6 +451,7 @@ export default function EvaluationSummariesPage() {
                   <TableCell>{summary.buCode ?? "—"}</TableCell>
                   <TableCell>{summary.bu}</TableCell>
                   <TableCell>{summary.topicName}</TableCell>
+                  <TableCell>{summary.assessmentVersionName ? `${summary.assessmentVersionName} · v${summary.assessmentVersionNumber}` : t.legacyAssessment}</TableCell>
                   <TableCell className="font-bold tabular-nums">
                     {summary.evaluationRound}
                   </TableCell>
@@ -1049,6 +1072,7 @@ function SummaryModal({
                     summary.totalScore,
                   summary.categorySummary,
                   locale,
+                    summary,
                   ).map((criterion) => (
                     <div
                       key={criterion.id}
@@ -1066,7 +1090,7 @@ function SummaryModal({
                             : "text-red-600",
                         )}
                       >
-                        {criterion.actual.toFixed(2)}
+                        {criterion.unit === "%" ? `${criterion.actual.toFixed(2)}%` : criterion.actual.toFixed(2)}
                       </span>
                     </div>
                   ))}

@@ -1,7 +1,9 @@
 import type {
   Category,
+  AssessmentVersion,
   Evaluation,
   EvaluationDetail,
+  ExamAttempt,
   EvaluationRecipient,
   EvaluationTopic,
   Question,
@@ -22,6 +24,18 @@ export interface EvaluationRepository {
   upsertRecipient(recipient: EvaluationRecipient): Promise<EvaluationRecipient>;
   getTopics(): Promise<EvaluationTopic[]>;
   upsertTopic(topic: EvaluationTopic): Promise<EvaluationTopic>;
+  getAssessmentVersions(): Promise<AssessmentVersion[]>;
+  upsertAssessmentVersion(version: AssessmentVersion): Promise<AssessmentVersion>;
+  deleteAssessmentVersion(
+    id: string,
+  ): Promise<"deleted" | "in-use" | "not-found">;
+  getExamAttempts(): Promise<ExamAttempt[]>;
+  saveExamAttempt(attempt: ExamAttempt): Promise<void>;
+  completeExamAttempt(
+    attempt: ExamAttempt,
+    evaluation: Evaluation,
+    details: EvaluationDetail[],
+  ): Promise<boolean>;
   getCategories(): Promise<Category[]>;
   getQuestions(): Promise<Question[]>;
   upsertQuestion(question: Question): Promise<Question>;

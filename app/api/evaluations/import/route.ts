@@ -6,6 +6,7 @@ import {
 } from "@/lib/auth/authorization";
 import { getRepository } from "@/lib/repositories";
 import { calculateEvaluationMetrics } from "@/lib/services/evaluation-scoring";
+import { resolveTopicAssessment } from "@/lib/services/assessment-version";
 import type { Evaluation } from "@/lib/types";
 
 export async function POST(request: Request) {
@@ -43,23 +44,20 @@ export async function POST(request: Request) {
     !/^\d{4}-\d{2}-\d{2}$/.test(evaluationDate) ||
     !Number.isInteger(evaluationRound) ||
     Number(evaluationRound) < 1 ||
-    Number(evaluationRound) > 99 ||
-    categoryScores.length !== 7
+    Number(evaluationRound) > 99
   )
     return NextResponse.json(
       {
         error:
-          "Recipient, course, evaluator, date, round, and 7 category scores are required.",
+          "Recipient, course, evaluator, date, and round are required.",
       },
       { status: 400 },
     );
   const repo = getRepository();
-  const [recipients, topics, categories, questions, evaluators, existing] =
+  const [recipients, topics, evaluators, existing] =
     await Promise.all([
       repo.getRecipients(),
       repo.getTopics(),
-      repo.getCategories(),
-      repo.getQuestions(),
       repo.getEvaluators(),
       repo.getEvaluations(),
     ]);
@@ -74,6 +72,14 @@ export async function POST(request: Request) {
       { error: "The selected recipient or course is not available." },
       { status: 400 },
     );
+  const assessment = await resolveTopicAssessment(repo, topic);
+  const categories = assessment.categories;
+  const questions = assessment.questions;
+  if (categoryScores.length !== categories.length)
+    return NextResponse.json(
+      { error: `Exactly ${categories.length} category scores are required.` },
+      { status: 400 },
+    );
   const evaluator = evaluators.find(
     (item) =>
       item.status !== "Inactive" &&
@@ -86,15 +92,9 @@ export async function POST(request: Request) {
     );
   const orderedCategories = categories
     .slice()
-    .sort((left, right) => left.sortOrder - right.sortOrder)
-    .slice(0, 7);
-  if (orderedCategories.length !== 7)
-    return NextResponse.json(
-      { error: "The system must have exactly 7 categories before importing." },
-      { status: 400 },
-    );
+    .sort((left, right) => left.sortOrder - right.sortOrder);
   const categoryActualScores: Record<string, number> = {};
-  for (let index = 0; index < 7; index += 1) {
+  for (let index = 0; index < orderedCategories.length; index += 1) {
     const score = Number(categoryScores[index]);
     if (!Number.isFinite(score) || score < 0)
       return NextResponse.json(
@@ -126,6 +126,7 @@ export async function POST(request: Request) {
     questions.filter((question) => question.isActive),
     {},
     categoryActualScores,
+    assessment,
   );
   const exceedsMaximum = metrics.categorySummary.findIndex(
     (category, index) => Number(categoryScores[index]) > category.fullScore,
@@ -143,6 +144,7 @@ export async function POST(request: Request) {
     recipientId: recipient.id,
     topicId: topic.id,
     topicName: topic.topicName,
+    assessmentVersionId: topic.activeAssessmentVersionId ?? undefined,
     evaluatorName: evaluator.name,
     evaluatorEmail: evaluator.email,
     evaluatorEmployeeId: evaluator.employeeId,

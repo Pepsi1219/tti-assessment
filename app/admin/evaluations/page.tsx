@@ -43,18 +43,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n/context";
+import { getLocalizedQuestion } from "@/lib/i18n/question-content";
 import {
   getPassingCriteria,
   getReportCategoryName,
-  REPORT_CATEGORY_NAMES,
 } from "@/lib/reports/evaluation-report";
 import { useEscapeKey } from "@/lib/hooks/use-escape-key";
 import { cn } from "@/lib/utils";
 import type {
+  Category,
   EvaluationRecipient,
   EvaluationResult,
   EvaluationTopic,
   Evaluator,
+  Question,
+  QuestionAnswer,
 } from "@/lib/types";
 
 export default function EvaluationManagementPage() {
@@ -1095,6 +1098,7 @@ function ImportEvaluationDialog({
   const [topics, setTopics] = useState<
     Array<{ id: string; topicName: string }>
   >([]);
+  const [importCategories, setImportCategories] = useState<Category[]>([]);
   const [evaluators, setEvaluators] = useState<
     Array<{ id: string; name: string; employeeId: string; status?: string }>
   >([]);
@@ -1105,19 +1109,16 @@ function ImportEvaluationDialog({
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [round, setRound] = useState("2");
   const [roundPadOpen, setRoundPadOpen] = useState(false);
-  const [categoryScores, setCategoryScores] = useState<string[]>(
-    Array(7).fill(""),
-  );
-  const categoryLabels = [
-    "discipline",
-    "presentation",
-    "communication",
-    "knowledge",
-    "methods",
-    "feedback",
-    "professionalism",
-  ].map((categoryId) =>
-    `${REPORT_CATEGORY_NAMES[locale][categoryId]}${["presentation", "communication", "knowledge"].includes(categoryId) ? "*" : ""}`,
+  const [categoryScores, setCategoryScores] = useState<string[]>([]);
+  const categoryLabels = importCategories.map((category) =>
+    getReportCategoryName(
+      {
+        categoryId: category.id,
+        categoryName: category.categoryName,
+        isCritical: Boolean(category.isCritical),
+      },
+      locale,
+    ),
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -1135,6 +1136,26 @@ function ImportEvaluationDialog({
     });
   }, [open]);
 
+  async function selectImportTopic(value: string) {
+    setTopicId(value);
+    setImportCategories([]);
+    setCategoryScores([]);
+    setError("");
+    if (!value) return;
+    try {
+      const response = await fetch(
+        `/api/questions?topicId=${encodeURIComponent(value)}`,
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? t.unableToLoad);
+      const nextCategories = data.categories as Category[];
+      setImportCategories(nextCategories);
+      setCategoryScores(Array(nextCategories.length).fill(""));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : t.unableToLoad);
+    }
+  }
+
   async function save() {
     if (saving) return;
     if (
@@ -1143,6 +1164,7 @@ function ImportEvaluationDialog({
       !evaluatorEmployeeId.trim() ||
       !date ||
       !round ||
+      !categoryScores.length ||
       categoryScores.some(
         (score) =>
           score.trim() === "" ||
@@ -1173,7 +1195,7 @@ function ImportEvaluationDialog({
         throw new Error(data.error || t.unableToSave);
       await onImported();
       setEvaluatorEmployeeId("");
-      setCategoryScores(Array(7).fill(""));
+      setCategoryScores(Array(importCategories.length).fill(""));
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -1279,7 +1301,7 @@ function ImportEvaluationDialog({
             </label>
             <label className="text-sm font-bold">
               {t.course}
-              <Select value={topicId} onValueChange={setTopicId}>
+              <Select value={topicId} onValueChange={(value) => void selectImportTopic(value)}>
                 <SelectTrigger className="mt-1 h-11">
                   <SelectValue placeholder={t.selectTopic} />
                 </SelectTrigger>
@@ -1411,11 +1433,23 @@ function EvaluationReport({
     evaluation.totalScore,
     evaluation.categorySummary,
     locale,
+    evaluation.assessmentVersion,
   );
   const radarData = evaluation.categorySummary.map((category) => ({
     ...category,
     reportName: getReportCategoryName(category, locale),
   }));
+  const answersByQuestion = new Map(
+    evaluation.details
+      .filter((detail) => detail.answer !== undefined)
+      .map((detail) => [detail.questionId, detail.answer as QuestionAnswer]),
+  );
+  const responseRows = (evaluation.assessmentVersion?.questions ?? [])
+    .filter((question) => answersByQuestion.has(question.id))
+    .map((question) => ({
+      question: getLocalizedQuestion(question, locale),
+      answer: answersByQuestion.get(question.id)!,
+    }));
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-0 shadow-xl shadow-slate-200/50">
@@ -1547,6 +1581,18 @@ function EvaluationReport({
           </div>
         </section>
 
+        {responseRows.length > 0 && <section>
+          <h3 className="mb-4 text-lg font-black text-slate-950">{t.responses}</h3>
+          <div className="divide-y divide-slate-200 rounded-xl border border-slate-200">
+            {responseRows.map(({ question, answer }) => (
+              <div key={question.id} className="grid gap-2 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <p className="text-sm font-semibold leading-6 text-slate-700">{question.questionText}</p>
+                <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">{formatQuestionAnswer(question, answer)}</p>
+              </div>
+            ))}
+          </div>
+        </section>}
+
         <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
           <div className="space-y-6">
             <section className="rounded-2xl border border-slate-200 p-5">
@@ -1569,7 +1615,7 @@ function EvaluationReport({
                         criterion.passed ? "text-emerald-600" : "text-red-600",
                       )}
                     >
-                      {criterion.actual.toFixed(2)}
+                        {criterion.unit === "%" ? `${criterion.actual.toFixed(2)}%` : criterion.actual.toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -1636,6 +1682,22 @@ function EvaluationReport({
       </div>
     </div>
   );
+}
+
+function formatQuestionAnswer(question: Question, answer: QuestionAnswer) {
+  if (Array.isArray(answer))
+    return question.answerType === "ranking"
+      ? answer.map((item, index) => `${index + 1}. ${item}`).join("\n")
+      : answer.join(", ");
+  if (typeof answer === "object")
+    return Object.entries(answer)
+      .map(([index, value]) => `${question.statements?.[Number(index)] ?? Number(index) + 1}: ${question.options[value - 1] ?? value}`)
+      .join("\n");
+  if (typeof answer === "number")
+    return question.answerType === "nps"
+      ? `${answer}/10`
+      : `${answer}${question.options[answer - 1] ? ` - ${question.options[answer - 1]}` : ""}`;
+  return answer;
 }
 
 function ReportField({

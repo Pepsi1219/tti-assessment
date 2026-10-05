@@ -22,6 +22,18 @@ export async function POST(request: Request) {
   if (!payload.success) return NextResponse.json({ error: "Invalid topic data" }, { status: 400 });
 
   const repo = getRepository();
+  if (payload.data.activeAssessmentVersionId) {
+    const version = (await repo.getAssessmentVersions()).find(
+      (item) =>
+        item.id === payload.data.activeAssessmentVersionId &&
+        item.status === "Published",
+    );
+    if (!version)
+      return NextResponse.json(
+        { error: "The selected assessment version is not published." },
+        { status: 400 },
+      );
+  }
   const now = new Date().toISOString();
   const existing = payload.data.id
     ? (await repo.getTopics()).find((item) => item.id === payload.data.id)
@@ -31,6 +43,10 @@ export async function POST(request: Request) {
     topicName: payload.data.topicName,
     description: payload.data.description,
     status: payload.data.status ?? "Active",
+    activeAssessmentVersionId:
+      payload.data.activeAssessmentVersionId === undefined
+        ? existing?.activeAssessmentVersionId
+        : payload.data.activeAssessmentVersionId,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now
   });

@@ -7,8 +7,10 @@ import { getFirestoreDb } from "@/lib/firebase/admin";
 import type { EvaluationRepository } from "@/lib/repositories/evaluation-repository";
 import type {
   Category,
+  AssessmentVersion,
   Evaluation,
   EvaluationDetail,
+  ExamAttempt,
   EvaluationRecipient,
   EvaluationTopic,
   Question,
@@ -21,6 +23,8 @@ const collectionNames = {
   trainers: "trainers",
   recipients: "recipients",
   evaluationTopics: "evaluationTopics",
+  assessmentVersions: "assessmentVersions",
+  examAttempts: "examAttempts",
   categories: "categories",
   questions: "questions",
   evaluations: "evaluations",
@@ -153,6 +157,105 @@ export class FirestoreEvaluationRepository implements EvaluationRepository {
       .set(topic, { merge: true });
     this.invalidateCache(collectionNames.evaluationTopics);
     return topic;
+  }
+
+  async getAssessmentVersions(): Promise<AssessmentVersion[]> {
+    const rows = await this.getCachedAll<AssessmentVersion>(
+      collectionNames.assessmentVersions,
+      MASTER_DATA_CACHE_TTL_MS,
+    );
+    return rows.sort(
+      (left, right) =>
+        left.name.localeCompare(right.name) || left.version - right.version,
+    );
+  }
+
+  async upsertAssessmentVersion(
+    version: AssessmentVersion,
+  ): Promise<AssessmentVersion> {
+    await this.collection<AssessmentVersion>(collectionNames.assessmentVersions)
+      .doc(version.id)
+      .set(version);
+    this.invalidateCache(collectionNames.assessmentVersions);
+    return version;
+  }
+
+  async deleteAssessmentVersion(
+    id: string,
+  ): Promise<"deleted" | "in-use" | "not-found"> {
+    const versionRef = this.collection<AssessmentVersion>(
+      collectionNames.assessmentVersions,
+    ).doc(id);
+    const version = await versionRef.get();
+    if (!version.exists) return "not-found";
+
+    const references = await Promise.all([
+      this.collection<EvaluationTopic>(collectionNames.evaluationTopics)
+        .where("activeAssessmentVersionId", "==", id)
+        .limit(1)
+        .get(),
+      this.collection<Evaluation>(collectionNames.evaluations)
+        .where("assessmentVersionId", "==", id)
+        .limit(1)
+        .get(),
+      this.collection<ExamAttempt>(collectionNames.examAttempts)
+        .where("assessmentVersionId", "==", id)
+        .limit(1)
+        .get(),
+    ]);
+    if (references.some((reference) => !reference.empty)) return "in-use";
+
+    await versionRef.delete();
+    this.invalidateCache(collectionNames.assessmentVersions);
+    return "deleted";
+  }
+
+  async getExamAttempts(): Promise<ExamAttempt[]> {
+    return this.getCachedAll<ExamAttempt>(
+      collectionNames.examAttempts,
+      EVALUATION_CACHE_TTL_MS,
+    );
+  }
+
+  async saveExamAttempt(attempt: ExamAttempt): Promise<void> {
+    await this.collection<ExamAttempt>(collectionNames.examAttempts)
+      .doc(attempt.id)
+      .create(attempt);
+    this.invalidateCache(collectionNames.examAttempts);
+  }
+
+  async completeExamAttempt(
+    attempt: ExamAttempt,
+    evaluation: Evaluation,
+    details: EvaluationDetail[],
+  ): Promise<boolean> {
+    const db = getFirestoreDb();
+    const attemptRef = this.collection<ExamAttempt>(collectionNames.examAttempts).doc(attempt.id);
+    const completed = await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(attemptRef);
+      if (snapshot.data()?.status !== "PendingGrading") return false;
+
+      transaction.set(attemptRef, attempt);
+      transaction.create(
+        this.collection<Evaluation>(collectionNames.evaluations).doc(evaluation.id),
+        evaluation,
+      );
+      details.forEach((detail) => {
+        transaction.create(
+          this.collection<EvaluationDetail>(collectionNames.evaluationDetails).doc(detail.id),
+          detail,
+        );
+      });
+      return true;
+    });
+    if (completed) {
+      this.invalidateCache(
+        collectionNames.examAttempts,
+        collectionNames.evaluations,
+        collectionNames.evaluationDetails,
+      );
+    }
+    return completed;
   }
 
   async getCategories(): Promise<Category[]> {

@@ -2,12 +2,38 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, hasSameOrigin, isAdmin } from "@/lib/auth/authorization";
 import { getRepository } from "@/lib/repositories";
 import { questionPayloadSchema } from "@/lib/validation/api";
+import { resolveTopicAssessment } from "@/lib/services/assessment-version";
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const repo = getRepository();
+  const topicId = new URL(request.url).searchParams.get("topicId");
+  if (topicId) {
+    const topic = (await repo.getTopics()).find(
+      (item) => item.id === topicId && item.status === "Active",
+    );
+    if (!topic)
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    try {
+      const assessment = await resolveTopicAssessment(repo, topic);
+      const questionsWithoutAnswerKeys = assessment.questions.map(({ correctAnswer: _correctAnswer, ...question }) => question);
+      return NextResponse.json(
+        {
+          categories: assessment.categories,
+          questions: questionsWithoutAnswerKeys,
+          assessmentVersion: { ...assessment, questions: questionsWithoutAnswerKeys },
+        },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
+    } catch {
+      return NextResponse.json(
+        { error: "The course assessment is not configured." },
+        { status: 409 },
+      );
+    }
+  }
   const [categories, questions] = await Promise.all([repo.getCategories(), repo.getQuestions()]);
   return NextResponse.json({ categories, questions }, {
     headers: { "Cache-Control": "private, no-store" }

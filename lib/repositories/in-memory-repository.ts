@@ -1,6 +1,8 @@
 import {
   categories,
+  assessmentVersions,
   evaluationDetails,
+  examAttempts,
   evaluationTopics,
   evaluations,
   questions,
@@ -12,7 +14,9 @@ import {
 import type { EvaluationRepository } from "@/lib/repositories/evaluation-repository";
 import type {
   Evaluation,
+  AssessmentVersion,
   EvaluationDetail,
+  ExamAttempt,
   EvaluationRecipient,
   EvaluationTopic,
   Question,
@@ -85,6 +89,59 @@ export class InMemoryEvaluationRepository implements EvaluationRepository {
     if (index >= 0) evaluationTopics[index] = topic;
     else evaluationTopics.push(topic);
     return topic;
+  }
+
+  async getAssessmentVersions() {
+    return [...assessmentVersions].sort(
+      (left, right) =>
+        left.name.localeCompare(right.name) || left.version - right.version,
+    );
+  }
+
+  async upsertAssessmentVersion(version: AssessmentVersion) {
+    const index = assessmentVersions.findIndex((item) => item.id === version.id);
+    if (index >= 0) assessmentVersions[index] = version;
+    else assessmentVersions.push(version);
+    return version;
+  }
+
+  async deleteAssessmentVersion(
+    id: string,
+  ): Promise<"deleted" | "in-use" | "not-found"> {
+    const index = assessmentVersions.findIndex((item) => item.id === id);
+    if (index < 0) return "not-found";
+    if (
+      evaluationTopics.some((topic) => topic.activeAssessmentVersionId === id) ||
+      evaluations.some((evaluation) => evaluation.assessmentVersionId === id) ||
+      examAttempts.some((attempt) => attempt.assessmentVersionId === id)
+    )
+      return "in-use";
+
+    assessmentVersions.splice(index, 1);
+    return "deleted";
+  }
+
+  async getExamAttempts() {
+    return examAttempts;
+  }
+
+  async saveExamAttempt(attempt: ExamAttempt) {
+    if (examAttempts.some((item) => item.id === attempt.id))
+      throw new Error("Exam attempt already exists");
+    examAttempts.push(attempt);
+  }
+
+  async completeExamAttempt(
+    attempt: ExamAttempt,
+    evaluation: Evaluation,
+    details: EvaluationDetail[],
+  ) {
+    const index = examAttempts.findIndex((item) => item.id === attempt.id);
+    if (index < 0 || examAttempts[index].status !== "PendingGrading") return false;
+    examAttempts[index] = attempt;
+    evaluations.push(evaluation);
+    evaluationDetails.push(...details);
+    return true;
   }
 
   async getCategories() {

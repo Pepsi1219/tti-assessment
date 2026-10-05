@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { StandardSelect } from "@/components/ui/standard-select";
 import {
   Table,
   TableBody,
@@ -30,20 +31,37 @@ import {
 import { WrappedRadarTick } from "@/components/evaluation-category-report";
 import { useI18n } from "@/lib/i18n/context";
 import { getReportCategoryName } from "@/lib/reports/evaluation-report";
+import { getOverallPassThresholdAverage } from "@/lib/services/evaluation-scoring";
 import { cn } from "@/lib/utils";
-import type { EvaluationRecipient, EvaluationResult } from "@/lib/types";
+import type {
+  AssessmentVersion,
+  EvaluationRecipient,
+  EvaluationResult,
+  EvaluationTopic,
+} from "@/lib/types";
 
 export default function AdminDashboard() {
   const { t, locale } = useI18n();
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [recipients, setRecipients] = useState<EvaluationRecipient[]>([]);
+  const [topics, setTopics] = useState<EvaluationTopic[]>([]);
+  const [assessmentVersions, setAssessmentVersions] = useState<AssessmentVersion[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState("all");
+  const [selectedVersionId, setSelectedVersionId] = useState("all");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetch("/api/evaluations"), fetch("/api/recipients")]).then(
-      async ([evRes, recipientRes]) => {
+    Promise.all([
+      fetch("/api/evaluations"),
+      fetch("/api/recipients"),
+      fetch("/api/topics"),
+      fetch("/api/assessment-versions"),
+    ]).then(
+      async ([evRes, recipientRes, topicRes, versionRes]) => {
         setEvaluations(await evRes.json());
         setRecipients(await recipientRes.json());
+        setTopics(await topicRes.json());
+        setAssessmentVersions(await versionRes.json());
         setLoading(false);
       }
     );
@@ -57,18 +75,60 @@ export default function AdminDashboard() {
     );
   }
 
-  const totalEvaluations = evaluations.length;
-  const passCount = evaluations.filter((e) => e.result === "Pass").length;
+  const courseOptions = topics.length
+    ? topics
+      .filter((topic) => topic.status === "Active")
+      .map((topic) => ({ id: topic.id, name: topic.topicName }))
+    : Array.from(
+        new Map(
+          evaluations.map((evaluation) => [
+            evaluation.topicId,
+            evaluation.topicName,
+          ]),
+        ),
+        ([id, name]) => ({ id, name }),
+      );
+  const courseEvaluations =
+    selectedTopicId === "all"
+      ? evaluations
+      : evaluations.filter((evaluation) => evaluation.topicId === selectedTopicId);
+  const filteredEvaluations = courseEvaluations.filter((evaluation) => {
+    if (selectedTopicId === "all" || selectedVersionId === "all") return true;
+    if (selectedVersionId === "legacy") return !evaluation.assessmentVersionId;
+    return evaluation.assessmentVersionId === selectedVersionId;
+  });
+  const totalEvaluations = filteredEvaluations.length;
+  const selectedTopic = topics.find((topic) => topic.id === selectedTopicId);
+  const selectedAssessment = assessmentVersions.find(
+    (version) =>
+      version.id ===
+      (selectedVersionId === "all"
+        ? selectedTopic?.activeAssessmentVersionId
+        : selectedVersionId),
+  );
+  const dashboardProfile = selectedAssessment?.dashboardProfile ?? "category-score";
+  const isAllCourses = selectedTopicId === "all";
+  const isAllVersions = selectedVersionId === "all";
+  const showPassFail =
+    !isAllCourses && !isAllVersions && dashboardProfile === "pass-fail";
+  const showScoreDetails =
+    !isAllCourses && !isAllVersions && dashboardProfile !== "pass-fail";
+  const showCategoryDetails =
+    showScoreDetails && dashboardProfile === "category-score";
+  const passCount = filteredEvaluations.filter((e) => e.result === "Pass").length;
   const failCount = totalEvaluations - passCount;
-  const passRate = totalEvaluations ? (passCount / totalEvaluations) * 100 : 0;
-  const failRate = totalEvaluations ? (failCount / totalEvaluations) * 100 : 0;
-  const avgScore = totalEvaluations
-    ? evaluations.reduce((sum, e) => sum + e.totalScore, 0) / totalEvaluations
+  const canShowComparativeMetrics = !isAllCourses && !isAllVersions;
+  const passRate = canShowComparativeMetrics && totalEvaluations ? (passCount / totalEvaluations) * 100 : 0;
+  const failRate = canShowComparativeMetrics && totalEvaluations ? (failCount / totalEvaluations) * 100 : 0;
+  const avgScore = showScoreDetails && totalEvaluations
+    ? filteredEvaluations.reduce((sum, e) => sum + e.totalScore, 0) / totalEvaluations
     : 0;
 
-  const recipientScores = recipients
+  const recipientScores = !showScoreDetails ? [] : recipients
     .map((recipient) => {
-      const recipientEvals = evaluations.filter((evaluation) => evaluation.recipientId === recipient.id);
+      const recipientEvals = filteredEvaluations.filter(
+        (evaluation) => evaluation.recipientId === recipient.id,
+      );
       const avg = recipientEvals.length
         ? recipientEvals.reduce((s, evaluation) => s + evaluation.totalScore, 0) / recipientEvals.length
         : 0;
@@ -79,9 +139,9 @@ export default function AdminDashboard() {
 
   const topRecipients = recipientScores.slice(0, 5);
 
-  const categoryAvg = evaluations.length > 0
-    ? evaluations[0].categorySummary.map((cat) => {
-        const allAvgs = evaluations.map((ev) => {
+  const categoryAvg = showCategoryDetails && filteredEvaluations.length > 0
+    ? filteredEvaluations[0].categorySummary.map((cat) => {
+        const allAvgs = filteredEvaluations.map((ev) => {
           const found = ev.categorySummary.find((c) => c.categoryId === cat.categoryId);
           return found?.average ?? 0;
         });
@@ -93,24 +153,159 @@ export default function AdminDashboard() {
       })
     : [];
 
+  const overallPassThresholdAverage = getOverallPassThresholdAverage(selectedAssessment ?? {});
   const scoreDistribution = [
-    { label: t.scoreExcellent, count: evaluations.filter((e) => e.totalScore >= 4.5).length, color: "#22C55E" },
-    { label: t.scorePass, count: evaluations.filter((e) => e.totalScore >= 3.5 && e.totalScore < 4.5).length, color: "#2563EB" },
-    { label: t.scoreConditional, count: evaluations.filter((e) => e.totalScore >= 3 && e.totalScore < 3.5).length, color: "#F59E0B" },
-    { label: t.scoreFail, count: evaluations.filter((e) => e.totalScore < 3).length, color: "#EF4444" }
+    {
+      label: t.scoreExcellent,
+      count: filteredEvaluations.filter(
+        (e) => e.totalScore >= Math.max(4.5, overallPassThresholdAverage + 0.5),
+      ).length,
+      color: "#22C55E",
+    },
+    {
+      label: t.scorePass,
+      count: filteredEvaluations.filter(
+        (e) =>
+          e.totalScore >= overallPassThresholdAverage &&
+          e.totalScore < Math.max(4.5, overallPassThresholdAverage + 0.5),
+      ).length,
+      color: "#2563EB",
+    },
+    {
+      label: t.scoreConditional,
+      count: filteredEvaluations.filter(
+        (e) =>
+          e.totalScore >= Math.max(0, overallPassThresholdAverage - 0.5) &&
+          e.totalScore < overallPassThresholdAverage,
+      ).length,
+      color: "#F59E0B",
+    },
+    {
+      label: t.scoreFail,
+      count: filteredEvaluations.filter(
+        (e) => e.totalScore < Math.max(0, overallPassThresholdAverage - 0.5),
+      ).length,
+      color: "#EF4444",
+    },
   ];
+  const passFailDistribution = [
+    { label: t.pass, count: passCount, color: "#22C55E" },
+    { label: t.fail, count: failCount, color: "#EF4444" },
+  ];
+  const usedVersions = assessmentVersions.filter((version) =>
+    courseEvaluations.some(
+      (evaluation) => evaluation.assessmentVersionId === version.id,
+    ),
+  );
+  if (
+    selectedTopic?.activeAssessmentVersionId &&
+    !usedVersions.some((version) => version.id === selectedTopic.activeAssessmentVersionId)
+  ) {
+    const activeVersion = assessmentVersions.find(
+      (version) => version.id === selectedTopic.activeAssessmentVersionId,
+    );
+    if (activeVersion) usedVersions.push(activeVersion);
+  }
+  const versionOptions = [
+    { value: "all", label: t.all },
+    ...usedVersions.map((version) => ({
+      value: version.id,
+      label: `${version.name} · v${version.version}`,
+    })),
+    ...(selectedTopic?.activeAssessmentVersionId == null ||
+    courseEvaluations.some((evaluation) => !evaluation.assessmentVersionId)
+      ? [{ value: "legacy", label: t.legacyAssessment }]
+      : []),
+  ];
+
+  function selectCourse(value: string) {
+    setSelectedTopicId(value);
+    const topic = topics.find((item) => item.id === value);
+    if (topic?.activeAssessmentVersionId) {
+      setSelectedVersionId(topic.activeAssessmentVersionId);
+      return;
+    }
+    const versionsForCourse = new Set(
+      evaluations
+        .filter((evaluation) => evaluation.topicId === value)
+        .map((evaluation) => evaluation.assessmentVersionId ?? "legacy"),
+    );
+    setSelectedVersionId(
+      versionsForCourse.size === 1
+        ? Array.from(versionsForCourse)[0]
+        : "all",
+    );
+  }
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-black">{t.dashboard}</h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm font-bold text-slate-600">
+            {t.course}
+            <StandardSelect
+              value={selectedTopicId}
+              onValueChange={selectCourse}
+              ariaLabel={t.course}
+              options={[
+                { value: "all", label: t.all },
+                ...courseOptions.map((topic) => ({
+                  value: topic.id,
+                  label: topic.name,
+                })),
+              ]}
+            />
+          </label>
+          {selectedTopicId !== "all" && <label className="flex items-center gap-2 text-sm font-bold text-slate-600">
+            {t.assessmentVersion}
+            <StandardSelect value={selectedVersionId} onValueChange={setSelectedVersionId} ariaLabel={t.assessmentVersion} options={versionOptions} />
+          </label>}
+        </div>
+      </div>
       {/* Metric cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard icon={Activity} label={t.totalEvaluations} value={String(totalEvaluations)} />
-        <MetricCard icon={CheckCircle2} label={t.passRate} value={`${passRate.toFixed(0)}%`} tone="text-success" />
-        <MetricCard icon={XCircle} label={t.failRate} value={`${failRate.toFixed(0)}%`} tone="text-danger" />
-        <MetricCard icon={Award} label={t.averageScore} value={avgScore.toFixed(2)} />
+        <MetricCard icon={CheckCircle2} label={t.passRate} value={!canShowComparativeMetrics ? "—" : `${passRate.toFixed(0)}%`} tone="text-success" />
+        <MetricCard icon={XCircle} label={t.failRate} value={!canShowComparativeMetrics ? "—" : `${failRate.toFixed(0)}%`} tone="text-danger" />
+        <MetricCard icon={Award} label={t.averageScore} value={!showScoreDetails ? "—" : avgScore.toFixed(2)} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      {isAllCourses && (
+        <Card className="p-5">
+          <h3 className="mb-4 text-lg font-black">{t.evaluationTopics}</h3>
+          <Table>
+            <TableHeader><TableRow><TableHead className="text-left">{t.course}</TableHead><TableHead>{t.totalEvaluations}</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {courseOptions.map((topic) => (
+                <TableRow key={topic.id}>
+                  <TableCell className="text-left font-semibold">{topic.name}</TableCell>
+                  <TableCell>{evaluations.filter((evaluation) => evaluation.topicId === topic.id).length}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {showPassFail && <Card className="p-5">
+        <h3 className="mb-4 text-lg font-black">{t.result}</h3>
+        {totalEvaluations > 0 ? <div className="h-72">
+          <ResponsiveContainer>
+            <BarChart data={passFailDistribution}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="label" />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                {passFailDistribution.map((entry) => <Cell key={entry.label} fill={entry.color} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div> : <p className="py-10 text-center text-sm text-slate-400">{t.noData}</p>}
+      </Card>}
+
+      {showScoreDetails && <div className="grid gap-6 xl:grid-cols-2">
         {/* Score Distribution */}
         <Card className="p-5">
           <h3 className="mb-4 text-lg font-black">{t.scoreDistribution}</h3>
@@ -136,7 +331,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Category Performance Radar */}
-        <Card className="p-5">
+        {showCategoryDetails && <Card className="p-5">
           <h3 className="mb-4 text-lg font-black">{t.categoryPerformance}</h3>
           {categoryAvg.length > 0 ? (
             <div className="h-80">
@@ -159,10 +354,10 @@ export default function AdminDashboard() {
           ) : (
             <p className="py-10 text-center text-sm text-slate-400">{t.noData}</p>
           )}
-        </Card>
-      </div>
+        </Card>}
+      </div>}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      {showScoreDetails && <div className="grid gap-6 xl:grid-cols-2">
         {/* Top recipients */}
         <Card className="p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -193,7 +388,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Category Ranking */}
-        <Card className="p-5">
+        {showCategoryDetails && <Card className="p-5">
           <div className="mb-4 flex items-center gap-2">
             <TrendingDown className="h-5 w-5 text-warning" />
             <h3 className="text-lg font-black">{t.lowestCategories}</h3>
@@ -221,18 +416,20 @@ export default function AdminDashboard() {
           ) : (
             <p className="py-6 text-center text-sm text-slate-400">{t.noData}</p>
           )}
-        </Card>
+        </Card>}
       </div>
+      }
 
       {/* Recent Evaluations */}
       <Card className="p-5">
         <h3 className="mb-4 text-lg font-black">{t.recentEvaluations}</h3>
-        {evaluations.length > 0 ? (
+        {filteredEvaluations.length > 0 ? (
           <Table className="min-w-[860px] table-auto">
             <TableHeader>
               <TableRow>
                 <TableHead className="text-left">{t.recipient}</TableHead>
                 <TableHead className="text-left">{t.course}</TableHead>
+                <TableHead className="text-left">{t.assessmentVersion}</TableHead>
                 <TableHead className="text-left">{t.evaluatedBy}</TableHead>
                 <TableHead className="whitespace-nowrap">{t.evaluationDate}</TableHead>
                 <TableHead className="whitespace-nowrap">{t.totalScore}</TableHead>
@@ -240,10 +437,11 @@ export default function AdminDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-            {evaluations.slice(0, 10).map((ev) => (
+            {filteredEvaluations.slice(0, 10).map((ev) => (
               <TableRow key={ev.id}>
                 <TableCell className="text-left font-bold">{ev.recipient?.recipientName ?? "—"}</TableCell>
                 <TableCell className="text-left">{ev.topicName}</TableCell>
+                <TableCell className="text-left">{ev.assessmentVersion?.name ?? t.legacyAssessment}</TableCell>
                 <TableCell className="text-left">{ev.evaluatorName}</TableCell>
                 <TableCell className="whitespace-nowrap">{ev.evaluationDate}</TableCell>
                 <TableCell className="font-black tabular-nums">{ev.totalScore.toFixed(2)}</TableCell>

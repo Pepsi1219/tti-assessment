@@ -19,18 +19,33 @@ Web application สำหรับประเมินการรับรอ�
 - **Routing**: แยก portal — `/evaluator` สำหรับผู้ประเมิน, `/admin` สำหรับผู้ดูแลระบบ
 
 ## Evaluation Logic
-- 7 หมวดหมู่, 20 คำถาม (q-5 ถึง q-24)
-- หมวดสำคัญ (critical): ทักษะการนำเสนอ, ทักษะการสื่อสาร, ความสามารถด้านความรู้
-- ผ่าน: Overall Avg ≥ 3.5 AND ทุกหมวดสำคัญ ≥ 3.0
-- ไม่ผ่าน: Overall Avg < 3.5 OR มีหมวดสำคัญใด ๆ < 3.0
+- Published `AssessmentVersion` เป็น immutable snapshot ของประเภท Assessment/Exam, หมวด คำถาม options/answer keys, scoring thresholds และ dashboard profile
+- `EvaluationTopic.activeAssessmentVersionId` กำหนดแบบประเมินที่ใช้; หลายหลักสูตรอ้าง version เดียวกันได้
+- Published versions immutable; แก้แบบประเมินโดย clone เป็น draft แล้ว publish version ใหม่
+- ผลประเมินใหม่เก็บ `assessmentVersionId`; ผลเก่าที่ไม่มี version ใช้ legacy shared assessment
+- เกณฑ์ผ่านรวมเลือกได้ระหว่างค่าเฉลี่ยเต็ม 5 (`overallPassThresholdType: average`) และเปอร์เซ็นต์ 0–100 (`percentage`); การเปลี่ยนหน่วยใน editor แปลงค่าให้เทียบเท่ากัน
+- เวอร์ชันเก่าที่ไม่มี `overallPassThresholdType` และข้อมูล legacy ใช้ค่าเฉลี่ยรวม ≥ 3.5 AND ทุกหมวดสำคัญ ≥ 3.0
+- คะแนนรายงานและ Dashboard ต้องใช้ policy ของ Assessment Version เดียวกับผล ห้ามเปรียบเทียบคะแนน/pass rate ข้าม version หรือข้ามเกณฑ์
 
 ## Current Feature Contract
 - `/admin/evaluations` ใช้เป็นหน้า Result: มีตัวกรองผู้ประเมินและตัวกรองหลัก, pagination 25/50/100 รายการ, ดูรายงาน, export PDF, ลบพร้อมยืนยัน และแก้ไขผลผ่าน modal
-- Admin edit ใช้ `PATCH /api/evaluations` และคำนวณ Score, Percentage และ Pass/Fail ใหม่จากคะแนน 7 หมวดก่อนบันทึก
+- Login ให้ผู้ประเมินเลือกหลักสูตรก่อนเข้าแบบประเมิน และ preselect published version ของหลักสูตร
+- `/admin/assessment-versions` ใช้สร้าง/แก้ draft, กำหนดหมวด คำถาม options เกณฑ์ผ่าน และ dashboard profile ก่อน publish
+- Assessment editor มี Preview แบบผู้ประเมิน ใช้คำถาม/controls จาก draft ปัจจุบันได้โดยไม่ส่งหรือบันทึกคำตอบ
+- คำถาม Date ใช้ localized calendar popover แต่เก็บคำตอบเป็น `YYYY-MM-DD`; ปุ่ม Clear ส่งค่า `undefined`
+- Exam รองรับ answer key ของ Choice สำหรับตรวจอัตโนมัติ และข้อที่ให้คะแนนด้วยคนจะค้างใน `ExamAttempt` สถานะ `PendingGrading`
+- Exam attempt แยกจาก `evaluations` จนกว่าจะตรวจครบ; เมื่อให้คะแนน ระบบเปลี่ยน attempt เป็น `Graded` และสร้าง Evaluation/รายละเอียดคะแนนใน transaction เดียว
+- Login แยก Assessment/Exam และกรองหลักสูตรตามชนิดของ active published version; Exam ใช้ evaluator ที่ล็อกอินเป็นผู้ตรวจ และผู้เข้าสอบเลือก Recipient/รอบสอบ
+- `/evaluator/exams` แสดงคิวข้อสอบรอตรวจแก่ evaluator; `PATCH /api/exam-attempts/[id]/grade` ใช้ identity จาก session ไม่รับชื่อผู้ตรวจจาก client
+- Answer keys เป็นข้อมูลเฉพาะ Admin/ผู้ตรวจ: `/api/questions` และผล Evaluation ที่ส่งให้ evaluator ต้อง redaction `correctAnswer`; ห้ามส่งเฉลยใน form ผู้เข้าสอบ
+- `/admin/topics` ผูกหลักสูตรกับ published assessment version หรือเลือก legacy shared assessment
+- Admin edit ใช้ `PATCH /api/evaluations` และคำนวณผลใหม่จาก assessment version เดิมของ evaluation
+- Dashboard กรองทั้งหลักสูตรและ version; ภาพรวมทุกหลักสูตร/หลายเวอร์ชันไม่เปรียบเทียบคะแนนหรือ pass rate ข้ามเกณฑ์
+- Dashboard profile รองรับ category scores, overall score และ pass/fail; Summary Result Comparison จำกัดการเลือกไว้ใน assessment version เดียวกัน
 - `/admin/evaluation-summaries` ใช้ชื่อ Summary Result: มีตัวกรองผู้ประเมินและตัวกรองหลัก, เลือกหลายพนักงาน และเปิด Summary Result Comparison
 - Summary Result Comparison แสดง radar แยกแต่ละพนักงานด้วยสีต่างกัน, ปุ่ม Detail ซ่อนรายละเอียดเป็นค่าเริ่มต้น และ Save PNG รองรับรายงานเต็มความสูงพร้อม share/download บนมือถือ
 - ตรา PASSED/FAIL ใน comparison ใช้ SVG เพื่อให้ตำแหน่งตัวอักษรคงที่ระหว่างหน้าเว็บและ PNG
-- Import MS Forms อยู่ในหน้า Result: เลือก evaluator, BU, recipient, course, date, round และกรอกคะแนน 7 หมวดก่อนบันทึก Firestore
+- Import MS Forms อยู่ในหน้า Result: เลือก evaluator, BU, recipient, course, date, round และกรอกคะแนนตามจำนวนหมวดของ assessment version
 - ทุก modal ใหม่ต้องปิดด้วย Escape และรองรับการเลื่อนด้วยเมาส์/ทัช โดยเฉพาะ modal ที่มีเนื้อหายาว
 
 ## Auth, Security, and Persistence
@@ -38,6 +53,7 @@ Web application สำหรับประเมินการรับรอ�
 - การปิดแอปไม่ใช่การออกจากระบบ; ผู้ใช้ต้องกด Sign out หากต้องการลบ session ทันที ไม่มีการเก็บข้อมูลล็อกอินใน localStorage
 - `middleware.ts` มี process-local rate limit, แยก bucket ตาม client/session, จำกัด request body และต้องใช้ WAF/shared rate limit เพิ่มเมื่อ deploy หลาย instance
 - API mutation ต้องตรวจ session, role, same-origin และ validate payload ด้วย Zod; การแก้ไข/ลบผลประเมินจำกัดเฉพาะ Admin
+- Exam submission/grading ต้องตรวจ session, role, same-origin และ validate payload ด้วย Zod; การปิดคะแนนต้องป้องกันการตรวจซ้ำและบันทึกผลแบบ atomic
 - `updateEvaluation` เป็นส่วนหนึ่งของ repository contract และมี implementation ทั้ง Firestore และ InMemory
 - `categoryActualScores` เป็นค่าหมวดที่ authoritative สำหรับข้อมูล import หรือการแก้ไขโดย Admin เพื่อให้ผลสรุปถูกคำนวณสอดคล้องกัน
 

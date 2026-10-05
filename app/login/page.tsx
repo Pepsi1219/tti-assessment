@@ -25,6 +25,7 @@ import {
 import { useI18n } from "@/lib/i18n/context";
 import { LanguageSelector } from "@/components/language-selector";
 import { ThemeToggle } from "@/components/theme-toggle";
+import type { AssessmentKind } from "@/lib/types";
 
 export default function LoginPage() {
   const { data: session, status } = useSession();
@@ -32,11 +33,13 @@ export default function LoginPage() {
   const { t } = useI18n();
   const [employeeId, setEmployeeId] = useState("");
   const [selectedEvaluatorId, setSelectedEvaluatorId] = useState("");
+  const [selectedTopicId, setSelectedTopicId] = useState("");
+  const [workflowType, setWorkflowType] = useState<AssessmentKind>("assessment");
   const [evaluators, setEvaluators] = useState<
     Array<{ id: string; name: string; employeeId: string }>
   >([]);
   const [topics, setTopics] = useState<
-    Array<{ id: string; topicName: string }>
+    Array<{ id: string; topicName: string; kind?: AssessmentKind }>
   >([]);
   const [adminMode, setAdminMode] = useState(false);
   const [error, setError] = useState("");
@@ -44,10 +47,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (session) {
-      const role = session.user?.role;
-      router.replace(role === "Admin" ? "/admin" : "/evaluator");
-    }
+    if (session?.user?.role === "Admin") router.replace("/admin");
   }, [session, status, router]);
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function LoginPage() {
       .catch(() => setTopics([]));
   }, []);
 
-  async function signInWith(employeeIdToUse: string) {
+  async function signInWith(employeeIdToUse: string, destination: string) {
     if (!employeeIdToUse) return;
 
     setError("");
@@ -93,7 +93,7 @@ export default function LoginPage() {
 
       // Start a new document request after the auth cookie is written. This avoids
       // relying on the SessionProvider's in-memory state immediately after sign-in.
-      window.location.replace("/");
+      window.location.replace(destination);
     } catch {
       setError(t.loginTemporaryError);
     } finally {
@@ -103,16 +103,26 @@ export default function LoginPage() {
 
   async function handleAdminSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await signInWith(employeeId.trim());
+    await signInWith(employeeId.trim(), "/admin");
   }
 
   async function handleEvaluatorSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const destination = workflowType === "exam"
+      ? `/evaluator/exams?topicId=${encodeURIComponent(selectedTopicId)}`
+      : `/evaluator?topicId=${encodeURIComponent(selectedTopicId)}`;
+    if (session?.user?.role === "Evaluator" && selectedTopicId) {
+      window.location.replace(destination);
+      return;
+    }
     const evaluator = evaluators.find(
       (item) => item.id === selectedEvaluatorId,
     );
-    if (!evaluator) return;
-    await signInWith(evaluator.employeeId);
+    if (!evaluator || !selectedTopicId) return;
+    await signInWith(
+      evaluator.employeeId,
+      destination,
+    );
   }
 
   return (
@@ -141,7 +151,7 @@ export default function LoginPage() {
             <div className="mt-14 max-w-xl">
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-blue-100">
                 <Sparkles className="h-3.5 w-3.5" />
-                Train The Trainer
+                {t.evaluationTopics}
               </div>
               <h1 className="text-4xl font-black leading-[1.08] tracking-tight xl:text-5xl">
                 {t.title}
@@ -224,40 +234,96 @@ export default function LoginPage() {
                   />
                 </label>
               ) : (
-                <div className="space-y-2">
-                  <span className="text-sm font-bold text-slate-700">
-                    {t.evaluator}
-                  </span>
-                  <Select
-                    value={selectedEvaluatorId}
-                    onValueChange={(value) => {
-                      setSelectedEvaluatorId(value);
-                      setError("");
-                    }}
-                  >
-                    <SelectTrigger
-                      aria-label={t.selectEvaluator}
-                      className="h-14 rounded-2xl border-slate-200 bg-slate-50 px-5 text-base shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100"
-                    >
-                      <SelectValue placeholder={t.selectEvaluator} />
-                    </SelectTrigger>
-                    <SelectContent
-                      position="popper"
-                      sideOffset={8}
-                      className="rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl"
-                    >
-                      {evaluators.map((evaluator) => (
-                        <SelectItem
-                          key={evaluator.id}
-                          value={evaluator.id}
-                          className="py-3 text-[15px]"
+                <>
+                  <div className="space-y-2">
+                    <span className="text-sm font-bold text-slate-700">{t.assessmentType}</span>
+                    <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1">
+                      {(["assessment", "exam"] as const).map((kind) => (
+                        <button
+                          key={kind}
+                          type="button"
+                          aria-pressed={workflowType === kind}
+                          className={`min-h-11 rounded-xl px-3 text-sm font-bold transition ${workflowType === kind ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                          onClick={() => {
+                            setWorkflowType(kind);
+                            setSelectedTopicId("");
+                            setError("");
+                          }}
                         >
-                          {evaluator.name}
-                        </SelectItem>
+                          {kind === "assessment" ? t.assessmentMode : t.examMode}
+                        </button>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    </div>
+                  </div>
+                  {session?.user?.role !== "Evaluator" && <div className="space-y-2">
+                    <span className="text-sm font-bold text-slate-700">
+                      {t.course}
+                    </span>
+                    <Select
+                      value={selectedTopicId}
+                      onValueChange={(value) => {
+                        setSelectedTopicId(value);
+                        setError("");
+                      }}
+                    >
+                      <SelectTrigger
+                        aria-label={t.selectTopic}
+                        className="h-14 rounded-2xl border-slate-200 bg-slate-50 px-5 text-base shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100"
+                      >
+                        <SelectValue placeholder={t.selectTopic} />
+                      </SelectTrigger>
+                      <SelectContent
+                        position="popper"
+                        sideOffset={8}
+                        className="rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl"
+                      >
+                        {topics.filter((topic) => (topic.kind ?? "assessment") === workflowType).map((topic) => (
+                          <SelectItem
+                            key={topic.id}
+                            value={topic.id}
+                            className="py-3 text-[15px]"
+                          >
+                            {topic.topicName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>}
+                  <div className="space-y-2">
+                    <span className="text-sm font-bold text-slate-700">
+                      {t.evaluator}
+                    </span>
+                    <Select
+                      value={selectedEvaluatorId}
+                      onValueChange={(value) => {
+                        setSelectedEvaluatorId(value);
+                        setError("");
+                      }}
+                    >
+                      <SelectTrigger
+                        aria-label={t.selectEvaluator}
+                        className="h-14 rounded-2xl border-slate-200 bg-slate-50 px-5 text-base shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100"
+                      >
+                        <SelectValue placeholder={t.selectEvaluator} />
+                      </SelectTrigger>
+                      <SelectContent
+                        position="popper"
+                        sideOffset={8}
+                        className="rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl"
+                      >
+                        {evaluators.map((evaluator) => (
+                          <SelectItem
+                            key={evaluator.id}
+                            value={evaluator.id}
+                            className="py-3 text-[15px]"
+                          >
+                            {evaluator.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
 
               {error && (
@@ -272,7 +338,11 @@ export default function LoginPage() {
                 className="h-14 w-full gap-2 rounded-2xl text-base"
                 disabled={
                   loading ||
-                  (adminMode ? !employeeId.trim() : !selectedEvaluatorId)
+                  (adminMode
+                    ? !employeeId.trim()
+                    : !selectedTopicId ||
+                      (session?.user?.role !== "Evaluator" &&
+                        !selectedEvaluatorId))
                 }
               >
                 {loading ? (

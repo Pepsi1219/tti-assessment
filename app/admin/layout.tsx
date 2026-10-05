@@ -3,9 +3,9 @@
 import {
   Award,
   ClipboardList,
+  ClipboardCheck,
   Download,
   Eye,
-  FileQuestion,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -73,8 +73,8 @@ export default function AdminLayout({
     { href: "/admin/evaluators", label: t.evaluator, icon: UserCheck },
     { href: "/admin/recipients", label: t.recipients, icon: Users },
     { href: "/admin/topics", label: t.evaluationTopics, icon: ListChecks },
-    { href: "/admin/questions", label: t.questions, icon: FileQuestion },
-    { href: "/admin/evaluations", label: t.evaluations, icon: ClipboardList },
+    { href: "/admin/assessment-versions", label: t.assessmentVersions, icon: ClipboardCheck },
+    { href: "/admin/evaluations", label: t.evaluationsLog, icon: ClipboardList },
     {
       href: "/admin/evaluation-summaries",
       label: t.evaluationSummaries,
