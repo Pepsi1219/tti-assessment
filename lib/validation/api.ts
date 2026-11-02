@@ -17,6 +17,11 @@ const questionAnswerPayloadSchema = z.union([
 ]);
 
 const identifier = z.string().trim().min(1).max(128);
+const calendarDate = z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => {
+    const parsed = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  }, "Invalid calendar date");
 const businessUnitCode = z.enum(["G1", "G2", "G3", "G4", "EA", "TRM"]);
 const categoryPayloadSchema = z.object({
   id: identifier,
@@ -90,15 +95,25 @@ export const evaluationUpdatePayloadSchema = z.object({
   recipientId: identifier,
   topicId: identifier,
   evaluatorEmployeeId: z.string().trim().min(1).max(64),
-  evaluationDate: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{2}-\d{2}$/),
+  evaluationDate: calendarDate,
   evaluationRound: z.number().int().min(1).max(99),
   comment: z.string().trim().max(5_000).default(""),
   categoryScores: z
     .record(z.number().finite().min(0).max(10_000))
     .refine((scores) => Object.keys(scores).length <= 20, "Too many scores"),
+});
+
+export const evaluationImportPayloadSchema = z.object({
+  recipientId: identifier,
+  topicId: identifier,
+  evaluatorEmployeeId: z.string().trim().min(1).max(64),
+  evaluationDate: calendarDate,
+  evaluationRound: z.number().int().min(1).max(99),
+  categoryScores: z.array(z.number().finite().min(0).max(10_000)).max(50),
+});
+
+export const evaluationAvailabilityPayloadSchema = z.object({
+  isOpen: z.boolean(),
 });
 
 export const recipientPayloadSchema = z.object({

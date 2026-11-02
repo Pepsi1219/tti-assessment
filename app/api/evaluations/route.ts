@@ -17,7 +17,7 @@ import { getRepository } from "@/lib/repositories";
 import { calculateEvaluationMetrics } from "@/lib/services/evaluation-scoring";
 import {
   getLegacyAssessment,
-  resolveTopicAssessment,
+  redactAssessmentAnswerKeys,
 } from "@/lib/services/assessment-version";
 
 function isFirestoreQuotaError(error: unknown) {
@@ -51,13 +51,7 @@ export async function GET() {
   const responseResults = isAdmin(user)
     ? visibleResults
     : visibleResults.map((result) => result.assessmentVersion
-      ? {
-          ...result,
-          assessmentVersion: {
-            ...result.assessmentVersion,
-            questions: result.assessmentVersion.questions.map(({ correctAnswer: _correctAnswer, ...question }) => question),
-          },
-        }
+      ? { ...result, assessmentVersion: redactAssessmentAnswerKeys(result.assessmentVersion) }
       : result);
 
   return NextResponse.json(responseResults, {
@@ -90,7 +84,10 @@ export async function POST(request: Request) {
     );
 
   try {
-    return NextResponse.json(await submitEvaluation(payload.data, user));
+    const result = await submitEvaluation(payload.data, user);
+    return NextResponse.json(isAdmin(user) || !result.assessmentVersion
+      ? result
+      : { ...result, assessmentVersion: redactAssessmentAnswerKeys(result.assessmentVersion) });
   } catch (error) {
     if (error instanceof EvaluationValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 });

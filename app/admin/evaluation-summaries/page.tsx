@@ -824,6 +824,8 @@ function ComparisonResultStamp({ result }: { result: "Pass" | "Fail" }) {
 function ReportResultStamp({ result }: { result: "Pass" | "Fail" }) {
   const { t } = useI18n();
   return (
+    // The local SVG is captured directly when the full report is saved as PNG.
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={
         result === "Pass"

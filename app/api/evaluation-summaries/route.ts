@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser, isAdmin } from "@/lib/auth/authorization";
 import { getEvaluationSummaries } from "@/lib/services/evaluation-service";
+import { redactAssessmentAnswerKeys } from "@/lib/services/assessment-version";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -22,7 +23,12 @@ export async function GET() {
           evaluation.evaluatorEmail.toLowerCase() === user.email?.toLowerCase()),
     ),
   );
-  return NextResponse.json(evaluatorSummaries, {
+  return NextResponse.json(evaluatorSummaries.map((summary) => ({
+    ...summary,
+    evaluations: summary.evaluations.map((evaluation) => evaluation.assessmentVersion
+      ? { ...evaluation, assessmentVersion: redactAssessmentAnswerKeys(evaluation.assessmentVersion) }
+      : evaluation),
+  })), {
     headers: { "Cache-Control": "private, no-store" },
   });
 }

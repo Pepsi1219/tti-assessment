@@ -1086,29 +1086,3 @@ function ReportCheckbox({ checked }: { checked: boolean }) {
     </span>
   );
 }
-
-function ResultTile({
-  label,
-  value,
-  success,
-}: {
-  label: string;
-  value: string;
-  success?: boolean;
-}) {
-  return (
-    <div className="rounded-[24px] border border-slate-200 bg-white p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-        {label}
-      </p>
-      <p
-        className={cn(
-          "mt-2 text-2xl font-black tracking-tight",
-          success ? "text-emerald-500" : "text-slate-950",
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}

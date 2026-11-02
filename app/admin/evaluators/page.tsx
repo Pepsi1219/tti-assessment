@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, Edit2, Plus, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -53,7 +53,7 @@ export default function EvaluatorManagementPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     const [evaluatorsResult, evaluationsResult] = await Promise.allSettled([
       fetch("/api/evaluators?includeInactive=1"),
       fetch("/api/evaluations"),
@@ -70,11 +70,11 @@ export default function EvaluatorManagementPage() {
       setEvaluations(await evaluationsResult.value.json());
     }
     setLoading(false);
-  }
+  }, [t.error]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const filterOptions = useMemo(() => {
     const unique = (values: Array<string | undefined>) =>
@@ -270,6 +270,21 @@ export default function EvaluatorManagementPage() {
               value={filterEmployeeId}
               onChange={(event) => setFilterEmployeeId(event.target.value)}
             />
+          </div>
+          <div className="w-full max-w-[170px]">
+            <FilterSelect value={filterBuCode} onChange={setFilterBuCode} label={t.bu} options={filterOptions.buCodes} />
+          </div>
+          <div className="w-full max-w-[200px]">
+            <FilterSelect value={filterDepartment} onChange={setFilterDepartment} label={t.department} options={filterOptions.departments} />
+          </div>
+          <div className="w-full max-w-[180px]">
+            <FilterSelect value={filterCourse} onChange={setFilterCourse} label={t.course} options={filterOptions.courses} />
+          </div>
+          <div className="w-full max-w-[130px]">
+            <FilterSelect value={filterYear} onChange={setFilterYear} label={t.year} options={filterOptions.years} />
+          </div>
+          <div className="w-full max-w-[150px]">
+            <FilterSelect value={filterResult} onChange={setFilterResult} label={t.result} options={["Pass", "Fail"]} optionLabels={{ Pass: t.pass, Fail: t.fail }} />
           </div>
           <div className="w-full max-w-[180px]">
             <FilterSelect

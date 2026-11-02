@@ -8,6 +8,7 @@ import { getRepository } from "@/lib/repositories";
 import { calculateEvaluationMetrics } from "@/lib/services/evaluation-scoring";
 import { resolveTopicAssessment } from "@/lib/services/assessment-version";
 import type { Evaluation } from "@/lib/types";
+import { evaluationImportPayloadSchema } from "@/lib/validation/api";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -20,32 +21,8 @@ export async function POST(request: Request) {
       { error: "Invalid request origin" },
       { status: 403 },
     );
-  const body = (await request.json().catch(() => null)) as Record<
-    string,
-    unknown
-  > | null;
-  const recipientId =
-    typeof body?.recipientId === "string" ? body.recipientId.trim() : "";
-  const topicId = typeof body?.topicId === "string" ? body.topicId.trim() : "";
-  const evaluatorEmployeeId =
-    typeof body?.evaluatorEmployeeId === "string"
-      ? body.evaluatorEmployeeId.trim()
-      : "";
-  const evaluationDate =
-    typeof body?.evaluationDate === "string" ? body.evaluationDate.trim() : "";
-  const evaluationRound = body?.evaluationRound;
-  const categoryScores = Array.isArray(body?.categoryScores)
-    ? body.categoryScores
-    : [];
-  if (
-    !recipientId ||
-    !topicId ||
-    !evaluatorEmployeeId ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(evaluationDate) ||
-    !Number.isInteger(evaluationRound) ||
-    Number(evaluationRound) < 1 ||
-    Number(evaluationRound) > 99
-  )
+  const payload = evaluationImportPayloadSchema.safeParse(await request.json().catch(() => null));
+  if (!payload.success)
     return NextResponse.json(
       {
         error:
@@ -53,6 +30,7 @@ export async function POST(request: Request) {
       },
       { status: 400 },
     );
+  const { recipientId, topicId, evaluatorEmployeeId, evaluationDate, evaluationRound, categoryScores } = payload.data;
   const repo = getRepository();
   const [recipients, topics, evaluators, existing] =
     await Promise.all([
@@ -72,7 +50,20 @@ export async function POST(request: Request) {
       { error: "The selected recipient or course is not available." },
       { status: 400 },
     );
-  const assessment = await resolveTopicAssessment(repo, topic);
+  let assessment;
+  try {
+    assessment = await resolveTopicAssessment(repo, topic);
+  } catch {
+    return NextResponse.json(
+      { error: "The course assessment is not configured." },
+      { status: 409 },
+    );
+  }
+  if (assessment.kind === "exam")
+    return NextResponse.json(
+      { error: "Exams must use the exam grading workflow." },
+      { status: 400 },
+    );
   const categories = assessment.categories;
   const questions = assessment.questions;
   if (categoryScores.length !== categories.length)
@@ -95,7 +86,7 @@ export async function POST(request: Request) {
     .sort((left, right) => left.sortOrder - right.sortOrder);
   const categoryActualScores: Record<string, number> = {};
   for (let index = 0; index < orderedCategories.length; index += 1) {
-    const score = Number(categoryScores[index]);
+    const score = categoryScores[index];
     if (!Number.isFinite(score) || score < 0)
       return NextResponse.json(
         { error: `Invalid score for category ${index + 1}.` },
@@ -108,8 +99,8 @@ export async function POST(request: Request) {
       (evaluation) =>
         evaluation.recipientId === recipient.id &&
         evaluation.topicId === topic.id &&
-        evaluation.evaluationRound === Number(evaluationRound) &&
-        evaluation.evaluationDate === evaluationDate &&
+        evaluation.evaluationRound === evaluationRound &&
+        evaluation.evaluationDate.slice(0, 4) === evaluationDate.slice(0, 4) &&
         (evaluation.evaluatorEmployeeId?.toLowerCase() ===
           evaluator.employeeId.toLowerCase() ||
           (!evaluation.evaluatorEmployeeId &&
@@ -129,18 +120,18 @@ export async function POST(request: Request) {
     assessment,
   );
   const exceedsMaximum = metrics.categorySummary.findIndex(
-    (category, index) => Number(categoryScores[index]) > category.fullScore,
+    (category) => categoryActualScores[category.categoryId] > category.fullScore,
   );
   if (exceedsMaximum >= 0)
     return NextResponse.json(
       {
-        error: `Score for category ${exceedsMaximum + 1} exceeds its full score.`,
+        error: `Score for ${metrics.categorySummary[exceedsMaximum].categoryName} exceeds its full score.`,
       },
       { status: 400 },
     );
   const now = new Date().toISOString();
   const evaluation: Evaluation = {
-    id: `ev-import-${Date.now()}`,
+    id: `ev-import-${crypto.randomUUID()}`,
     recipientId: recipient.id,
     topicId: topic.id,
     topicName: topic.topicName,
@@ -151,7 +142,7 @@ export async function POST(request: Request) {
     bu: recipient.bu,
     buCode: recipient.buCode,
     evaluationDate,
-    evaluationRound: Number(evaluationRound),
+    evaluationRound,
     categoryActualScores,
     categorySummary: metrics.categorySummary,
     totalScore: metrics.overallAverage,

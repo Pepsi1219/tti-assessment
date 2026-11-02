@@ -318,6 +318,15 @@ export default function RecipientManagementPage() {
               options={filterOptions.departments}
             />
           </div>
+          <div className="w-full max-w-[180px]">
+            <FilterSelect value={filterCourse} onChange={setFilterCourse} label={t.course} options={filterOptions.courses} />
+          </div>
+          <div className="w-full max-w-[130px]">
+            <FilterSelect value={filterYear} onChange={setFilterYear} label={t.year} options={filterOptions.years} />
+          </div>
+          <div className="w-full max-w-[150px]">
+            <FilterSelect value={filterResult} onChange={setFilterResult} label={t.result} options={["Pass", "Fail"]} optionLabels={{ Pass: t.pass, Fail: t.fail }} />
+          </div>
           <div className="w-full max-w-[170px]">
             <FilterSelect
               value={filterStatus}

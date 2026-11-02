@@ -1,5 +1,21 @@
 import type { EvaluationRepository } from "@/lib/repositories/evaluation-repository";
-import type { AssessmentVersion, EvaluationTopic } from "@/lib/types";
+import type { AssessmentVersion, EvaluationTopic, Question } from "@/lib/types";
+
+export function redactQuestionAnswerKeys(questions: Question[]): Question[] {
+  return questions.map((question) => {
+    const redacted = { ...question };
+    delete redacted.correctAnswer;
+    return redacted;
+  });
+}
+
+/** Keep answer keys on the server and in the admin editor only. */
+export function redactAssessmentAnswerKeys(version: AssessmentVersion): AssessmentVersion {
+  return {
+    ...version,
+    questions: redactQuestionAnswerKeys(version.questions),
+  };
+}
 
 export async function resolveTopicAssessment(
   repo: EvaluationRepository,

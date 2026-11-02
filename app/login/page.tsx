@@ -157,7 +157,7 @@ export default function LoginPage() {
                 {t.title}
               </h1>
               {topics.length > 0 && (
-                <div className="mt-8 max-h-52 space-y-2 overflow-y-auto pr-2">
+                <div className="scrollbar-hide mt-8 max-h-52 space-y-2 overflow-y-auto pr-2">
                   {topics.map((topic) => (
                     <div
                       key={topic.id}
@@ -255,7 +255,7 @@ export default function LoginPage() {
                       ))}
                     </div>
                   </div>
-                  {session?.user?.role !== "Evaluator" && <div className="space-y-2">
+                  <div className="space-y-2">
                     <span className="text-sm font-bold text-slate-700">
                       {t.course}
                     </span>
@@ -288,7 +288,7 @@ export default function LoginPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>}
+                  </div>
                   <div className="space-y-2">
                     <span className="text-sm font-bold text-slate-700">
                       {t.evaluator}

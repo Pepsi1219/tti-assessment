@@ -588,10 +588,12 @@ export default function AssessmentVersionsPage() {
                       if (question.answerType === "text" || question.answerType === "date" ||
                           question.answerType === "ranking" ||
                           question.answerType === "choice" && question.allowMultiple) {
-                        const { correctAnswer: _correctAnswer, ...rest } = question;
+                        const rest = { ...question };
+                        delete rest.correctAnswer;
                         return { ...rest, isScored: false };
                       }
-                      const { correctAnswer: _correctAnswer, ...rest } = question;
+                      const rest = { ...question };
+                      delete rest.correctAnswer;
                       return rest;
                     }),
                   });

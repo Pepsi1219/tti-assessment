@@ -1,7 +1,7 @@
 "use client";
 
 import { Edit2, Plus, Search, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -45,17 +45,17 @@ export default function AdminManagementPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     const response = await fetch("/api/admins");
     if (response.ok) setAdmins(await response.json());
     else setError(t.error);
     setLoading(false);
-  }
+  }, [t.error]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();

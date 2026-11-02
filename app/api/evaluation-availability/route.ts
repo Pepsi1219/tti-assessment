@@ -5,6 +5,7 @@ import {
   isAdmin,
 } from "@/lib/auth/authorization";
 import { getRepository } from "@/lib/repositories";
+import { evaluationAvailabilityPayloadSchema } from "@/lib/validation/api";
 
 /** Public so an unopened form can show its closed page before sign-in. */
 export async function GET() {
@@ -26,15 +27,13 @@ export async function PATCH(request: Request) {
       { status: 403 },
     );
 
-  const body = (await request.json().catch(() => null)) as {
-    isOpen?: unknown;
-  } | null;
-  if (typeof body?.isOpen !== "boolean")
+  const payload = evaluationAvailabilityPayloadSchema.safeParse(await request.json().catch(() => null));
+  if (!payload.success)
     return NextResponse.json(
       { error: "isOpen must be a boolean" },
       { status: 400 },
     );
 
-  await getRepository().setEvaluationOpen(body.isOpen);
-  return NextResponse.json({ isOpen: body.isOpen });
+  await getRepository().setEvaluationOpen(payload.data.isOpen);
+  return NextResponse.json({ isOpen: payload.data.isOpen });
 }

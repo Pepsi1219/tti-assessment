@@ -7,16 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsc --noEmit",
-    "import:evaluations": "node --no-warnings --experimental-strip-types scripts/import-evaluations-from-excel.ts",
-    "import:evaluations:commit": "node --no-warnings --experimental-strip-types scripts/import-evaluations-from-excel.ts --commit",
-    "correct:legacy-scores": "node --no-warnings --experimental-strip-types scripts/correct-legacy-evaluation-scores.ts",
+    "test": "tsc --noEmit && node --import tsx --test tests/evaluation-guards.test.ts",
+    "import:evaluations": "tsx scripts/import-evaluations-from-excel.ts",
+    "import:evaluations:commit": "tsx scripts/import-evaluations-from-excel.ts --commit",
+    "correct:legacy-scores": "tsx scripts/correct-legacy-evaluation-scores.ts",
     "backfill:evaluator-identities": "node scripts/backfill-evaluation-evaluator-identities.mjs",
     "migrate:evaluators-to-trainers": "node scripts/migrate-evaluators-to-trainers.mjs",
     "migrate:evaluators-to-trainers:commit": "node scripts/migrate-evaluators-to-trainers.mjs --commit"
   },
   "dependencies": {
-    "@auth/core": "^0.37.4",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-select": "^2.2.6",
     "class-variance-authority": "^0.7.1",
@@ -24,10 +23,10 @@
     "file-saver": "^2.0.5",
     "firebase-admin": "^13.10.0",
     "html2canvas": "^1.4.1",
-    "jspdf": "^2.5.2",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.468.0",
     "next": "^15.5.22",
-    "next-auth": "5.0.0-beta.25",
+    "next-auth": "^5.0.0-beta.32",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "recharts": "^2.15.0",
@@ -45,6 +44,7 @@
     "eslint-config-next": "15.0.4",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
+    "tsx": "^4.23.15",
     "typescript": "^5.7.2"
   }
 }

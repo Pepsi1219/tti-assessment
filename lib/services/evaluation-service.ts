@@ -117,14 +117,11 @@ export async function calculateEvaluation(input: EvaluationInput, evaluator: Cur
   const scores = Object.fromEntries(activeQuestions.flatMap((question) => {
     if (!isQuestionScored(question)) return [];
     const answerScore = getQuestionScore(question, answers[question.id]);
-    const score = answerScore ?? input.scores[question.id];
-    return score === undefined ? [] : [[question.id, score]];
+    return answerScore === undefined ? [] : [[question.id, answerScore]];
   }));
-  const scoringQuestions = activeQuestions.filter(
-    (question) => isQuestionScored(question) && scores[question.id] !== undefined,
-  );
+  const scoringQuestions = activeQuestions.filter(isQuestionScored);
   const metrics = calculateEvaluationMetrics(categories, scoringQuestions, scores, undefined, assessment);
-  const id = `ev-${Date.now()}`;
+  const id = `ev-${crypto.randomUUID()}`;
   const createdAt = new Date().toISOString();
   const evaluationDate = createdAt.slice(0, 10);
   const evaluationYear = evaluationDate.slice(0, 4);
