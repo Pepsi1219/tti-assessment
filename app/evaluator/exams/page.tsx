@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronLeft, FileCheck2 } from "lucide-react";
 import { CriterionQuestion } from "@/components/criterion-question";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n/context";
 import { getLocalizedCategoryName, getLocalizedQuestion } from "@/lib/i18n/question-content";
@@ -93,6 +94,9 @@ export default function EvaluatorExamsPage() {
   const [selectedTopicId, setSelectedTopicId] = useState("");
   const [recipientId, setRecipientId] = useState("");
   const [round, setRound] = useState("1");
+  const [latestRound, setLatestRound] = useState<number | null>(null);
+  const [roundSuggestionOpen, setRoundSuggestionOpen] = useState(false);
+  const [roundSuggestionLoading, setRoundSuggestionLoading] = useState(false);
   const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>({});
   const [mode, setMode] = useState<ExamMode>("dashboard");
   const [selectedAttempt, setSelectedAttempt] = useState<ExamAttemptView | null>(null);
@@ -184,6 +188,46 @@ export default function EvaluatorExamsPage() {
   const answeredCount = activeQuestions.filter((question) => isComplete(question, answers[question.id])).length;
   const selectedTopic = topics.find((topic) => topic.id === selectedTopicId);
   const selectedRecipient = recipients.find((recipient) => recipient.id === recipientId);
+
+  useEffect(() => {
+    setLatestRound(null);
+    setRoundSuggestionOpen(false);
+    if (!selectedRecipient || !selectedTopicId) return;
+
+    const controller = new AbortController();
+    const params = new URLSearchParams({ topicId: selectedTopicId });
+    if (selectedRecipient.buCode)
+      params.set("buCode", selectedRecipient.buCode);
+    params.set("bu", selectedRecipient.bu);
+
+    setRound("");
+    setRoundSuggestionLoading(true);
+    fetch(`/api/evaluations/round-suggestion?${params.toString()}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? t.unableToLoad);
+        return data as { latestRound: number | null };
+      })
+      .then(({ latestRound: suggestion }) => {
+        if (controller.signal.aborted) return;
+        if (suggestion && suggestion > 0) {
+          setLatestRound(suggestion);
+          setRoundSuggestionOpen(true);
+        } else {
+          setRound("1");
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setRound("");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setRoundSuggestionLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [selectedRecipient?.bu, selectedRecipient?.buCode, recipientId, selectedTopicId, t.unableToLoad]);
   const gradingQuestions = selectedAttempt?.assessmentVersion?.questions.filter(
     (question) => question.isActive,
   ) ?? [];
@@ -327,7 +371,7 @@ export default function EvaluatorExamsPage() {
               </label>
               <label className="space-y-2 text-sm font-semibold">
                 <span>{t.round}</span>
-                <Input type="number" min="1" max="99" value={round} onChange={(event) => setRound(event.target.value)} />
+                <Input type="number" min="1" max="99" value={round} disabled={roundSuggestionLoading} onChange={(event) => setRound(event.target.value)} />
               </label>
             </div>
             {topics.length > 1 && (
@@ -344,6 +388,38 @@ export default function EvaluatorExamsPage() {
               </Button>
             </div>
           </Card>
+
+          <Dialog
+            open={roundSuggestionOpen}
+            onClose={() => setRoundSuggestionOpen(false)}
+            title={t.latestRoundForBu}
+            className="max-w-sm"
+          >
+            <p className="mb-5 text-sm text-slate-600">
+              {t.bu}: {selectedRecipient?.buCode ?? selectedRecipient?.bu} · {t.round} {latestRound}
+            </p>
+            <div className="grid gap-3">
+              <Button
+                type="button"
+                onClick={() => {
+                  if (latestRound) setRound(String(latestRound));
+                  setRoundSuggestionOpen(false);
+                }}
+              >
+                {t.useLatestRound} ({latestRound})
+              </Button>
+              <Button
+                type="button"
+                className="border border-slate-200 bg-white text-slate-700 shadow-none hover:bg-slate-50"
+                onClick={() => {
+                  setRoundSuggestionOpen(false);
+                  setRound("");
+                }}
+              >
+                {t.chooseCustomRound}
+              </Button>
+            </div>
+          </Dialog>
 
           <div className="space-y-3">
             <h3 className="text-lg font-black">{t.pendingExams} · {queue.length}</h3>

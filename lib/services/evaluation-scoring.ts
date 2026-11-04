@@ -43,9 +43,16 @@ export function getQuestionScore(
     return numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length;
   }
   if (question.answerType === "choice") {
-    if (question.allowMultiple || typeof answer !== "string") return undefined;
-    const choiceIndex = question.options?.indexOf(answer) ?? -1;
-    return choiceIndex >= 0 ? choiceIndex + 1 : undefined;
+    const options = question.options ?? [];
+    const selections = question.allowMultiple
+      ? Array.isArray(answer) ? answer : null
+      : typeof answer === "string" ? [answer] : null;
+    if (!selections?.length || selections.some((selection) => typeof selection !== "string"))
+      return undefined;
+    const choiceIndexes = selections.map((selection) => options.indexOf(selection));
+    if (choiceIndexes.some((index) => index < 0) || new Set(selections).size !== selections.length)
+      return undefined;
+    return Math.max(...choiceIndexes) + 1;
   }
   return typeof answer === "number" ? answer : undefined;
 }

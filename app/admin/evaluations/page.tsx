@@ -1,12 +1,14 @@
 "use client";
 
 import {
+  ArrowLeft,
   Check,
   ChevronLeft,
   ChevronRight,
   Eye,
   FileText,
   Pencil,
+  Search,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -64,15 +66,26 @@ export default function EvaluationManagementPage() {
   const { t } = useI18n();
   const { setActions } = useAdminEvaluationActions();
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
+  const [topics, setTopics] = useState<EvaluationTopic[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState("");
   const [filterEmployeeId, setFilterEmployeeId] = useState("");
   const [filterEvaluator, setFilterEvaluator] = useState<string>("all");
   const [filterBuCode, setFilterBuCode] = useState<string>("all");
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
-  const [filterCourse, setFilterCourse] = useState<string>("all");
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterResult, setFilterResult] = useState<string>("all");
+  const [appliedFilters, setAppliedFilters] = useState({
+    employeeId: "",
+    evaluator: "",
+    buCode: "",
+    department: "",
+    year: "",
+    result: "",
+  });
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
+  const [pageCursors, setPageCursors] = useState<Record<number, string>>({});
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [selected, setSelected] = useState<EvaluationResult | null>(null);
   const [editing, setEditing] = useState<EvaluationResult | null>(null);
   const [pendingDelete, setPendingDelete] = useState<EvaluationResult | null>(
@@ -81,15 +94,125 @@ export default function EvaluationManagementPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
+  const [detailLoadingId, setDetailLoadingId] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
   const [importOpen, setImportOpen] = useState(false);
+  const cursorForPage = pageCursors[page];
   useEffect(() => {
-    fetch("/api/evaluations")
-      .then((res) => res.json())
+    let cancelled = false;
+    fetch("/api/topics")
+      .then(async (response) => {
+        if (!response.ok) throw new Error(t.unableToLoad);
+        return response.json() as Promise<EvaluationTopic[]>;
+      })
       .then((data) => {
-        setEvaluations(data);
-        setLoading(false);
+        if (!cancelled) setTopics(data);
+      })
+      .catch((error) => {
+        if (!cancelled)
+          setLoadError(error instanceof Error ? error.message : t.unableToLoad);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [t.unableToLoad]);
+
+  useEffect(() => {
+    if (!selectedTopicId) return;
+    let cancelled = false;
+    const params = new URLSearchParams({
+      topicId: selectedTopicId,
+      limit: String(pageSize),
+    });
+    if (cursorForPage) params.set("cursor", cursorForPage);
+    if (appliedFilters.employeeId) params.set("employeeId", appliedFilters.employeeId);
+    if (appliedFilters.evaluator) params.set("evaluator", appliedFilters.evaluator);
+    if (appliedFilters.buCode) params.set("buCode", appliedFilters.buCode);
+    if (appliedFilters.department) params.set("department", appliedFilters.department);
+    if (appliedFilters.year) params.set("year", appliedFilters.year);
+    if (appliedFilters.result) params.set("result", appliedFilters.result);
+
+    setPageLoading(true);
+    setNextCursor(null);
+    setLoadError("");
+    fetch(`/api/evaluations?${params.toString()}`)
+      .then(async (response) => {
+        const data = await response.json().catch(() => null);
+        if (!response.ok)
+          throw new Error(data?.error ?? t.unableToLoad);
+        if (!data || !Array.isArray(data.items))
+          throw new Error(t.unableToLoad);
+        return data as {
+          items: EvaluationResult[];
+          nextCursor: string | null;
+        };
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setEvaluations(data.items);
+        setNextCursor(data.nextCursor);
+        if (data.nextCursor)
+          setPageCursors((current) => ({ ...current, [page + 1]: data.nextCursor! }));
+        else
+          setPageCursors((current) => {
+            const next = { ...current };
+            delete next[page + 1];
+            return next;
+          });
+      })
+      .catch((error) => {
+        if (!cancelled)
+          setLoadError(error instanceof Error ? error.message : t.unableToLoad);
+      })
+      .finally(() => {
+        if (!cancelled) setPageLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appliedFilters, cursorForPage, page, pageSize, refreshKey, selectedTopicId, t.unableToLoad]);
+
+  function chooseTopic(topicId: string) {
+    setSelectedTopicId(topicId);
+    setEvaluations([]);
+    setPage(1);
+    setPageCursors({});
+    setNextCursor(null);
+  }
+
+  function applyFilters() {
+    setAppliedFilters({
+      employeeId: filterEmployeeId.trim(),
+      evaluator: filterEvaluator === "all" ? "" : filterEvaluator,
+      buCode: filterBuCode === "all" ? "" : filterBuCode,
+      department: filterDepartment === "all" ? "" : filterDepartment,
+      year: filterYear === "all" ? "" : filterYear,
+      result: filterResult === "all" ? "" : filterResult,
+    });
+    setPage(1);
+    setPageCursors({});
+  }
+
+  async function loadEvaluationDetails(evaluation: EvaluationResult, mode: "view" | "edit") {
+    setDetailLoadingId(evaluation.id);
+    setLoadError("");
+    try {
+      const response = await fetch(`/api/evaluations/${encodeURIComponent(evaluation.id)}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? t.unableToLoad);
+      if (mode === "view") setSelected(data);
+      else setEditing(data);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : t.unableToLoad);
+    } finally {
+      setDetailLoadingId("");
+    }
+  }
 
   useEffect(() => {
     if (!selected) return;
@@ -100,89 +223,6 @@ export default function EvaluationManagementPage() {
       document.body.style.overflow = previousOverflow;
     };
   }, [selected]);
-
-  const filterOptions = useMemo(() => {
-    const unique = (values: Array<string | undefined>) =>
-      Array.from(
-        new Set(values.filter((value): value is string => Boolean(value))),
-      ).sort();
-
-    return {
-      buCodes: unique(evaluations.map((evaluation) => evaluation.buCode)),
-      departments: unique(evaluations.map((evaluation) => evaluation.bu)),
-      courses: unique(evaluations.map((evaluation) => evaluation.topicName)),
-      evaluators: unique(
-        evaluations.map((evaluation) => evaluation.evaluatorName),
-      ),
-      years: unique(
-        evaluations.map((evaluation) => evaluation.evaluationDate?.slice(0, 4)),
-      )
-        .sort()
-        .reverse(),
-    };
-  }, [evaluations]);
-
-  const filtered = useMemo(() => {
-    return evaluations.filter((ev) => {
-      if (filterResult !== "all" && ev.result !== filterResult) return false;
-      if (filterEvaluator !== "all" && ev.evaluatorName !== filterEvaluator)
-        return false;
-      if (filterBuCode !== "all" && ev.buCode !== filterBuCode) return false;
-      if (filterDepartment !== "all" && ev.bu !== filterDepartment)
-        return false;
-      if (filterCourse !== "all" && ev.topicName !== filterCourse) return false;
-      if (filterYear !== "all" && ev.evaluationDate.slice(0, 4) !== filterYear)
-        return false;
-      if (
-        filterEmployeeId &&
-        !(ev.recipient?.employeeId ?? "")
-          .toLowerCase()
-          .includes(filterEmployeeId.trim().toLowerCase())
-      )
-        return false;
-      return true;
-    }).sort(
-      (left, right) =>
-        right.evaluationDate.localeCompare(left.evaluationDate) ||
-        right.createdAt.localeCompare(left.createdAt),
-    );
-  }, [
-    evaluations,
-    filterEmployeeId,
-    filterEvaluator,
-    filterBuCode,
-    filterDepartment,
-    filterCourse,
-    filterYear,
-    filterResult,
-  ]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const paginated = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page, pageSize],
-  );
-  const pageNumbers = useMemo(
-    () => getPageNumbers(totalPages, page),
-    [page, totalPages],
-  );
-
-  useEffect(() => {
-    setPage(1);
-  }, [
-    filterEmployeeId,
-    filterEvaluator,
-    filterBuCode,
-    filterDepartment,
-    filterCourse,
-    filterYear,
-    filterResult,
-    pageSize,
-  ]);
-
-  useEffect(() => {
-    setPage((current) => Math.min(current, totalPages));
-  }, [totalPages]);
 
   const exportExcel = useCallback(async () => {
     const res = await fetch("/api/export/excel");
@@ -217,10 +257,6 @@ export default function EvaluationManagementPage() {
     URL.revokeObjectURL(blobUrl);
   }
 
-  function showDetails(evaluation: EvaluationResult) {
-    setSelected(evaluation);
-  }
-
   async function deleteEvaluation() {
     if (!pendingDelete || deleting) return;
 
@@ -246,6 +282,7 @@ export default function EvaluationManagementPage() {
         current?.id === pendingDelete.id ? null : current,
       );
       setPendingDelete(null);
+      setRefreshKey((current) => current + 1);
     } catch (error) {
       setDeleteError(
         error instanceof Error ? error.message : t.unableToDelete,
@@ -265,73 +302,98 @@ export default function EvaluationManagementPage() {
 
   return (
     <div className="space-y-6">
+      {loadError && (
+        <p role="alert" className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-danger">
+          {loadError}
+        </p>
+      )}
       <Card className="p-5">
-        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+        {!selectedTopicId ? (
+          <div>
+            <div className="mb-5">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{t.evaluationReport}</p>
+              <h2 className="mt-1 text-xl font-black text-slate-900">{t.course}</h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {topics.map((topic) => (
+                <button
+                  key={topic.id}
+                  type="button"
+                  onClick={() => chooseTopic(topic.id)}
+                  className="group flex min-h-36 items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-primary/40 hover:shadow-md"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-lg font-bold text-slate-900">{topic.topicName}</span>
+                    {topic.description && <span className="mt-2 line-clamp-2 block text-sm text-slate-500">{topic.description}</span>}
+                  </span>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-primary transition group-hover:bg-primary group-hover:text-white">
+                    <ChevronRight className="h-5 w-5" />
+                  </span>
+                </button>
+              ))}
+              {!topics.length && <p className="py-8 text-sm text-slate-500">{t.noData}</p>}
+            </div>
+          </div>
+        ) : (
+          <>
+        {pageLoading ? (
+          <div className="flex justify-center py-16">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          </div>
+        ) : (
+        <>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <button type="button" onClick={() => chooseTopic("")} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50" aria-label={t.back}>
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{t.evaluationReport}</p>
+              <h2 className="truncate text-lg font-black text-slate-900">{topics.find((topic) => topic.id === selectedTopicId)?.topicName}</h2>
+            </div>
+          </div>
+          <Button type="button" onClick={applyFilters}>
+            <Search className="h-4 w-4" />
+            {t.search}
+          </Button>
+        </div>
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Input
             className="rounded-2xl"
+            aria-label={t.employeeId}
             placeholder={t.employeeId}
             value={filterEmployeeId}
             onChange={(event) => setFilterEmployeeId(event.target.value)}
           />
-          <StandardSelect
-            value={filterEvaluator}
-            onValueChange={setFilterEvaluator}
-            ariaLabel={t.evaluatedBy}
-            options={[
-              { value: "all", label: t.evaluatedBy },
-              ...filterOptions.evaluators.map((evaluator) => ({
-                value: evaluator,
-                label: evaluator,
-              })),
-            ]}
+          <Input
+            className="rounded-2xl"
+            aria-label={t.evaluatedBy}
+            placeholder={t.evaluatedBy}
+            value={filterEvaluator === "all" ? "" : filterEvaluator}
+            onChange={(event) => setFilterEvaluator(event.target.value || "all")}
           />
-          <StandardSelect
-            value={filterBuCode}
-            onValueChange={setFilterBuCode}
-            ariaLabel="BU"
-            options={[
-              { value: "all", label: "BU" },
-              ...filterOptions.buCodes.map((buCode) => ({
-                value: buCode,
-                label: buCode,
-              })),
-            ]}
+          <Input
+            className="rounded-2xl"
+            aria-label="BU"
+            placeholder="BU"
+            value={filterBuCode === "all" ? "" : filterBuCode}
+            onChange={(event) => setFilterBuCode(event.target.value || "all")}
           />
-          <StandardSelect
-            value={filterDepartment}
-            onValueChange={setFilterDepartment}
-            ariaLabel={t.department}
-            options={[
-              { value: "all", label: t.department },
-              ...filterOptions.departments.map((department) => ({
-                value: department,
-                label: department,
-              })),
-            ]}
+          <Input
+            className="rounded-2xl"
+            aria-label={t.department}
+            placeholder={t.department}
+            value={filterDepartment === "all" ? "" : filterDepartment}
+            onChange={(event) => setFilterDepartment(event.target.value || "all")}
           />
-          <StandardSelect
-            value={filterCourse}
-            onValueChange={setFilterCourse}
-            ariaLabel={t.course}
-            options={[
-              { value: "all", label: t.course },
-              ...filterOptions.courses.map((course) => ({
-                value: course,
-                label: course,
-              })),
-            ]}
-          />
-          <StandardSelect
-            value={filterYear}
-            onValueChange={setFilterYear}
-            ariaLabel={t.year}
-            options={[
-              { value: "all", label: t.year },
-              ...filterOptions.years.map((year) => ({
-                value: year,
-                label: year,
-              })),
-            ]}
+          <Input
+            className="rounded-2xl"
+            aria-label={t.year}
+            placeholder={t.year}
+            inputMode="numeric"
+            maxLength={4}
+            value={filterYear === "all" ? "" : filterYear}
+            onChange={(event) => setFilterYear(event.target.value || "all")}
           />
           <StandardSelect
             value={filterResult}
@@ -375,7 +437,7 @@ export default function EvaluationManagementPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginated.map((ev) => (
+            {evaluations.map((ev) => (
               <TableRow
                 key={ev.id}
                 className={cn(
@@ -420,7 +482,8 @@ export default function EvaluationManagementPage() {
                   <div className="flex items-center justify-center gap-2">
                     <button
                       type="button"
-                      onClick={() => showDetails(ev)}
+                      onClick={() => void loadEvaluationDetails(ev, "view")}
+                      disabled={detailLoadingId === ev.id}
                       className={cn(
                         "grid h-9 w-9 place-items-center rounded-xl transition",
                         selected?.id === ev.id
@@ -436,7 +499,8 @@ export default function EvaluationManagementPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEditing(ev)}
+                      onClick={() => void loadEvaluationDetails(ev, "edit")}
+                      disabled={detailLoadingId === ev.id}
                       className="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-700 transition hover:bg-amber-100 hover:text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 dark:hover:bg-amber-950"
                       title={t.edit}
                       aria-label={`${t.edit}: ${ev.recipient?.recipientName ?? ""}`}
@@ -467,7 +531,7 @@ export default function EvaluationManagementPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {filtered.length === 0 && (
+            {evaluations.length === 0 && (
               <TableRow>
                 <TableCell
                   colSpan={12}
@@ -486,7 +550,11 @@ export default function EvaluationManagementPage() {
               aria-label={t.rowsPerPage}
               ariaLabel={t.rowsPerPage}
               value={String(pageSize)}
-              onValueChange={(value) => setPageSize(Number(value))}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setPage(1);
+                setPageCursors({});
+              }}
               className="h-9 w-20 rounded-xl px-3 text-sm font-bold"
               options={[25, 50, 100].map((size) => ({
                 value: String(size),
@@ -494,58 +562,37 @@ export default function EvaluationManagementPage() {
               }))}
             />
             <span className="whitespace-nowrap">
-              {filtered.length === 0
+                {evaluations.length === 0
                 ? "0"
-                : `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, filtered.length)}`}{" "}
-              {t.of} {filtered.length}
+                  : `${(page - 1) * pageSize + 1}-${(page - 1) * pageSize + evaluations.length}`}
             </span>
           </div>
           <nav aria-label={t.rowsPerPage} className="flex items-center gap-1">
             <button
               type="button"
               aria-label={t.previous}
-              disabled={page === 1}
+              disabled={page === 1 || pageLoading}
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            {pageNumbers.map((pageNumber, index) =>
-              pageNumber === null ? (
-                <span key={`ellipsis-${index}`} className="px-1 text-slate-400">
-                  …
-                </span>
-              ) : (
-                <button
-                  key={pageNumber}
-                  type="button"
-                  aria-label={`${t.page} ${pageNumber}`}
-                  aria-current={pageNumber === page ? "page" : undefined}
-                  onClick={() => setPage(pageNumber)}
-                  className={cn(
-                    "grid h-9 min-w-9 place-items-center rounded-xl border px-2 font-bold transition",
-                    pageNumber === page
-                      ? "border-primary bg-primary text-white shadow-sm"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
-                  )}
-                >
-                  {pageNumber}
-                </button>
-              ),
-            )}
+            <span className="px-2 font-semibold text-slate-700">{t.page} {page}</span>
             <button
               type="button"
               aria-label={t.next}
-              disabled={page === totalPages}
-              onClick={() =>
-                setPage((current) => Math.min(totalPages, current + 1))
-              }
+              disabled={!nextCursor || pageLoading}
+              onClick={() => setPage((current) => current + 1)}
               className="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </nav>
         </div>
+        </>
+        )}
+          </>
+        )}
       </Card>
 
       {selected && (
@@ -643,37 +690,13 @@ export default function EvaluationManagementPage() {
         onClose={() => setImportOpen(false)}
         onImported={async () => {
           setImportOpen(false);
-          const response = await fetch("/api/evaluations");
-          if (response.ok) setEvaluations(await response.json());
+          setPage(1);
+          setPageCursors({});
+          setRefreshKey((current) => current + 1);
         }}
       />
     </div>
   );
-}
-
-function getPageNumbers(
-  totalPages: number,
-  currentPage: number,
-): Array<number | null> {
-  if (totalPages <= 7)
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-
-  const pages = new Set([
-    1,
-    totalPages,
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-  ]);
-  const ordered = Array.from(pages)
-    .filter((pageNumber) => pageNumber >= 1 && pageNumber <= totalPages)
-    .sort((a, b) => a - b);
-  const result: Array<number | null> = [];
-  ordered.forEach((pageNumber, index) => {
-    if (index > 0 && pageNumber - ordered[index - 1] > 1) result.push(null);
-    result.push(pageNumber);
-  });
-  return result;
 }
 
 function EditEvaluationDialog({

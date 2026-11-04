@@ -47,7 +47,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (session?.user?.role === "Admin") router.replace("/admin");
+    if (session?.user?.role === "Admin" || session?.user?.role === "Developer")
+      router.replace("/admin/evaluation-summaries");
   }, [session, status, router]);
 
   useEffect(() => {
@@ -103,7 +104,7 @@ export default function LoginPage() {
 
   async function handleAdminSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await signInWith(employeeId.trim(), "/admin");
+    await signInWith(employeeId.trim(), "/admin/evaluation-summaries");
   }
 
   async function handleEvaluatorSubmit(e: React.FormEvent) {

@@ -18,13 +18,12 @@ function isLocale(value: string | null): value is Locale {
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    if (typeof window !== "undefined") {
-      const storedLocale = localStorage.getItem("locale");
-      return isLocale(storedLocale) ? storedLocale : "th";
-    }
-    return "th";
-  });
+  const [locale, setLocaleState] = useState<Locale>("th");
+
+  useEffect(() => {
+    const storedLocale = localStorage.getItem("locale");
+    if (isLocale(storedLocale)) setLocaleState(storedLocale);
+  }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);

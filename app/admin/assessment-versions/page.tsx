@@ -12,6 +12,7 @@ import { StandardSelect } from "@/components/ui/standard-select";
 import { useEscapeKey } from "@/lib/hooks/use-escape-key";
 import { useI18n } from "@/lib/i18n/context";
 import { getLocalizedCategoryName, getLocalizedQuestion } from "@/lib/i18n/question-content";
+import { getQuestionScore, isQuestionScored } from "@/lib/services/evaluation-scoring";
 import type { AssessmentKind, AssessmentVersion, Category, EvaluationTopic, OverallPassThresholdType, Question, QuestionAnswer, QuestionAnswerType } from "@/lib/types";
 
 type EditableAssessment = Omit<
@@ -63,6 +64,19 @@ function isPreviewQuestionComplete(question: Question, answer: QuestionAnswer | 
     default:
       return typeof answer === "number" && Number.isInteger(answer) && answer >= 1;
   }
+}
+
+function getPreviewSectionScore(
+  questions: Question[],
+  answers: Record<string, QuestionAnswer>,
+) {
+  return questions.filter(isQuestionScored).reduce(
+    (score, question) => ({
+      obtained: score.obtained + (getQuestionScore(question, answers[question.id]) ?? 0) * question.weight,
+      full: score.full + question.maxScore * question.weight,
+    }),
+    { obtained: 0, full: 0 },
+  );
 }
 
 export default function AssessmentVersionsPage() {
@@ -780,10 +794,20 @@ export default function AssessmentVersionsPage() {
                         onClick={() => setPreviewStep(index)}
                       >
                         <span className="font-semibold">{section.categoryName}</span>
-                        <span className="text-sm text-slate-500">
-                          {section.questions.filter((question) =>
-                            isPreviewQuestionComplete(question, previewAnswers[question.id]),
-                          ).length}/{section.questions.length}
+                        <span className="shrink-0 text-right">
+                          {(() => {
+                            const score = getPreviewSectionScore(section.questions, previewAnswers);
+                            return score.full > 0 ? (
+                              <span className="block text-sm font-semibold">
+                                {score.obtained.toLocaleString(locale, { maximumFractionDigits: 2 })}/{score.full.toLocaleString(locale, { maximumFractionDigits: 2 })} {t.score}
+                              </span>
+                            ) : null;
+                          })()}
+                          <span className="block text-xs text-slate-500">
+                            {section.questions.filter((question) =>
+                              isPreviewQuestionComplete(question, previewAnswers[question.id]),
+                            ).length}/{section.questions.length} {t.complete}
+                          </span>
                         </span>
                       </button>
                     ))}

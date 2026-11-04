@@ -34,11 +34,6 @@ export default function EvaluatorLayout({
       router.replace("/login");
       return;
     }
-    if (
-      pathname === "/evaluator" &&
-      !new URLSearchParams(window.location.search).has("topicId")
-    )
-      router.replace("/login");
   }, [session, status, router, pathname]);
 
   if (status === "loading") {

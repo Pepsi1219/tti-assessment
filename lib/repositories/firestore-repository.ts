@@ -4,7 +4,12 @@ import {
   type DocumentData,
 } from "firebase-admin/firestore";
 import { getFirestoreDb } from "@/lib/firebase/admin";
-import type { EvaluationRepository } from "@/lib/repositories/evaluation-repository";
+import type {
+  EvaluationPage,
+  EvaluationPageCursor,
+  EvaluationPageQuery,
+  EvaluationRepository,
+} from "@/lib/repositories/evaluation-repository";
 import type {
   Category,
   AssessmentVersion,
@@ -63,7 +68,12 @@ export class FirestoreEvaluationRepository implements EvaluationRepository {
   }
 
   private invalidateCache(...names: string[]) {
-    names.forEach((name) => this.readCache.delete(name));
+    names.forEach((name) => {
+      for (const key of this.readCache.keys()) {
+        if (key === name || key.startsWith(`${name}:`))
+          this.readCache.delete(key);
+      }
+    });
   }
 
   async isEvaluationOpen(): Promise<boolean> {
@@ -290,6 +300,240 @@ export class FirestoreEvaluationRepository implements EvaluationRepository {
       EVALUATION_CACHE_TTL_MS,
     );
     return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async getEvaluationsByEvaluator(
+    employeeId: string,
+    email?: string | null,
+  ): Promise<Evaluation[]> {
+    const normalizedEmployeeId = employeeId.trim().toLowerCase();
+    const normalizedEmail = email?.trim().toLowerCase();
+    const cacheKey = `${collectionNames.evaluations}:evaluator:${normalizedEmployeeId}:${normalizedEmail ?? ""}`;
+    const cached = this.readCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now())
+      return cached.rows as Evaluation[];
+
+    const snapshots = await Promise.all([
+      normalizedEmployeeId
+        ? this.collection<Evaluation>(collectionNames.evaluations)
+            .where("evaluatorEmployeeId", "==", employeeId.trim())
+            .get()
+        : Promise.resolve(null),
+      normalizedEmail
+        ? this.collection<Evaluation>(collectionNames.evaluations)
+            .where("evaluatorEmail", "==", normalizedEmail)
+            .get()
+        : Promise.resolve(null),
+    ]);
+    const rowsById = new Map<string, Evaluation>();
+    for (const snapshot of snapshots) {
+      snapshot?.docs.forEach((doc) =>
+        rowsById.set(doc.id, { ...doc.data(), id: doc.id } as Evaluation),
+      );
+    }
+    const rows = [...rowsById.values()].sort(
+      (a, b) =>
+        b.evaluationDate.localeCompare(a.evaluationDate) ||
+        b.createdAt.localeCompare(a.createdAt) ||
+        b.id.localeCompare(a.id),
+    );
+    this.readCache.set(cacheKey, {
+      expiresAt: Date.now() + EVALUATION_CACHE_TTL_MS,
+      rows,
+    });
+    return rows;
+  }
+
+  async getEvaluationById(id: string): Promise<Evaluation | undefined> {
+    const snapshot = await this.collection<Evaluation>(collectionNames.evaluations)
+      .doc(id)
+      .get();
+    return snapshot.exists ? ({ ...snapshot.data(), id: snapshot.id } as Evaluation) : undefined;
+  }
+
+  async getEvaluationsByTopicId(topicId: string): Promise<Evaluation[]> {
+    const cacheKey = `${collectionNames.evaluations}:topic:${topicId}`;
+    const cached = this.readCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now())
+      return cached.rows as Evaluation[];
+
+    const snapshot = await this.collection<Evaluation>(collectionNames.evaluations)
+      .where("topicId", "==", topicId)
+      .get();
+    const rows = snapshot.docs.map(
+      (doc) => ({ ...doc.data(), id: doc.id }) as Evaluation,
+    );
+    this.readCache.set(cacheKey, {
+      expiresAt: Date.now() + EVALUATION_CACHE_TTL_MS,
+      rows,
+    });
+    return rows;
+  }
+
+  async getLatestEvaluationByTopicId(
+    topicId: string,
+  ): Promise<Evaluation | undefined> {
+    const cacheKey = `${collectionNames.evaluations}:latest-topic:${topicId}`;
+    const cached = this.readCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now())
+      return cached.rows[0] as Evaluation | undefined;
+
+    const snapshot = await this.collection<Evaluation>(collectionNames.evaluations)
+      .where("topicId", "==", topicId)
+      .orderBy("evaluationDate", "desc")
+      .orderBy("createdAt", "desc")
+      .orderBy(FieldPath.documentId(), "desc")
+      .limit(1)
+      .get();
+    const latest = snapshot.docs[0];
+    const rows = latest
+      ? [{ ...latest.data(), id: latest.id } as Evaluation]
+      : [];
+    this.readCache.set(cacheKey, {
+      expiresAt: Date.now() + EVALUATION_CACHE_TTL_MS,
+      rows,
+    });
+    return rows[0];
+  }
+
+  async getLatestEvaluationRound(
+    topicId: string,
+    businessUnit: { buCode?: string; bu?: string },
+  ): Promise<number | undefined> {
+    const matches = [
+      businessUnit.buCode
+        ? { field: "buCode", value: businessUnit.buCode }
+        : undefined,
+      businessUnit.bu ? { field: "bu", value: businessUnit.bu } : undefined,
+    ].filter((item): item is { field: "buCode" | "bu"; value: string } => Boolean(item));
+    if (!matches.length) return undefined;
+
+    const cacheKey = `${collectionNames.evaluations}:round:${topicId}:${businessUnit.buCode ?? ""}:${businessUnit.bu ?? ""}`;
+    const cached = this.readCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now())
+      return cached.rows[0] as number | undefined;
+
+    const snapshots = await Promise.all(matches.map(({ field, value }) =>
+      this.collection<Evaluation>(collectionNames.evaluations)
+        .where("topicId", "==", topicId)
+        .where(field, "==", value)
+        .orderBy("evaluationRound", "desc")
+        .limit(1)
+        .get(),
+    ));
+    const rounds = snapshots.flatMap((snapshot) => {
+      const round = snapshot.docs[0]?.get("evaluationRound");
+      return Number.isInteger(round) && round > 0 ? [round as number] : [];
+    });
+    const round = rounds.length ? Math.max(...rounds) : undefined;
+    this.readCache.set(cacheKey, {
+      expiresAt: Date.now() + EVALUATION_CACHE_TTL_MS,
+      rows: round === undefined ? [] : [round],
+    });
+    return round;
+  }
+
+  async getEvaluationPage(query: EvaluationPageQuery): Promise<EvaluationPage> {
+    if (query.recipientIds?.length === 0) return { items: [] };
+
+    const batchSize = query.pageSize + 1;
+    const matches = (evaluation: Evaluation) =>
+      (!query.evaluatorName || evaluation.evaluatorName === query.evaluatorName) &&
+      (!query.buCode || evaluation.buCode === query.buCode) &&
+      (!query.department || evaluation.bu === query.department) &&
+      (!query.year || evaluation.evaluationDate.startsWith(query.year)) &&
+      (!query.result || evaluation.result === query.result) &&
+      (!query.recipientIds || query.recipientIds.includes(evaluation.recipientId));
+
+    let cursor = query.cursor;
+    const pageRows: Evaluation[] = [];
+    const needsScan = Boolean(
+      query.evaluatorName || query.buCode || query.department || query.year ||
+      query.result || query.recipientIds,
+    );
+    const scanBatchSize = needsScan ? Math.max(100, batchSize) : batchSize;
+
+    if (query.evaluatorEmployeeId || query.evaluatorEmail) {
+      const evaluatorRows = await this.getEvaluationsByEvaluator(
+        query.evaluatorEmployeeId ?? "",
+        query.evaluatorEmail,
+      );
+      const matchingRows = evaluatorRows
+        .filter(
+          (evaluation) =>
+            evaluation.topicId === query.topicId && matches(evaluation),
+        )
+        .sort(
+          (a, b) =>
+            b.evaluationDate.localeCompare(a.evaluationDate) ||
+            b.createdAt.localeCompare(a.createdAt) ||
+            b.id.localeCompare(a.id),
+        );
+      const cursorIndex = query.cursor
+        ? matchingRows.findIndex((evaluation) => evaluation.id === query.cursor?.id)
+        : -1;
+      const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0;
+      const pageRows = matchingRows.slice(startIndex, startIndex + batchSize);
+      const hasMore = pageRows.length > query.pageSize;
+      const items = pageRows.slice(0, query.pageSize);
+      const lastItem = items.at(-1);
+      return {
+        items,
+        nextCursor: hasMore && lastItem
+          ? {
+              evaluationDate: lastItem.evaluationDate,
+              createdAt: lastItem.createdAt,
+              id: lastItem.id,
+            }
+          : undefined,
+      };
+    }
+
+    while (pageRows.length < batchSize) {
+      let request = this.collection<Evaluation>(collectionNames.evaluations)
+        .where("topicId", "==", query.topicId)
+        .orderBy("evaluationDate", "desc")
+        .orderBy("createdAt", "desc")
+        .orderBy(FieldPath.documentId(), "desc");
+      if (cursor)
+        request = request.startAfter(
+          cursor.evaluationDate,
+          cursor.createdAt,
+          cursor.id,
+        );
+      const snapshot = await request.limit(scanBatchSize).get();
+      if (snapshot.empty) break;
+
+      let reachedEnd = snapshot.size < scanBatchSize;
+      for (const doc of snapshot.docs) {
+        const evaluation = { ...doc.data(), id: doc.id } as Evaluation;
+        cursor = {
+          evaluationDate: evaluation.evaluationDate,
+          createdAt: evaluation.createdAt,
+          id: evaluation.id,
+        };
+        if (matches(evaluation)) pageRows.push(evaluation);
+        if (pageRows.length >= batchSize) {
+          reachedEnd = false;
+          break;
+        }
+      }
+      if (reachedEnd) break;
+    }
+
+    const hasMore = pageRows.length > query.pageSize;
+    const items = pageRows.slice(0, query.pageSize);
+    const lastItem = items.at(-1);
+    return {
+      items,
+      nextCursor: hasMore && lastItem
+        ? {
+            evaluationDate: lastItem.evaluationDate,
+            createdAt: lastItem.createdAt,
+            id: lastItem.id,
+          }
+        : undefined,
+    };
   }
 
   async getEvaluationDetails(): Promise<EvaluationDetail[]> {

@@ -1,4 +1,5 @@
-export type Role = "Admin" | "Evaluator";
+export type AdministratorRole = "Admin" | "Developer";
+export type Role = AdministratorRole | "Evaluator";
 export type TrainerStatus = "Active" | "Inactive";
 export type RecordStatus = "Active" | "Inactive";
 export type BusinessUnitCode = "G1" | "G2" | "G3" | "G4" | "EA" | "TRM";
@@ -12,7 +13,7 @@ export type User = {
   name: string;
   email: string;
   /** The Firestore `users` collection is reserved for administrator accounts. */
-  role: "Admin";
+  role: AdministratorRole;
   status?: RecordStatus;
   createdAt: string;
   updatedAt?: string;

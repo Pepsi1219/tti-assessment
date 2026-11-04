@@ -177,7 +177,7 @@ export const publishAssessmentVersionPayloadSchema = assessmentVersionBaseSchema
       question.answerType === "likert" && question.statements.length < 1 ||
       question.isScored === true && !["rating", "likert", "nps"].includes(question.answerType) &&
         !(version.kind === "exam" && ["text", "choice"].includes(question.answerType)) &&
-        !(question.answerType === "choice" && !question.allowMultiple &&
+        !(question.answerType === "choice" &&
           question.options.length >= 2 && question.options.length <= 10 &&
           question.maxScore === question.options.length)),
   ))
@@ -227,5 +227,6 @@ export const adminPayloadSchema = z.object({
   employeeId: z.string().trim().min(1).max(64),
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().email().max(320),
+  role: z.enum(["Admin", "Developer"]).optional(),
   status: z.enum(["Active", "Inactive"]).optional(),
 });

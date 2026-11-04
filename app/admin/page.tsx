@@ -1,7 +1,8 @@
 "use client";
 
-import { Activity, Award, CheckCircle2, TrendingDown, TrendingUp, XCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Activity, ArrowLeft, Award, CheckCircle2, TrendingDown, TrendingUp, XCircle } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bar,
   BarChart,
@@ -40,17 +41,61 @@ import type {
   EvaluationTopic,
 } from "@/lib/types";
 
+function DashboardSkeleton() {
+  return (
+    <section className="space-y-6" aria-busy="true" aria-label="Dashboard loading">
+      <div className="h-8 w-56 animate-pulse rounded-lg bg-slate-200" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <Card key={index} className="space-y-4">
+            <div className="h-4 w-28 animate-pulse rounded bg-slate-200" />
+            <div className="h-8 w-20 animate-pulse rounded bg-slate-200" />
+          </Card>
+        ))}
+      </div>
+      <div className="grid gap-4 xl:grid-cols-2">
+        {Array.from({ length: 2 }, (_, index) => (
+          <Card key={index} className="space-y-5">
+            <div className="h-5 w-40 animate-pulse rounded bg-slate-200" />
+            <div className="h-64 animate-pulse rounded-lg bg-slate-100" />
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function AdminDashboard() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <AdminDashboardContent />
+    </Suspense>
+  );
+}
+
+function AdminDashboardContent() {
   const { t, locale } = useI18n();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedTopicId = searchParams.get("topicId") ?? "";
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [recipients, setRecipients] = useState<EvaluationRecipient[]>([]);
   const [topics, setTopics] = useState<EvaluationTopic[]>([]);
   const [assessmentVersions, setAssessmentVersions] = useState<AssessmentVersion[]>([]);
-  const [selectedTopicId, setSelectedTopicId] = useState("all");
   const [selectedVersionId, setSelectedVersionId] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [loadedTopicId, setLoadedTopicId] = useState("");
 
   useEffect(() => {
+    if (!selectedTopicId) {
+      setLoading(false);
+      setLoadedTopicId("");
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    setLoadedTopicId("");
     Promise.all([
       fetch("/api/evaluations"),
       fetch("/api/recipients"),
@@ -58,42 +103,37 @@ export default function AdminDashboard() {
       fetch("/api/assessment-versions"),
     ]).then(
       async ([evRes, recipientRes, topicRes, versionRes]) => {
-        setEvaluations(await evRes.json());
-        setRecipients(await recipientRes.json());
-        setTopics(await topicRes.json());
-        setAssessmentVersions(await versionRes.json());
+        const [evaluationData, recipientData, topicData, versionData] = await Promise.all([
+          evRes.json(),
+          recipientRes.json(),
+          topicRes.json(),
+          versionRes.json(),
+        ]);
+        if (!active) return;
+        setEvaluations(evaluationData);
+        setRecipients(recipientData);
+        setTopics(topicData);
+        setAssessmentVersions(versionData);
+        setSelectedVersionId("all");
+        setLoadedTopicId(selectedTopicId);
         setLoading(false);
       }
-    );
-  }, []);
+    ).catch(() => {
+      if (active) setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedTopicId]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
-  }
+  if (!selectedTopicId || loading || loadedTopicId !== selectedTopicId)
+    return <DashboardSkeleton />;
 
-  const courseOptions = topics.length
-    ? topics
-      .filter((topic) => topic.status === "Active")
-      .map((topic) => ({ id: topic.id, name: topic.topicName }))
-    : Array.from(
-        new Map(
-          evaluations.map((evaluation) => [
-            evaluation.topicId,
-            evaluation.topicName,
-          ]),
-        ),
-        ([id, name]) => ({ id, name }),
-      );
-  const courseEvaluations =
-    selectedTopicId === "all"
-      ? evaluations
-      : evaluations.filter((evaluation) => evaluation.topicId === selectedTopicId);
+  const courseEvaluations = evaluations.filter(
+    (evaluation) => evaluation.topicId === selectedTopicId,
+  );
   const filteredEvaluations = courseEvaluations.filter((evaluation) => {
-    if (selectedTopicId === "all" || selectedVersionId === "all") return true;
+    if (selectedVersionId === "all") return true;
     if (selectedVersionId === "legacy") return !evaluation.assessmentVersionId;
     return evaluation.assessmentVersionId === selectedVersionId;
   });
@@ -107,20 +147,18 @@ export default function AdminDashboard() {
         : selectedVersionId),
   );
   const dashboardProfile = selectedAssessment?.dashboardProfile ?? "category-score";
-  const isAllCourses = selectedTopicId === "all";
   const isAllVersions = selectedVersionId === "all";
   const showPassFail =
-    !isAllCourses && !isAllVersions && dashboardProfile === "pass-fail";
+    !isAllVersions && dashboardProfile === "pass-fail";
   const showScoreDetails =
-    !isAllCourses && !isAllVersions && dashboardProfile !== "pass-fail";
+    !isAllVersions && dashboardProfile !== "pass-fail";
   const showCategoryDetails =
     showScoreDetails && dashboardProfile === "category-score";
   const passCount = filteredEvaluations.filter((e) => e.result === "Pass").length;
   const failCount = totalEvaluations - passCount;
-  const canShowComparativeMetrics = !isAllCourses && !isAllVersions;
-  const passRate = canShowComparativeMetrics && totalEvaluations ? (passCount / totalEvaluations) * 100 : 0;
-  const failRate = canShowComparativeMetrics && totalEvaluations ? (failCount / totalEvaluations) * 100 : 0;
-  const avgScore = showScoreDetails && totalEvaluations
+  const passRate = totalEvaluations ? (passCount / totalEvaluations) * 100 : 0;
+  const failRate = totalEvaluations ? (failCount / totalEvaluations) * 100 : 0;
+  const avgScore = totalEvaluations
     ? filteredEvaluations.reduce((sum, e) => sum + e.totalScore, 0) / totalEvaluations
     : 0;
 
@@ -218,75 +256,34 @@ export default function AdminDashboard() {
       : []),
   ];
 
-  function selectCourse(value: string) {
-    setSelectedTopicId(value);
-    const topic = topics.find((item) => item.id === value);
-    if (topic?.activeAssessmentVersionId) {
-      setSelectedVersionId(topic.activeAssessmentVersionId);
-      return;
-    }
-    const versionsForCourse = new Set(
-      evaluations
-        .filter((evaluation) => evaluation.topicId === value)
-        .map((evaluation) => evaluation.assessmentVersionId ?? "legacy"),
-    );
-    setSelectedVersionId(
-      versionsForCourse.size === 1
-        ? Array.from(versionsForCourse)[0]
-        : "all",
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-black">{t.dashboard}</h2>
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/admin")}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50"
+            aria-label={t.dashboard}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <h2 className="truncate text-xl font-black">{selectedTopic?.topicName ?? t.dashboard}</h2>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm font-bold text-slate-600">
-            {t.course}
-            <StandardSelect
-              value={selectedTopicId}
-              onValueChange={selectCourse}
-              ariaLabel={t.course}
-              options={[
-                { value: "all", label: t.all },
-                ...courseOptions.map((topic) => ({
-                  value: topic.id,
-                  label: topic.name,
-                })),
-              ]}
-            />
-          </label>
-          {selectedTopicId !== "all" && <label className="flex items-center gap-2 text-sm font-bold text-slate-600">
             {t.assessmentVersion}
             <StandardSelect value={selectedVersionId} onValueChange={setSelectedVersionId} ariaLabel={t.assessmentVersion} options={versionOptions} />
-          </label>}
+          </label>
         </div>
       </div>
       {/* Metric cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard icon={Activity} label={t.totalEvaluations} value={String(totalEvaluations)} />
-        <MetricCard icon={CheckCircle2} label={t.passRate} value={!canShowComparativeMetrics ? "—" : `${passRate.toFixed(0)}%`} tone="text-success" />
-        <MetricCard icon={XCircle} label={t.failRate} value={!canShowComparativeMetrics ? "—" : `${failRate.toFixed(0)}%`} tone="text-danger" />
-        <MetricCard icon={Award} label={t.averageScore} value={!showScoreDetails ? "—" : avgScore.toFixed(2)} />
+        <MetricCard icon={CheckCircle2} label={t.passRate} value={totalEvaluations ? `${passRate.toFixed(0)}%` : "—"} tone="text-success" />
+        <MetricCard icon={XCircle} label={t.failRate} value={totalEvaluations ? `${failRate.toFixed(0)}%` : "—"} tone="text-danger" />
+        <MetricCard icon={Award} label={t.averageScore} value={totalEvaluations ? avgScore.toFixed(2) : "—"} />
       </div>
-
-      {isAllCourses && (
-        <Card className="p-5">
-          <h3 className="mb-4 text-lg font-black">{t.evaluationTopics}</h3>
-          <Table>
-            <TableHeader><TableRow><TableHead className="text-left">{t.course}</TableHead><TableHead>{t.totalEvaluations}</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {courseOptions.map((topic) => (
-                <TableRow key={topic.id}>
-                  <TableCell className="text-left font-semibold">{topic.name}</TableCell>
-                  <TableCell>{evaluations.filter((evaluation) => evaluation.topicId === topic.id).length}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
 
       {showPassFail && <Card className="p-5">
         <h3 className="mb-4 text-lg font-black">{t.result}</h3>

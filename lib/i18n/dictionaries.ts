@@ -22,6 +22,8 @@ type Dictionary = {
   addEvaluator: string;
   adminManagement: string;
   addAdmin: string;
+  administratorType: string;
+  developer: string;
   email: string;
   continue: string;
   adminLogin: string;
@@ -51,6 +53,9 @@ type Dictionary = {
   topicName: string;
   course: string;
   round: string;
+  latestRoundForBu: string;
+  useLatestRound: string;
+  chooseCustomRound: string;
   year: string;
   topicDescription: string;
   assessmentVersions: string;
@@ -105,6 +110,7 @@ type Dictionary = {
   overallScoreProfile: string;
   passFailProfile: string;
   evaluations: string;
+  loadMore: string;
   evaluationsLog: string;
   evaluationSummaries: string;
   users: string;
@@ -303,6 +309,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     addEvaluator: "เพิ่มผู้ประเมิน",
     adminManagement: "จัดการผู้ดูแลระบบ",
     addAdmin: "เพิ่มผู้ดูแลระบบ",
+    administratorType: "ประเภทบัญชี",
+    developer: "Developer",
     email: "อีเมล",
     continue: "เริ่มทำการประเมิน",
     adminLogin: "เข้าสู่ระบบผู้ดูแล",
@@ -332,6 +340,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
     topicName: "ชื่อหลักสูตร",
     course: "หลักสูตร",
     round: "รอบ",
+    latestRoundForBu: "รอบล่าสุดของ BU นี้",
+    useLatestRound: "ใช้รอบล่าสุด",
+    chooseCustomRound: "กำหนดรอบเอง",
     year: "ปี",
     topicDescription: "รายละเอียดหลักสูตร",
     assessmentVersions: "แบบประเมิน",
@@ -386,6 +397,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     overallScoreProfile: "คะแนนรวม",
     passFailProfile: "ผ่าน / ไม่ผ่าน",
     evaluations: "ผลการประเมิน",
+    loadMore: "โหลดเพิ่มเติม",
     evaluationsLog: "บันทึกผลการประเมิน",
     evaluationSummaries: "สรุปผลรวม",
     users: "ผู้ใช้งาน",
@@ -584,6 +596,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     addEvaluator: "Add Evaluator",
     adminManagement: "Manage Administrators",
     addAdmin: "Add Administrator",
+    administratorType: "Account Type",
+    developer: "Developer",
     email: "Email",
     continue: "Start Evaluation",
     adminLogin: "Administrator sign in",
@@ -613,6 +627,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
     topicName: "Course Name",
     course: "Course",
     round: "Round",
+    latestRoundForBu: "Latest round for this BU",
+    useLatestRound: "Use latest round",
+    chooseCustomRound: "Choose a different round",
     year: "Year",
     topicDescription: "Course Description",
     assessmentVersions: "Assessments",
@@ -667,6 +684,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     overallScoreProfile: "Overall Score",
     passFailProfile: "Pass / Fail",
     evaluations: "Evaluations",
+    loadMore: "Load more",
     evaluationsLog: "Evaluations Log",
     evaluationSummaries: "Summary Result",
     users: "Users",
@@ -865,6 +883,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     addEvaluator: "ເພີ່ມຜູ້ປະເມີນ",
     adminManagement: "ຈັດການຜູ້ດູແລ",
     addAdmin: "ເພີ່ມຜູ້ດູແລ",
+    administratorType: "ປະເພດບັນຊີ",
+    developer: "Developer",
     email: "ອີເມວ",
     continue: "ເລີ່ມການປະເມີນ",
     adminLogin: "ເຂົ້າລະບົບຜູ້ດູແລ",
@@ -894,6 +914,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
     topicName: "ຊື່ຫຼັກສູດ",
     course: "ຫຼັກສູດ",
     round: "ຮອບ",
+    latestRoundForBu: "ຮອບຫຼ້າສຸດຂອງ BU ນີ້",
+    useLatestRound: "ໃຊ້ຮອບຫຼ້າສຸດ",
+    chooseCustomRound: "ກຳນົດຮອບເອງ",
     year: "ປີ",
     topicDescription: "ລາຍລະອຽດຫຼັກສູດ",
     assessmentVersions: "ແບບປະເມີນ",
@@ -948,6 +971,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     overallScoreProfile: "ຄະແນນລວມ",
     passFailProfile: "ຜ່ານ / ບໍ່ຜ່ານ",
     evaluations: "ຜົນການປະເມີນ",
+    loadMore: "ໂຫຼດເພີ່ມເຕີມ",
     evaluationsLog: "ບັນທຶກຜົນການປະເມີນ",
     evaluationSummaries: "ສະຫຼຸບຜົນລວມ",
     users: "ຜູ້ໃຊ້ງານ",
@@ -1145,6 +1169,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
     addEvaluator: "Thêm người đánh giá",
     adminManagement: "Quản lý quản trị viên",
     addAdmin: "Thêm quản trị viên",
+    administratorType: "Loại tài khoản",
+    developer: "Developer",
     email: "Email",
     continue: "Bắt đầu đánh giá",
     adminLogin: "Đăng nhập quản trị viên",
@@ -1174,6 +1200,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
     topicName: "Tên khóa học",
     course: "Khóa học",
     round: "Vòng",
+    latestRoundForBu: "Vòng gần nhất của BU này",
+    useLatestRound: "Dùng vòng gần nhất",
+    chooseCustomRound: "Chọn vòng khác",
     year: "Năm",
     topicDescription: "Mô tả khóa học",
     assessmentVersions: "Bài đánh giá",
@@ -1228,6 +1257,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     overallScoreProfile: "Điểm tổng thể",
     passFailProfile: "Đạt / Không đạt",
     evaluations: "Kết quả đánh giá",
+    loadMore: "Tải thêm",
     evaluationsLog: "Nhật ký đánh giá",
     evaluationSummaries: "Kết quả tổng hợp",
     users: "Người dùng",

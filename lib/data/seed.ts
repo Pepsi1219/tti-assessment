@@ -5,7 +5,7 @@ const now = new Date().toISOString();
 export const systemSettings = { evaluationOpen: true };
 
 export const users: User[] = [
-  { id: "u-admin", employeeId: "ADMIN01", name: "Admin User", email: "admin@nanyang.com", role: "Admin", createdAt: now }
+  { id: "u-admin", employeeId: "ADMIN01", name: "Admin User", email: "admin@nanyang.com", role: "Developer", createdAt: now }
 ];
 
 export const evaluators: Evaluator[] = [

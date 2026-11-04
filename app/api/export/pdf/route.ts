@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsPDF } from "jspdf";
-import { getCurrentUser, isAdmin } from "@/lib/auth/authorization";
+import {
+  getCurrentUser,
+  isAdmin,
+  isDeveloper,
+  matchesEvaluatorIdentity,
+} from "@/lib/auth/authorization";
 import {
   getPassingCriteria,
   getReportCategoryName,
@@ -338,13 +343,8 @@ export async function GET(request: NextRequest) {
         { error: "Consolidated evaluation not found" },
         { status: 404 },
       );
-    const evaluatorHasAccess = summary.evaluations.some(
-      (evaluation) =>
-        evaluation.evaluatorEmployeeId?.toLowerCase() ===
-          user.employeeId.toLowerCase() ||
-        (!evaluation.evaluatorEmployeeId &&
-          Boolean(user.email) &&
-          evaluation.evaluatorEmail.toLowerCase() === user.email?.toLowerCase()),
+    const evaluatorHasAccess = summary.evaluations.some((evaluation) =>
+      matchesEvaluatorIdentity(user, evaluation),
     );
     if (!isAdmin(user) && !evaluatorHasAccess)
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -357,7 +357,7 @@ export async function GET(request: NextRequest) {
       },
     });
   }
-  if (!isAdmin(user))
+  if (!isDeveloper(user))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const results = await getEvaluationResults();
   const target = id

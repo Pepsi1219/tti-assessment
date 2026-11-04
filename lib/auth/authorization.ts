@@ -8,6 +8,21 @@ export type CurrentUser = {
   role: Role;
 };
 
+export function matchesEvaluatorIdentity(
+  evaluator: { employeeId: string; email?: string | null },
+  evaluation: {
+    evaluatorEmployeeId?: string | null;
+    evaluatorEmail?: string | null;
+  },
+): boolean {
+  return (
+    evaluation.evaluatorEmployeeId?.toLowerCase() ===
+      evaluator.employeeId.toLowerCase() ||
+    (Boolean(evaluator.email) &&
+      evaluation.evaluatorEmail?.toLowerCase() === evaluator.email?.toLowerCase())
+  );
+}
+
 /** Returns a server-signed session identity for use by server-side route handlers. */
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const session = await auth();
@@ -15,7 +30,12 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const employeeId = sessionUser?.employeeId?.trim();
   const role = sessionUser?.role;
 
-  if (!sessionUser || !employeeId || (role !== "Admin" && role !== "Evaluator")) return null;
+  if (
+    !sessionUser ||
+    !employeeId ||
+    (role !== "Admin" && role !== "Developer" && role !== "Evaluator")
+  )
+    return null;
 
   return {
     employeeId,
@@ -26,7 +46,11 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 }
 
 export function isAdmin(user: CurrentUser): boolean {
-  return user.role === "Admin";
+  return user.role === "Admin" || user.role === "Developer";
+}
+
+export function isDeveloper(user: CurrentUser): boolean {
+  return user.role === "Developer";
 }
 
 /** Cookie-authenticated mutation requests must come from this application's origin. */

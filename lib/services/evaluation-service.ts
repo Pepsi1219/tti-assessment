@@ -6,7 +6,7 @@ import {
   isQuestionScored,
 } from "@/lib/services/evaluation-scoring";
 import { resolveTopicAssessment } from "@/lib/services/assessment-version";
-import type { EvaluationInput, EvaluationResult, EvaluationSummary, Question } from "@/lib/types";
+import type { EvaluationDetail, EvaluationInput, EvaluationResult, EvaluationSummary, Question } from "@/lib/types";
 
 export class EvaluationValidationError extends Error {}
 
@@ -183,11 +183,13 @@ export async function submitEvaluation(input: EvaluationInput, evaluator: Curren
 }
 
 export async function getEvaluationResults(
-  options: { includeDetails?: boolean } = {},
+  options: { includeDetails?: boolean; topicId?: string } = {},
 ): Promise<EvaluationResult[]> {
   const repo = getRepository();
   const [evaluations, globalQuestions, globalCategories, recipients, topics, versions] = await Promise.all([
-    repo.getEvaluations(),
+    options.topicId
+      ? repo.getEvaluationsByTopicId(options.topicId)
+      : repo.getEvaluations(),
     repo.getQuestions(),
     repo.getCategories(),
     repo.getRecipients(),
@@ -233,10 +235,62 @@ export async function getEvaluationResults(
   });
 }
 
-export async function getEvaluationSummaries(): Promise<EvaluationSummary[]> {
+export async function getEvaluationResultById(
+  id: string,
+): Promise<EvaluationResult | undefined> {
+  const repo = getRepository();
+  const evaluation = await repo.getEvaluationById(id);
+  if (!evaluation) return undefined;
+
+  const [details, questions, categories, recipients, topics, versions] =
+    await Promise.all([
+      repo.getEvaluationDetailsByEvaluationId([id]),
+      repo.getQuestions(),
+      repo.getCategories(),
+      repo.getRecipients(),
+      repo.getTopics(),
+      repo.getAssessmentVersions(),
+    ]);
+  const assessment = evaluation.assessmentVersionId
+    ? versions.find((version) => version.id === evaluation.assessmentVersionId)
+    : undefined;
+  const ownDetails = details.filter((detail) => detail.evaluationId === id);
+  const scores = Object.fromEntries(
+    ownDetails.map((detail) => [detail.questionId, detail.score]),
+  );
+  const storedCategoryActualScores = evaluation.categorySummary?.length
+    ? Object.fromEntries(
+        evaluation.categorySummary.map((category) => [
+          category.categoryId,
+          category.actualScore,
+        ]),
+      )
+    : undefined;
+  const metrics = calculateEvaluationMetrics(
+    assessment?.categories ?? categories,
+    (assessment?.questions ?? questions).filter((question) => question.isActive),
+    scores,
+    evaluation.categoryActualScores ?? storedCategoryActualScores,
+    assessment,
+  );
+
+  return {
+    ...evaluation,
+    totalScore: metrics.overallAverage,
+    percentage: metrics.percentage,
+    result: metrics.result,
+    recipient: recipients.find((recipient) => recipient.id === evaluation.recipientId),
+    topic: topics.find((topic) => topic.id === evaluation.topicId),
+    assessmentVersion: assessment,
+    categorySummary: metrics.categorySummary,
+    details: ownDetails,
+  };
+}
+
+export async function getEvaluationSummaries(topicId?: string): Promise<EvaluationSummary[]> {
   const repo = getRepository();
   const [evaluations, assessmentVersions, globalCategories, globalQuestions] = await Promise.all([
-    getEvaluationResults({ includeDetails: false }),
+    getEvaluationResults({ includeDetails: false, topicId }),
     repo.getAssessmentVersions(),
     repo.getCategories(),
     repo.getQuestions(),
@@ -296,5 +350,44 @@ export async function getEvaluationSummaries(): Promise<EvaluationSummary[]> {
         evaluations: [...group].sort((left, right) => left.evaluatorName.localeCompare(right.evaluatorName)),
       };
     })
-    .sort((left, right) => right.evaluationYear.localeCompare(left.evaluationYear) || left.topicName.localeCompare(right.topicName));
+    .sort((left, right) =>
+      right.evaluationYear.localeCompare(left.evaluationYear) ||
+      left.topicName.localeCompare(right.topicName) ||
+      left.id.localeCompare(right.id),
+    );
+}
+
+export async function getEvaluationSummaryDetails(
+  topicId: string,
+  summaryId: string,
+): Promise<EvaluationSummary | undefined> {
+  const repo = getRepository();
+  const summary = (await getEvaluationSummaries(topicId)).find(
+    (item) => item.id === summaryId,
+  );
+  if (!summary) return undefined;
+
+  const [details, versions] = await Promise.all([
+    repo.getEvaluationDetailsByEvaluationId(
+      summary.evaluations.map((evaluation) => evaluation.id),
+    ),
+    repo.getAssessmentVersions(),
+  ]);
+  const detailsByEvaluationId = new Map<string, EvaluationDetail[]>();
+  details.forEach((detail) => {
+    const evaluationDetails = detailsByEvaluationId.get(detail.evaluationId) ?? [];
+    evaluationDetails.push(detail);
+    detailsByEvaluationId.set(detail.evaluationId, evaluationDetails);
+  });
+
+  return {
+    ...summary,
+    evaluations: summary.evaluations.map((evaluation) => ({
+      ...evaluation,
+      assessmentVersion: versions.find(
+        (version) => version.id === evaluation.assessmentVersionId,
+      ),
+      details: detailsByEvaluationId.get(evaluation.id) ?? [],
+    })),
+  };
 }

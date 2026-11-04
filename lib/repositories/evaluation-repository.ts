@@ -4,12 +4,38 @@ import type {
   Evaluation,
   EvaluationDetail,
   ExamAttempt,
+  ResultStatus,
   EvaluationRecipient,
   EvaluationTopic,
   Question,
   Evaluator,
   User,
 } from "@/lib/types";
+
+export type EvaluationPageCursor = {
+  evaluationDate: string;
+  createdAt: string;
+  id: string;
+};
+
+export type EvaluationPageQuery = {
+  topicId: string;
+  pageSize: number;
+  cursor?: EvaluationPageCursor;
+  evaluatorEmployeeId?: string;
+  evaluatorEmail?: string;
+  evaluatorName?: string;
+  buCode?: string;
+  department?: string;
+  year?: string;
+  result?: ResultStatus;
+  recipientIds?: string[];
+};
+
+export type EvaluationPage = {
+  items: Evaluation[];
+  nextCursor?: EvaluationPageCursor;
+};
 
 export interface EvaluationRepository {
   isEvaluationOpen(): Promise<boolean>;
@@ -40,6 +66,18 @@ export interface EvaluationRepository {
   getQuestions(): Promise<Question[]>;
   upsertQuestion(question: Question): Promise<Question>;
   getEvaluations(): Promise<Evaluation[]>;
+  getEvaluationsByEvaluator(
+    employeeId: string,
+    email?: string | null,
+  ): Promise<Evaluation[]>;
+  getEvaluationById(id: string): Promise<Evaluation | undefined>;
+  getEvaluationsByTopicId(topicId: string): Promise<Evaluation[]>;
+  getLatestEvaluationByTopicId(topicId: string): Promise<Evaluation | undefined>;
+  getLatestEvaluationRound(
+    topicId: string,
+    businessUnit: { buCode?: string; bu?: string },
+  ): Promise<number | undefined>;
+  getEvaluationPage(query: EvaluationPageQuery): Promise<EvaluationPage>;
   getEvaluationDetails(): Promise<EvaluationDetail[]>;
   getEvaluationDetailsByEvaluationId(
     evaluationIds: string[],

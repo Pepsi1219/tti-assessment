@@ -1,9 +1,10 @@
 "use client";
 
-import { Check, Eye, FileText, ImageDown, Users, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Eye, FileText, ImageDown, Search, Users, X } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useOptionalAdminEvaluationActions } from "@/components/admin-evaluation-actions";
 import { Input } from "@/components/ui/input";
@@ -39,12 +40,21 @@ import {
   Tooltip,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import type { EvaluationSummary } from "@/lib/types";
+import type { EvaluationSummary, EvaluationTopic } from "@/lib/types";
 
 const filterSelectTriggerClass =
   "h-11 rounded-2xl border-slate-200 bg-slate-50 px-4 shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100";
 const filterSelectContentClass =
   "rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl";
+
+type SummaryTopicCard = EvaluationTopic & {
+  latestEvaluationRound?: number;
+  latestEvaluationDate?: string;
+  hasLatestEvaluation: boolean;
+  evaluationCount?: number;
+  latestAssessmentName?: string;
+  latestAssessmentVersionNumber?: number;
+};
 
 export default function EvaluationSummariesPage() {
   const { t } = useI18n();
@@ -52,94 +62,43 @@ export default function EvaluationSummariesPage() {
   const setSummaryActions = adminEvaluationActions?.setSummaryActions;
   const pathname = usePathname();
   const showEvaluatorFilter = !pathname.startsWith("/evaluator");
+  const [topics, setTopics] = useState<SummaryTopicCard[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState("");
   const [summaries, setSummaries] = useState<EvaluationSummary[]>([]);
   const [selected, setSelected] = useState<EvaluationSummary | null>(null);
+  const [selectedLoading, setSelectedLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedSummaryById, setSelectedSummaryById] = useState<Record<string, EvaluationSummary>>({});
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [filterEmployeeId, setFilterEmployeeId] = useState("");
   const [filterEvaluator, setFilterEvaluator] = useState("all");
   const [filterBuCode, setFilterBuCode] = useState("all");
   const [filterDepartment, setFilterDepartment] = useState("all");
-  const [filterCourse, setFilterCourse] = useState("all");
   const [filterYear, setFilterYear] = useState("all");
   const [filterResult, setFilterResult] = useState("all");
+  const [appliedFilters, setAppliedFilters] = useState({
+    employeeId: "",
+    evaluator: "",
+    buCode: "",
+    department: "",
+    year: "",
+    result: "",
+  });
+  const [summaryPage, setSummaryPage] = useState(1);
+  const [summaryPageCursors, setSummaryPageCursors] = useState<Record<number, string>>({});
+  const [summaryNextCursor, setSummaryNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const [error, setError] = useState("");
+  const [filterOptions, setFilterOptions] = useState({
+    buCodes: [] as string[],
+    departments: [] as string[],
+    evaluators: [] as string[],
+    years: [] as string[],
+  });
+  const summaryCursor = summaryPageCursors[summaryPage];
 
-  const filterOptions = useMemo(() => {
-    const unique = (values: Array<string | undefined>) =>
-      Array.from(
-        new Set(values.filter((value): value is string => Boolean(value))),
-      ).sort();
-
-    return {
-      buCodes: unique(summaries.map((summary) => summary.buCode)),
-      departments: unique(summaries.map((summary) => summary.bu)),
-      courses: unique(summaries.map((summary) => summary.topicName)),
-      evaluators: Array.from(
-        new Set(
-          summaries.flatMap((summary) =>
-            summary.evaluations
-              .map((evaluation) => evaluation.evaluatorName)
-              .filter(Boolean),
-          ),
-        ),
-      ).sort(),
-      years: unique(summaries.map((summary) => summary.evaluationYear))
-        .sort()
-        .reverse(),
-    };
-  }, [summaries]);
-
-  const filteredSummaries = useMemo(
-    () => {
-      const matchingSummaries = summaries.filter((summary) => {
-        if (
-          filterEmployeeId &&
-          !(summary.recipient?.employeeId ?? "")
-            .toLowerCase()
-            .includes(filterEmployeeId.trim().toLowerCase())
-        )
-          return false;
-        if (filterBuCode !== "all" && summary.buCode !== filterBuCode)
-          return false;
-        if (filterDepartment !== "all" && summary.bu !== filterDepartment)
-          return false;
-        if (filterCourse !== "all" && summary.topicName !== filterCourse)
-          return false;
-        if (filterYear !== "all" && summary.evaluationYear !== filterYear)
-          return false;
-        if (filterResult !== "all" && summary.result !== filterResult)
-          return false;
-        if (
-          showEvaluatorFilter &&
-          filterEvaluator !== "all" &&
-          !summary.evaluations.some(
-            (evaluation) => evaluation.evaluatorName === filterEvaluator,
-          )
-        )
-          return false;
-        return true;
-      });
-
-      return matchingSummaries.sort(
-        (left, right) =>
-          right.evaluationRound - left.evaluationRound ||
-          right.evaluationYear.localeCompare(left.evaluationYear),
-      );
-    },
-    [
-      summaries,
-      filterEmployeeId,
-      filterEvaluator,
-      showEvaluatorFilter,
-      filterBuCode,
-      filterDepartment,
-      filterCourse,
-      filterYear,
-      filterResult,
-    ],
-  );
+  const filteredSummaries = summaries;
 
   async function exportSummaryPdf(summary: EvaluationSummary) {
     const response = await fetch(
@@ -159,22 +118,139 @@ export default function EvaluationSummariesPage() {
   }
 
   useEffect(() => {
-    fetch("/api/evaluation-summaries")
+    let cancelled = false;
+    fetch("/api/topics?includeLatestEvaluation=1")
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok)
           throw new Error(data.error ?? t.unableToLoad);
-        setSummaries(data);
+        return data as SummaryTopicCard[];
       })
-      .catch((reason) =>
-        setError(
-          reason instanceof Error
-            ? reason.message
-            : t.unableToLoad,
-        ),
-      )
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (!cancelled) setTopics(data);
+      })
+      .catch((reason) => {
+        if (!cancelled)
+          setError(reason instanceof Error ? reason.message : t.unableToLoad);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [t.unableToLoad]);
+
+  useEffect(() => {
+    if (!selectedTopicId) return;
+    let cancelled = false;
+    setSummaryLoading(true);
+    setError("");
+    setSummaries([]);
+    setSummaryNextCursor(null);
+    const params = new URLSearchParams({ topicId: selectedTopicId, limit: "25" });
+    if (summaryCursor) params.set("cursor", summaryCursor);
+    if (appliedFilters.employeeId) params.set("employeeId", appliedFilters.employeeId);
+    if (appliedFilters.evaluator) params.set("evaluator", appliedFilters.evaluator);
+    if (appliedFilters.buCode) params.set("buCode", appliedFilters.buCode);
+    if (appliedFilters.department) params.set("department", appliedFilters.department);
+    if (appliedFilters.year) params.set("year", appliedFilters.year);
+    if (appliedFilters.result) params.set("result", appliedFilters.result);
+    fetch(`/api/evaluation-summaries?${params.toString()}`)
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? t.unableToLoad);
+        return data as {
+          items: EvaluationSummary[];
+          nextCursor: string | null;
+          filterOptions: typeof filterOptions;
+        };
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setSummaries(data.items);
+        setSummaryNextCursor(data.nextCursor);
+        setFilterOptions(data.filterOptions);
+        if (data.nextCursor)
+          setSummaryPageCursors((current) => ({
+            ...current,
+            [summaryPage + 1]: data.nextCursor!,
+          }));
+        else
+          setSummaryPageCursors((current) => {
+            const next = { ...current };
+            delete next[summaryPage + 1];
+            return next;
+          });
+      })
+      .catch((reason) => {
+        if (!cancelled)
+          setError(reason instanceof Error ? reason.message : t.unableToLoad);
+      })
+      .finally(() => {
+        if (!cancelled) setSummaryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appliedFilters, selectedTopicId, summaryCursor, summaryPage, t.unableToLoad]);
+
+  function chooseTopic(topicId: string) {
+    setSelectedTopicId(topicId);
+    setSelected(null);
+    setSelectedIds(new Set());
+    setSelectedSummaryById({});
+    setSummaryPage(1);
+    setSummaryPageCursors({});
+    setSummaryNextCursor(null);
+    setFilterEmployeeId("");
+    setFilterEvaluator("all");
+    setFilterBuCode("all");
+    setFilterDepartment("all");
+    setFilterYear("all");
+    setFilterResult("all");
+    setAppliedFilters({
+      employeeId: "",
+      evaluator: "",
+      buCode: "",
+      department: "",
+      year: "",
+      result: "",
+    });
+  }
+
+  function applySummaryFilters() {
+    setAppliedFilters({
+      employeeId: filterEmployeeId.trim(),
+      evaluator:
+        showEvaluatorFilter && filterEvaluator !== "all" ? filterEvaluator : "",
+      buCode: filterBuCode === "all" ? "" : filterBuCode,
+      department: filterDepartment === "all" ? "" : filterDepartment,
+      year: filterYear === "all" ? "" : filterYear,
+      result: filterResult === "all" ? "" : filterResult,
+    });
+    setSummaryPage(1);
+    setSummaryPageCursors({});
+  }
+
+  async function openSummary(summary: EvaluationSummary) {
+    setSelectedLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({
+        topicId: selectedTopicId,
+        summaryId: summary.id,
+      });
+      const response = await fetch(`/api/evaluation-summaries?${params}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? t.unableToLoad);
+      setSelected(data as EvaluationSummary);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : t.unableToLoad);
+    } finally {
+      setSelectedLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!selected && !comparisonOpen) return;
@@ -199,9 +275,9 @@ export default function EvaluationSummariesPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [comparisonOpen, selected, selectedIds.size]);
 
-  const selectedSummaries = summaries.filter((summary) =>
-    selectedIds.has(summary.id),
-  );
+  const selectedSummaries = Array.from(selectedIds)
+    .map((id) => selectedSummaryById[id])
+    .filter((summary): summary is EvaluationSummary => Boolean(summary));
   const selectedVersionKey = selectedSummaries.length
     ? selectedSummaries[0].assessmentVersionId ?? "legacy"
     : null;
@@ -223,10 +299,17 @@ export default function EvaluationSummariesPage() {
         (target.assessmentVersionId ?? "legacy") !== selectedVersionKey)
     )
       return;
+    const removing = selectedIds.has(id);
     setSelectedIds((current) => {
       const next = new Set(current);
-      if (next.has(id)) next.delete(id);
+      if (removing) next.delete(id);
       else next.add(id);
+      return next;
+    });
+    setSelectedSummaryById((current) => {
+      const next = { ...current };
+      if (removing) delete next[id];
+      else next[id] = target;
       return next;
     });
   }
@@ -239,6 +322,14 @@ export default function EvaluationSummariesPage() {
       } else {
         comparisonCandidates.forEach((summary) => next.add(summary.id));
       }
+      return next;
+    });
+    setSelectedSummaryById((current) => {
+      const next = { ...current };
+      comparisonCandidates.forEach((summary) => {
+        if (allFilteredSelected) delete next[summary.id];
+        else next[summary.id] = summary;
+      });
       return next;
     });
   }
@@ -271,18 +362,86 @@ export default function EvaluationSummariesPage() {
 
   return (
     <div onMouseDown={clearSelectionWhenClickingEmptySpace}>
-      {error ? (
+      {!selectedTopicId ? (
+        error ? (
+          <Card className="p-5 text-sm font-semibold text-danger">{error}</Card>
+        ) : topics.length === 0 ? (
+          <Card className="p-10 text-center text-sm text-slate-400">{t.noData}</Card>
+        ) : (
+          <section>
+            <div className="mb-5">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{t.evaluationSummaries}</p>
+              <h2 className="mt-1 text-xl font-black text-slate-900">{t.course}</h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {topics.map((topic) => (
+                <button
+                  key={topic.id}
+                  type="button"
+                  onClick={() => chooseTopic(topic.id)}
+                  disabled={!showEvaluatorFilter && !topic.hasLatestEvaluation}
+                  className={cn(
+                    "group flex min-h-36 items-start justify-between gap-4 rounded-xl border bg-white p-5 text-left shadow-sm transition",
+                    !showEvaluatorFilter && !topic.hasLatestEvaluation
+                      ? "cursor-not-allowed border-slate-200 opacity-50"
+                      : "border-slate-200 hover:border-primary/40 hover:shadow-md",
+                  )}
+                >
+                  <span className="min-w-0">
+                    <span className="block text-lg font-bold text-slate-900">{topic.topicName}</span>
+                    {topic.description && <span className="mt-2 line-clamp-2 block text-sm text-slate-500">{topic.description}</span>}
+                    <span className="mt-4 grid gap-1.5 border-t border-slate-100 pt-3 text-sm">
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-slate-500">{t.round}</span>
+                        <span className="font-bold text-slate-800">{topic.latestEvaluationRound ?? "—"}</span>
+                      </span>
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-slate-500">{t.assessmentVersion}</span>
+                        <span className="text-right font-bold text-slate-800">
+                          {!topic.hasLatestEvaluation
+                            ? "—"
+                            : topic.latestAssessmentName
+                              ? `${topic.latestAssessmentName} · v${topic.latestAssessmentVersionNumber}`
+                              : t.legacyAssessment}
+                        </span>
+                      </span>
+                    </span>
+                  </span>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-primary transition group-hover:bg-primary group-hover:text-white">
+                    <ChevronRight className="h-5 w-5" />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )
+      ) : summaryLoading ? (
+        <div className="flex justify-center py-20">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      ) : error ? (
         <Card className="p-5 text-sm font-semibold text-danger">{error}</Card>
       ) : summaries.length === 0 ? (
-        <Card className="p-10 text-center text-sm text-slate-400">
+        <Card className="space-y-5 p-8 text-center text-sm text-slate-400">
+          <button type="button" onClick={() => chooseTopic("")} className="mx-auto flex items-center gap-2 font-bold text-primary">
+            <ArrowLeft className="h-4 w-4" /> {t.course}
+          </button>
           {t.noData}
         </Card>
       ) : (
         <Card className="p-5">
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <button type="button" onClick={() => chooseTopic("")} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50" aria-label={t.course}>
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{t.evaluationSummaries}</p>
+                <h2 className="truncate text-lg font-black text-slate-900">{topics.find((topic) => topic.id === selectedTopicId)?.topicName}</h2>
+              </div>
+            </div>
             <p className="text-sm font-semibold text-slate-500">
-              Selected {selectedIds.size} item
-              {selectedIds.size === 1 ? "" : "s"}
+              Selected {selectedIds.size} item{selectedIds.size === 1 ? "" : "s"}
             </p>
           </div>
           <div
@@ -347,22 +506,6 @@ export default function EvaluationSummariesPage() {
               </SelectContent>
             </Select>
             <Select
-              value={filterCourse}
-              onValueChange={setFilterCourse}
-            >
-              <SelectTrigger aria-label={t.course} className={filterSelectTriggerClass}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent position="popper" sideOffset={8} className={filterSelectContentClass}>
-                <SelectItem value="all">{t.course}</SelectItem>
-                {filterOptions.courses.map((course) => (
-                  <SelectItem key={course} value={course}>
-                    {course}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
               value={filterYear}
               onValueChange={setFilterYear}
             >
@@ -391,6 +534,10 @@ export default function EvaluationSummariesPage() {
                 <SelectItem value="Fail">{t.fail}</SelectItem>
               </SelectContent>
             </Select>
+            <Button type="button" onClick={applySummaryFilters} className="h-11">
+              <Search className="h-4 w-4" />
+              {t.search}
+            </Button>
           </div>
           <Table className="min-w-[1180px]">
             <TableHeader>
@@ -477,7 +624,8 @@ export default function EvaluationSummariesPage() {
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => setSelected(summary)}
+                        onClick={() => void openSummary(summary)}
+                        disabled={selectedLoading}
                         className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-primary transition hover:bg-blue-100"
                         title={t.view}
                         aria-label={`${t.view}: ${summary.recipient?.recipientName ?? ""}`}
@@ -509,6 +657,32 @@ export default function EvaluationSummariesPage() {
               )}
             </TableBody>
           </Table>
+          <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-sm text-slate-500">
+            <span>
+              {summaries.length ? `${(summaryPage - 1) * 25 + 1}-${(summaryPage - 1) * 25 + summaries.length}` : "0"}
+            </span>
+            <nav aria-label={t.rowsPerPage} className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label={t.previous}
+                disabled={summaryPage === 1 || summaryLoading}
+                onClick={() => setSummaryPage((current) => Math.max(1, current - 1))}
+                className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="px-2 font-semibold text-slate-700">{t.page} {summaryPage}</span>
+              <button
+                type="button"
+                aria-label={t.next}
+                disabled={!summaryNextCursor || summaryLoading}
+                onClick={() => setSummaryPage((current) => current + 1)}
+                className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </nav>
+          </div>
         </Card>
       )}
 
@@ -521,6 +695,13 @@ export default function EvaluationSummariesPage() {
           }}
         >
           <SummaryModal summary={selected} onClose={() => setSelected(null)} />
+        </div>
+      )}
+
+      {selectedLoading && (
+        <div role="status" className="fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-xl">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          {t.loading}
         </div>
       )}
 

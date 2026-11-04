@@ -2,16 +2,16 @@ import { NextResponse } from "next/server";
 import {
   getCurrentUser,
   hasSameOrigin,
-  isAdmin,
+  isDeveloper,
 } from "@/lib/auth/authorization";
 import { getRepository } from "@/lib/repositories";
 import { adminPayloadSchema } from "@/lib/validation/api";
 
-async function requireAdmin(request?: Request) {
+async function requireDeveloper(request?: Request) {
   const currentUser = await getCurrentUser();
   if (!currentUser)
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  if (!isAdmin(currentUser))
+  if (!isDeveloper(currentUser))
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   if (request && !hasSameOrigin(request))
     return {
@@ -24,7 +24,7 @@ async function requireAdmin(request?: Request) {
 }
 
 export async function GET() {
-  const access = await requireAdmin();
+  const access = await requireDeveloper();
   if (access.error) return access.error;
 
   return NextResponse.json(await getRepository().getUsers(), {
@@ -33,7 +33,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const access = await requireAdmin(request);
+  const access = await requireDeveloper(request);
   if (access.error) return access.error;
 
   const payload = adminPayloadSchema.safeParse(
@@ -65,12 +65,23 @@ export async function POST(request: Request) {
     );
 
   const now = new Date().toISOString();
+  const nextRole = payload.data.role ?? existing?.role ?? "Admin";
+  if (
+    existing?.role === "Developer" &&
+    existing.status !== "Inactive" &&
+    (nextRole !== "Developer" || payload.data.status === "Inactive") &&
+    admins.filter((admin) => admin.role === "Developer" && admin.status !== "Inactive").length <= 1
+  )
+    return NextResponse.json(
+      { error: "At least one active Developer account must remain." },
+      { status: 409 },
+    );
   const admin = await repository.upsertUser({
     id: payload.data.id ?? `admin-${crypto.randomUUID()}`,
     employeeId: payload.data.employeeId,
     name: payload.data.name,
     email: payload.data.email,
-    role: "Admin",
+    role: nextRole,
     status: payload.data.status ?? "Active",
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
@@ -79,7 +90,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const access = await requireAdmin(request);
+  const access = await requireDeveloper(request);
   if (access.error) return access.error;
 
   const id = new URL(request.url).searchParams.get("id")?.trim();
@@ -93,6 +104,17 @@ export async function DELETE(request: Request) {
   const admin = (await repository.getUsers()).find((item) => item.id === id);
   if (!admin)
     return NextResponse.json({ error: "Administrator not found" }, { status: 404 });
+  if (
+    admin.role === "Developer" &&
+    admin.status !== "Inactive" &&
+    (await repository.getUsers()).filter(
+      (item) => item.role === "Developer" && item.status !== "Inactive",
+    ).length <= 1
+  )
+    return NextResponse.json(
+      { error: "At least one active Developer account must remain." },
+      { status: 409 },
+    );
   if (admin.employeeId.toLowerCase() === access.currentUser.employeeId.toLowerCase())
     return NextResponse.json(
       { error: "You cannot delete the account currently signed in." },

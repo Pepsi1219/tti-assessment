@@ -16,6 +16,13 @@ export function getRepository(): EvaluationRepository {
     typeof globalForRepo.repo.setEvaluationOpen === "function" &&
     typeof globalForRepo.repo.getRecipients === "function" &&
     typeof globalForRepo.repo.getTopics === "function" &&
+    typeof globalForRepo.repo.getEvaluationById === "function" &&
+    typeof globalForRepo.repo.getEvaluationsByTopicId === "function" &&
+    typeof globalForRepo.repo.getEvaluationsByEvaluator === "function" &&
+    typeof globalForRepo.repo.getLatestEvaluationByTopicId === "function" &&
+    typeof globalForRepo.repo.getLatestEvaluationRound === "function" &&
+    typeof globalForRepo.repo.getEvaluationPage === "function" &&
+    typeof globalForRepo.repo.getEvaluationDetailsByEvaluationId === "function" &&
     typeof globalForRepo.repo.getExamAttempts === "function" &&
     typeof globalForRepo.repo.saveExamAttempt === "function" &&
     typeof globalForRepo.repo.completeExamAttempt === "function" &&

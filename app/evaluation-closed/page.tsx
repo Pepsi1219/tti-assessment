@@ -36,12 +36,12 @@ export default function EvaluationClosedPage() {
         return;
       }
       const session = await getSession();
-      if (session?.user?.role !== "Admin") {
+      if (session?.user?.role !== "Admin" && session?.user?.role !== "Developer") {
         await signOut({ redirect: false });
         setError(t.loginError);
         return;
       }
-      window.location.replace("/admin");
+      window.location.replace("/admin/evaluation-summaries");
     } catch {
       setError(t.loginTemporaryError);
     } finally {

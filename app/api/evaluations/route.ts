@@ -3,9 +3,12 @@ import {
   getCurrentUser,
   hasSameOrigin,
   isAdmin,
+  isDeveloper,
+  matchesEvaluatorIdentity,
 } from "@/lib/auth/authorization";
 import {
   EvaluationValidationError,
+  getEvaluationResultById,
   getEvaluationResults,
   submitEvaluation,
 } from "@/lib/services/evaluation-service";
@@ -19,6 +22,8 @@ import {
   getLegacyAssessment,
   redactAssessmentAnswerKeys,
 } from "@/lib/services/assessment-version";
+import type { EvaluationPageCursor } from "@/lib/repositories/evaluation-repository";
+import type { EvaluationResult, ResultStatus } from "@/lib/types";
 
 function isFirestoreQuotaError(error: unknown) {
   if (typeof error !== "object" || error === null) return false;
@@ -31,22 +36,114 @@ function isFirestoreQuotaError(error: unknown) {
   );
 }
 
-export async function GET() {
+function encodeCursor(cursor: EvaluationPageCursor) {
+  return Buffer.from(JSON.stringify(cursor)).toString("base64url");
+}
+
+function decodeCursor(value: string): EvaluationPageCursor | undefined {
+  try {
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<EvaluationPageCursor>;
+    if (
+      typeof parsed.evaluationDate === "string" &&
+      typeof parsed.createdAt === "string" &&
+      typeof parsed.id === "string"
+    )
+      return parsed as EvaluationPageCursor;
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
+export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const results = await getEvaluationResults();
+  const searchParams = new URL(request.url).searchParams;
+  const topicId = searchParams.get("topicId")?.trim();
+  if (topicId) {
+    const isEvaluator = user.role === "Evaluator";
+    if (!isDeveloper(user) && !isEvaluator)
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const pageSize = Number(searchParams.get("limit") ?? 25);
+    const cursorValue = searchParams.get("cursor");
+    const cursor = cursorValue ? decodeCursor(cursorValue) : undefined;
+    const year = searchParams.get("year")?.trim();
+    const resultValue = searchParams.get("result");
+    if (
+      ![25, 50, 100].includes(pageSize) ||
+      (cursorValue && !cursor) ||
+      (year && !/^\d{4}$/.test(year)) ||
+      (resultValue && resultValue !== "Pass" && resultValue !== "Fail")
+    )
+      return NextResponse.json({ error: "Invalid evaluation list query" }, { status: 400 });
+
+    const repo = getRepository();
+    const employeeId = searchParams.get("employeeId")?.trim().toLowerCase();
+    const recipientIds = employeeId
+      ? (await repo.getRecipients())
+          .filter((recipient) => recipient.employeeId.toLowerCase().includes(employeeId))
+          .map((recipient) => recipient.id)
+      : undefined;
+    try {
+      const [page, recipients, topics] = await Promise.all([
+        repo.getEvaluationPage({
+          topicId,
+          pageSize,
+          cursor,
+          evaluatorEmployeeId: isEvaluator ? user.employeeId : undefined,
+          evaluatorEmail: isEvaluator ? user.email ?? undefined : undefined,
+          evaluatorName: searchParams.get("evaluator") || undefined,
+          buCode: searchParams.get("buCode") || undefined,
+          department: searchParams.get("department") || undefined,
+          year: year || undefined,
+          result: resultValue as ResultStatus | null ?? undefined,
+          recipientIds,
+        }),
+        repo.getRecipients(),
+        repo.getTopics(),
+      ]);
+      const recipientsById = new Map(recipients.map((recipient) => [recipient.id, recipient]));
+      const topic = topics.find((item) => item.id === topicId);
+      const items: EvaluationResult[] = page.items.map((evaluation) => ({
+        ...evaluation,
+        recipient: recipientsById.get(evaluation.recipientId),
+        topic,
+        categorySummary: evaluation.categorySummary ?? [],
+        details: [],
+      }));
+
+      return NextResponse.json({
+        items,
+        nextCursor: page.nextCursor ? encodeCursor(page.nextCursor) : null,
+      }, {
+        headers: { "Cache-Control": "private, no-store" },
+      });
+    } catch (error) {
+      console.error("Unable to load paginated evaluations", error);
+      return isFirestoreQuotaError(error)
+        ? NextResponse.json(
+            { error: "The evaluation service is temporarily unavailable because its database quota has been reached." },
+            { status: 503 },
+          )
+        : NextResponse.json(
+            {
+              error:
+                process.env.NODE_ENV === "development" && error instanceof Error
+                  ? error.message
+                  : "Unable to load evaluations.",
+            },
+            { status: 500 },
+          );
+    }
+  }
+
+  const results = await getEvaluationResults({ includeDetails: false });
   const visibleResults = isAdmin(user)
     ? results
-    : results.filter(
-        (result) =>
-          result.evaluatorEmployeeId?.toLowerCase() ===
-            user.employeeId.toLowerCase() ||
-          (!result.evaluatorEmployeeId &&
-            Boolean(user.email) &&
-            result.evaluatorEmail.toLowerCase() === user.email?.toLowerCase()),
-      );
+    : results.filter((result) => matchesEvaluatorIdentity(user, result));
 
   const responseResults = isAdmin(user)
     ? visibleResults
@@ -113,7 +210,7 @@ export async function PATCH(request: Request) {
   const user = await getCurrentUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!isAdmin(user))
+  if (!isDeveloper(user))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (!hasSameOrigin(request))
     return NextResponse.json(
@@ -278,7 +375,7 @@ export async function DELETE(request: Request) {
   const user = await getCurrentUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!isAdmin(user))
+  if (!isDeveloper(user))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (!hasSameOrigin(request))
     return NextResponse.json(

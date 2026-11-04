@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getCurrentUser,
   hasSameOrigin,
-  isAdmin,
+  isDeveloper,
 } from "@/lib/auth/authorization";
 import { getRepository } from "@/lib/repositories";
 import { evaluationAvailabilityPayloadSchema } from "@/lib/validation/api";
@@ -19,7 +19,7 @@ export async function PATCH(request: Request) {
   const user = await getCurrentUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!isAdmin(user))
+  if (!isDeveloper(user))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   if (!hasSameOrigin(request))
     return NextResponse.json(

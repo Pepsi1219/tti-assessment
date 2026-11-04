@@ -23,6 +23,7 @@ type AdminForm = {
   employeeId: string;
   name: string;
   email: string;
+  role: "Admin" | "Developer";
   status: "Active" | "Inactive";
 };
 
@@ -30,6 +31,7 @@ const emptyForm: AdminForm = {
   employeeId: "",
   name: "",
   email: "",
+  role: "Admin",
   status: "Active",
 };
 
@@ -83,6 +85,7 @@ export default function AdminManagementPage() {
       employeeId: admin.employeeId,
       name: admin.name,
       email: admin.email,
+      role: admin.role,
       status: admin.status ?? "Active",
     });
     setError("");
@@ -178,12 +181,13 @@ export default function AdminManagementPage() {
             ]}
           />
         </div>
-        <Table className="min-w-[840px] table-auto">
+        <Table className="min-w-[980px] table-auto">
           <TableHeader>
             <TableRow>
               <TableHead>{t.employeeId}</TableHead>
               <TableHead>{t.name}</TableHead>
               <TableHead>{t.email}</TableHead>
+              <TableHead>{t.administratorType}</TableHead>
               <TableHead>{t.status}</TableHead>
               <TableHead className="w-[120px] text-center">{t.actions}</TableHead>
             </TableRow>
@@ -196,6 +200,11 @@ export default function AdminManagementPage() {
                   <TableCell className="font-bold tabular-nums">{admin.employeeId}</TableCell>
                   <TableCell>{admin.name}</TableCell>
                   <TableCell>{admin.email}</TableCell>
+                  <TableCell>
+                    <Badge tone={admin.role === "Developer" ? "warning" : "neutral"}>
+                      {admin.role === "Developer" ? t.developer : t.admin}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <Badge tone={active ? "success" : "danger"}>
                       {active ? t.active : t.inactive}
@@ -228,7 +237,7 @@ export default function AdminManagementPage() {
             })}
             {!filtered.length && (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-slate-400">
+                <TableCell colSpan={6} className="py-8 text-center text-slate-400">
                   {t.noData}
                 </TableCell>
               </TableRow>
@@ -246,6 +255,18 @@ export default function AdminManagementPage() {
           <Field label={t.employeeId} value={form.employeeId} onChange={(employeeId) => setForm({ ...form, employeeId })} />
           <Field label={t.name} value={form.name} onChange={(name) => setForm({ ...form, name })} />
           <Field label={t.email} type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
+          <label className="block space-y-1">
+            <span className="text-sm font-bold text-slate-700">{t.administratorType}</span>
+            <StandardSelect
+              value={form.role}
+              onValueChange={(role) => setForm({ ...form, role: role as AdminForm["role"] })}
+              ariaLabel={t.administratorType}
+              options={[
+                { value: "Admin", label: t.admin },
+                { value: "Developer", label: t.developer },
+              ]}
+            />
+          </label>
           <label className="block space-y-1">
             <span className="text-sm font-bold text-slate-700">{t.status}</span>
             <StandardSelect

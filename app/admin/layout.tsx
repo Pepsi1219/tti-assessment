@@ -2,6 +2,8 @@
 
 import {
   Award,
+  ChevronDown,
+  ChevronRight,
   ClipboardList,
   ClipboardCheck,
   Download,
@@ -31,6 +33,7 @@ import {
 } from "@/components/admin-evaluation-actions";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
+import type { EvaluationTopic } from "@/lib/types";
 
 export default function AdminLayout({
   children,
@@ -42,6 +45,9 @@ export default function AdminLayout({
   const pathname = usePathname();
   const { t } = useI18n();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dashboardSubmenuOpen, setDashboardSubmenuOpen] = useState(false);
+  const [dashboardTopics, setDashboardTopics] = useState<EvaluationTopic[]>([]);
+  const [activeDashboardTopicId, setActiveDashboardTopicId] = useState("");
 
   async function handleSignOut() {
     await signOut({ redirect: false });
@@ -56,8 +62,37 @@ export default function AdminLayout({
       return;
     }
     const role = (session.user as { role?: string })?.role;
-    if (role !== "Admin") router.replace("/evaluator");
-  }, [session, status, router]);
+    if (role !== "Admin" && role !== "Developer") {
+      router.replace("/evaluator");
+      return;
+    }
+    const adminOnlyPaths = [
+      "/admin/admins",
+      "/admin/topics",
+      "/admin/evaluations",
+      "/admin/system",
+    ];
+    if (
+      role === "Admin" &&
+      adminOnlyPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+    )
+      router.replace("/admin/evaluation-summaries");
+  }, [session, status, router, pathname]);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/topics")
+      .then((response) => response.ok ? response.json() : [])
+      .then((topics: EvaluationTopic[]) => {
+        if (active) setDashboardTopics(topics.filter((topic) => topic.status === "Active"));
+      })
+      .catch(() => {
+        if (active) setDashboardTopics([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   if (status === "loading") {
     return (
@@ -67,6 +102,7 @@ export default function AdminLayout({
     );
   }
 
+  const isDeveloper = session?.user?.role === "Developer";
   const navItems = [
     { href: "/admin", label: t.dashboard, icon: LayoutDashboard },
     { href: "/admin/admins", label: t.admin, icon: ShieldCheck },
@@ -81,12 +117,75 @@ export default function AdminLayout({
       icon: Award,
     },
     { href: "/admin/system", label: t.system, icon: Settings },
-  ];
+  ].filter((item) =>
+    isDeveloper ||
+    !["/admin/admins", "/admin/topics", "/admin/evaluations", "/admin/system"].includes(item.href),
+  );
 
   const isActive = (href: string) => {
     if (href === "/admin") return pathname === "/admin";
     return pathname.startsWith(href);
   };
+
+  function toggleDashboardSubmenu() {
+    setDashboardSubmenuOpen((open) => !open);
+    setActiveDashboardTopicId("");
+    router.push("/admin");
+  }
+
+  function renderDashboardCourses(mobile = false) {
+    const activeTopicId = activeDashboardTopicId;
+    return (
+      <div
+        id={mobile ? "mobile-dashboard-courses" : "dashboard-courses"}
+        className={cn(
+          "absolute left-0 right-0 top-full z-50 grid transition-[grid-template-rows,opacity] duration-300 ease-out",
+          dashboardSubmenuOpen
+            ? "grid-rows-[1fr] opacity-100"
+            : "pointer-events-none grid-rows-[0fr] opacity-0",
+        )}
+        aria-hidden={!dashboardSubmenuOpen}
+      >
+        <div className="min-h-0 overflow-hidden rounded-b-xl bg-white shadow-[0_16px_32px_rgba(15,23,42,0.16)] dark:bg-slate-950">
+          <div className={cn(
+            "flex max-h-[60vh] flex-col overflow-y-auto border-t py-1",
+            mobile ? "ml-10 border-white/10" : "border-slate-100",
+          )}>
+            {dashboardTopics.map((topic) => (
+              <Link
+                key={topic.id}
+                href={`/admin?topicId=${encodeURIComponent(topic.id)}`}
+                onClick={() => {
+                  setActiveDashboardTopicId(topic.id);
+                  setDashboardSubmenuOpen(false);
+                  if (mobile) {
+                    setMobileMenuOpen(false);
+                  }
+                }}
+                tabIndex={dashboardSubmenuOpen ? 0 : -1}
+                className={cn(
+                  "flex w-full items-center gap-3 border-b px-4 py-2.5 text-left text-sm font-semibold transition last:border-b-0",
+                  activeTopicId === topic.id
+                    ? "bg-blue-50 text-primary"
+                    : mobile
+                      ? "border-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                      : "border-slate-100 text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+                )}
+              >
+                <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{topic.topicName}</span>
+              </Link>
+            ))}
+            {!dashboardTopics.length && (
+              <span className={cn("px-4 py-2.5 text-sm", mobile ? "text-slate-400" : "text-slate-500")}>
+                {t.noData}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AdminEvaluationActionsProvider>
@@ -154,28 +253,53 @@ export default function AdminLayout({
           className="hidden border-t border-slate-100 bg-white dark:border-slate-800 dark:bg-slate-950 lg:block"
         >
           <div className="flex items-center gap-2 px-3 sm:px-4 lg:px-6">
-            <div className="min-w-0 flex-1 overflow-x-auto">
-              <div className="flex min-w-max items-center gap-1 py-2">
-                {navItems.map((item) => {
-                  const active = isActive(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition",
-                        active
-                          ? "bg-primary text-white shadow-md shadow-primary/20"
-                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
-                      )}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span className="whitespace-nowrap">{item.label}</span>
-                    </Link>
-                  );
-                })}
+            <div className="relative min-w-0 flex-1">
+              <div className="overflow-x-auto">
+                <div className="flex min-w-max items-center gap-1 py-2">
+                  {navItems.map((item) => {
+                    const active = isActive(item.href);
+                    if (item.href === "/admin")
+                      return (
+                        <button
+                          key={item.href}
+                          type="button"
+                          aria-current={active ? "page" : undefined}
+                          aria-expanded={dashboardSubmenuOpen}
+                          aria-controls="dashboard-courses"
+                          onClick={toggleDashboardSubmenu}
+                          className={cn(
+                            "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition",
+                            active
+                              ? "bg-primary text-white shadow-md shadow-primary/20"
+                              : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span className="whitespace-nowrap">{item.label}</span>
+                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", dashboardSubmenuOpen && "rotate-180")} />
+                        </button>
+                      );
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setDashboardSubmenuOpen(false)}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition",
+                          active
+                            ? "bg-primary text-white shadow-md shadow-primary/20"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span className="whitespace-nowrap">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
+              {renderDashboardCourses()}
             </div>
             <NavigationActions pathname={pathname} />
           </div>
@@ -188,12 +312,38 @@ export default function AdminLayout({
             <div className="space-y-1">
               {navItems.map((item) => {
                 const active = isActive(item.href);
+                if (item.href === "/admin")
+                  return (
+                    <div key={item.href} className="relative">
+                      <button
+                        type="button"
+                        aria-current={active ? "page" : undefined}
+                        aria-expanded={dashboardSubmenuOpen}
+                        aria-controls="mobile-dashboard-courses"
+                        onClick={toggleDashboardSubmenu}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition",
+                          active
+                            ? "bg-primary text-white shadow-md shadow-primary/20"
+                            : "text-slate-200 hover:bg-white/10 hover:text-white",
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span className="flex-1">{item.label}</span>
+                        <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", dashboardSubmenuOpen && "rotate-180")} />
+                      </button>
+                      {renderDashboardCourses(true)}
+                    </div>
+                  );
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    onClick={() => setMobileMenuOpen(false)}
+                    onClick={() => {
+                      setDashboardSubmenuOpen(false);
+                      setMobileMenuOpen(false);
+                    }}
                     className={cn(
                       "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition",
                       active

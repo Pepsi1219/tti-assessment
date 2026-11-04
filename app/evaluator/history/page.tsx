@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Eye, Search, X } from "lucide-react";
+import { ArrowLeft, Calendar, ChevronRight, Eye, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -24,45 +24,93 @@ import {
 import { useI18n } from "@/lib/i18n/context";
 import { useEscapeKey } from "@/lib/hooks/use-escape-key";
 import { cn } from "@/lib/utils";
-import type { EvaluationResult } from "@/lib/types";
+import type { EvaluationResult, EvaluationTopic } from "@/lib/types";
 
 const filterSelectTriggerClass =
   "h-11 rounded-2xl border-slate-200 bg-slate-50 px-4 shadow-none transition hover:border-slate-300 hover:bg-white focus:ring-4 focus:ring-blue-100";
 const filterSelectContentClass =
   "rounded-2xl border-slate-200 bg-white/95 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl";
 
+type HistoryTopic = EvaluationTopic & {
+  hasLatestEvaluation: boolean;
+  evaluationCount?: number;
+  latestEvaluationDate?: string;
+  latestEvaluationRound?: number;
+};
+
 export default function HistoryPage() {
   const { t } = useI18n();
+  const [topics, setTopics] = useState<HistoryTopic[]>([]);
+  const [selectedTopicId, setSelectedTopicId] = useState("");
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [query, setQuery] = useState("");
-  const [filterCourse, setFilterCourse] = useState("all");
   const [filterYear, setFilterYear] = useState("all");
   const [filterResult, setFilterResult] = useState("all");
   const [selected, setSelected] = useState<EvaluationResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [courseLoading, setCourseLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    async function loadHistory() {
+    let cancelled = false;
+    async function loadTopics() {
       try {
-        const response = await fetch("/api/evaluations");
-        if (!response.ok) throw new Error("Unable to load evaluation history.");
-        setEvaluations(await response.json());
-      } catch {
-        setLoadError(t.unableToLoad);
+        const response = await fetch("/api/topics?includeLatestEvaluation=1");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? t.unableToLoad);
+        if (!cancelled)
+          setTopics((data as HistoryTopic[]).filter((topic) => topic.hasLatestEvaluation));
+      } catch (reason) {
+        if (!cancelled)
+          setLoadError(reason instanceof Error ? reason.message : t.unableToLoad);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-    void loadHistory();
+    void loadTopics();
+    return () => {
+      cancelled = true;
+    };
   }, [t.unableToLoad]);
+
+  useEffect(() => {
+    if (!selectedTopicId) return;
+    let cancelled = false;
+    setCourseLoading(true);
+    setLoadError("");
+    setEvaluations([]);
+    setNextCursor(null);
+    const params = new URLSearchParams({ topicId: selectedTopicId, limit: "100" });
+    fetch(`/api/evaluations?${params.toString()}`)
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? t.unableToLoad);
+        return data as { items: EvaluationResult[]; nextCursor: string | null };
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setEvaluations(data.items);
+        setNextCursor(data.nextCursor);
+      })
+      .catch((reason) => {
+        if (!cancelled)
+          setLoadError(reason instanceof Error ? reason.message : t.unableToLoad);
+      })
+      .finally(() => {
+        if (!cancelled) setCourseLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTopicId, t.unableToLoad]);
 
   const filterOptions = useMemo(() => {
     const unique = (values: string[]) =>
       Array.from(new Set(values.filter(Boolean))).sort();
 
     return {
-      courses: unique(evaluations.map((evaluation) => evaluation.topicName)),
       years: unique(
         evaluations.map((evaluation) => evaluation.evaluationDate.slice(0, 4)),
       ).reverse(),
@@ -86,8 +134,6 @@ export default function HistoryPage() {
           .includes(text)
       )
         return false;
-      if (filterCourse !== "all" && evaluation.topicName !== filterCourse)
-        return false;
       if (
         filterYear !== "all" &&
         evaluation.evaluationDate.slice(0, 4) !== filterYear
@@ -103,7 +149,44 @@ export default function HistoryPage() {
         right.evaluationDate.localeCompare(left.evaluationDate) ||
         right.createdAt.localeCompare(left.createdAt),
     );
-  }, [evaluations, filterCourse, filterResult, filterYear, query]);
+  }, [evaluations, filterResult, filterYear, query]);
+
+  async function loadMore() {
+    if (!selectedTopicId || !nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const params = new URLSearchParams({
+        topicId: selectedTopicId,
+        limit: "100",
+        cursor: nextCursor,
+      });
+      const response = await fetch(`/api/evaluations?${params.toString()}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? t.unableToLoad);
+      setEvaluations((current) => [...current, ...data.items]);
+      setNextCursor(data.nextCursor);
+    } catch (reason) {
+      setLoadError(reason instanceof Error ? reason.message : t.unableToLoad);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  function chooseTopic(topicId: string) {
+    setSelectedTopicId(topicId);
+    setQuery("");
+    setFilterYear("all");
+    setFilterResult("all");
+    setSelected(null);
+  }
+
+  function backToTopics() {
+    setSelectedTopicId("");
+    setEvaluations([]);
+    setNextCursor(null);
+    setLoadError("");
+    setSelected(null);
+  }
 
   return (
     <div className="space-y-6">
@@ -120,7 +203,22 @@ export default function HistoryPage() {
           {loadError}
         </p>
       )}
-      {!loading && !loadError && evaluations.length === 0 && (
+      {selectedTopicId && (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={backToTopics}
+            className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-600 transition hover:bg-slate-100"
+            aria-label={t.course}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <h2 className="text-xl font-black text-slate-900">
+            {topics.find((topic) => topic.id === selectedTopicId)?.topicName}
+          </h2>
+        </div>
+      )}
+      {!loading && !loadError && !selectedTopicId && topics.length === 0 && (
         <Card className="p-10 text-center">
           <Calendar className="mx-auto h-12 w-12 text-slate-300" />
           <p className="mt-4 text-sm font-semibold text-slate-500">
@@ -128,7 +226,47 @@ export default function HistoryPage() {
           </p>
         </Card>
       )}
-      {!loading && !loadError && evaluations.length > 0 && (
+      {!loading && !loadError && !selectedTopicId && topics.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {topics.map((topic) => (
+            <button
+              key={topic.id}
+              type="button"
+              onClick={() => chooseTopic(topic.id)}
+              className="group flex min-h-32 items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-primary/40 hover:shadow-md"
+            >
+              <span className="min-w-0">
+                <span className="block text-lg font-bold text-slate-900">
+                  {topic.topicName}
+                </span>
+                <span className="mt-3 block text-sm text-slate-500">
+                  {topic.evaluationCount ?? 0} {t.evaluations}
+                </span>
+                <span className="mt-1 block text-xs text-slate-400">
+                  {topic.latestEvaluationDate ?? "—"}
+                </span>
+              </span>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-primary transition group-hover:bg-primary group-hover:text-white">
+                <ChevronRight className="h-5 w-5" />
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+      {selectedTopicId && courseLoading && (
+        <div className="flex justify-center py-20">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      )}
+      {selectedTopicId && !courseLoading && !loadError && evaluations.length === 0 && (
+        <Card className="p-10 text-center">
+          <Calendar className="mx-auto h-12 w-12 text-slate-300" />
+          <p className="mt-4 text-sm font-semibold text-slate-500">
+            {t.noEvaluationsYet}
+          </p>
+        </Card>
+      )}
+      {!loading && !loadError && Boolean(selectedTopicId) && !courseLoading && evaluations.length > 0 && (
         <Card className="p-5">
           <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
             <div className="relative w-full max-w-none">
@@ -140,26 +278,6 @@ export default function HistoryPage() {
                 onChange={(event) => setQuery(event.target.value)}
               />
             </div>
-            <Select
-              value={filterCourse}
-              onValueChange={setFilterCourse}
-            >
-              <SelectTrigger aria-label={t.course} className={filterSelectTriggerClass}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent
-                position="popper"
-                sideOffset={8}
-                className={filterSelectContentClass}
-              >
-                <SelectItem value="all">{t.course}</SelectItem>
-                {filterOptions.courses.map((course) => (
-                  <SelectItem key={course} value={course}>
-                    {course}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Select
               value={filterYear}
               onValueChange={setFilterYear}
@@ -270,6 +388,19 @@ export default function HistoryPage() {
               ))}
             </TableBody>
           </Table>
+          )}
+          {nextCursor && (
+            <div className="mt-5 flex justify-center border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+              >
+                {loadingMore ? t.loading : t.evaluations}
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           )}
         </Card>
       )}

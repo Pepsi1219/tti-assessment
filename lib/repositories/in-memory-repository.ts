@@ -11,7 +11,11 @@ import {
   evaluators,
   users,
 } from "@/lib/data/seed";
-import type { EvaluationRepository } from "@/lib/repositories/evaluation-repository";
+import type {
+  EvaluationPage,
+  EvaluationPageQuery,
+  EvaluationRepository,
+} from "@/lib/repositories/evaluation-repository";
 import type {
   Evaluation,
   AssessmentVersion,
@@ -163,6 +167,94 @@ export class InMemoryEvaluationRepository implements EvaluationRepository {
     return evaluations;
   }
 
+  async getEvaluationsByEvaluator(employeeId: string, email?: string | null) {
+    const normalizedEmployeeId = employeeId.trim().toLowerCase();
+    const normalizedEmail = email?.trim().toLowerCase();
+    return evaluations
+      .filter(
+        (evaluation) =>
+          evaluation.evaluatorEmployeeId?.toLowerCase() === normalizedEmployeeId ||
+          (Boolean(normalizedEmail) &&
+            evaluation.evaluatorEmail.toLowerCase() === normalizedEmail),
+      )
+      .sort(compareEvaluations);
+  }
+
+  async getEvaluationById(id: string) {
+    return evaluations.find((evaluation) => evaluation.id === id);
+  }
+
+  async getEvaluationsByTopicId(topicId: string) {
+    return evaluations.filter((evaluation) => evaluation.topicId === topicId);
+  }
+
+  async getLatestEvaluationByTopicId(topicId: string) {
+    return evaluations
+      .filter((evaluation) => evaluation.topicId === topicId)
+      .sort(compareEvaluations)[0];
+  }
+
+  async getLatestEvaluationRound(
+    topicId: string,
+    businessUnit: { buCode?: string; bu?: string },
+  ) {
+    return evaluations
+      .filter((evaluation) =>
+        evaluation.topicId === topicId &&
+        ((Boolean(businessUnit.buCode) && evaluation.buCode === businessUnit.buCode) ||
+          (Boolean(businessUnit.bu) && evaluation.bu === businessUnit.bu)),
+      )
+      .reduce<number | undefined>((latest, evaluation) =>
+        Number.isInteger(evaluation.evaluationRound) && evaluation.evaluationRound! > (latest ?? 0)
+          ? evaluation.evaluationRound
+          : latest,
+      undefined);
+  }
+
+  async getEvaluationPage(query: EvaluationPageQuery): Promise<EvaluationPage> {
+    if (query.recipientIds?.length === 0) return { items: [] };
+    const recipientIds = query.recipientIds
+      ? new Set(query.recipientIds)
+      : undefined;
+    const matching = evaluations
+      .filter((evaluation) =>
+        evaluation.topicId === query.topicId &&
+        ((!query.evaluatorEmployeeId && !query.evaluatorEmail) ||
+          evaluation.evaluatorEmployeeId?.toLowerCase() === query.evaluatorEmployeeId?.toLowerCase() ||
+          (Boolean(query.evaluatorEmail) &&
+            evaluation.evaluatorEmail.toLowerCase() === query.evaluatorEmail?.toLowerCase())) &&
+        (!query.evaluatorName || evaluation.evaluatorName === query.evaluatorName) &&
+        (!query.buCode || evaluation.buCode === query.buCode) &&
+        (!query.department || evaluation.bu === query.department) &&
+        (!query.year || evaluation.evaluationDate.startsWith(query.year)) &&
+        (!query.result || evaluation.result === query.result) &&
+        (!recipientIds || recipientIds.has(evaluation.recipientId)),
+      )
+      .sort(compareEvaluations);
+    const cursorIndex = query.cursor
+      ? matching.findIndex((evaluation) => evaluation.id === query.cursor?.id)
+      : -1;
+    const startIndex = cursorIndex >= 0
+      ? cursorIndex + 1
+      : query.cursor
+        ? matching.findIndex((evaluation) => compareEvaluationToCursor(evaluation, query.cursor!) > 0)
+        : 0;
+    const pageRows = matching.slice(Math.max(startIndex, 0), Math.max(startIndex, 0) + query.pageSize + 1);
+    const hasMore = pageRows.length > query.pageSize;
+    const items = pageRows.slice(0, query.pageSize);
+    const lastItem = items[items.length - 1];
+    return {
+      items,
+      nextCursor: hasMore && lastItem
+        ? {
+            evaluationDate: lastItem.evaluationDate,
+            createdAt: lastItem.createdAt,
+            id: lastItem.id,
+          }
+        : undefined,
+    };
+  }
+
   async getEvaluationDetails() {
     return evaluationDetails;
   }
@@ -194,4 +286,22 @@ export class InMemoryEvaluationRepository implements EvaluationRepository {
         evaluationDetails.splice(index, 1);
     }
   }
+}
+
+function compareEvaluations(
+  left: Evaluation,
+  right: Evaluation,
+) {
+  return right.evaluationDate.localeCompare(left.evaluationDate) ||
+    right.createdAt.localeCompare(left.createdAt) ||
+    right.id.localeCompare(left.id);
+}
+
+function compareEvaluationToCursor(
+  evaluation: Evaluation,
+  cursor: NonNullable<EvaluationPageQuery["cursor"]>,
+) {
+  return cursor.evaluationDate.localeCompare(evaluation.evaluationDate) ||
+    cursor.createdAt.localeCompare(evaluation.createdAt) ||
+    cursor.id.localeCompare(evaluation.id);
 }

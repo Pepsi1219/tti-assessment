@@ -97,6 +97,9 @@ export default function EvaluatorPage() {
   const assessmentRequestId = useRef(0);
   const [evaluationRound, setEvaluationRound] = useState<number | null>(null);
   const [roundPadOpen, setRoundPadOpen] = useState(false);
+  const [roundSuggestion, setRoundSuggestion] = useState<number | null>(null);
+  const [roundSuggestionOpen, setRoundSuggestionOpen] = useState(false);
+  const [roundSuggestionLoading, setRoundSuggestionLoading] = useState(false);
   const [answers, setAnswers] = useState<Record<string, QuestionAnswer>>({});
   const sectionAnchorRef = useRef<HTMLDivElement>(null);
   const [comment, setComment] = useState("");
@@ -263,6 +266,52 @@ export default function EvaluatorPage() {
   );
   const currentSection = sections[step];
   const round = evaluationRound ?? 0;
+  useEffect(() => {
+    setEvaluationRound(null);
+    setRoundSuggestion(null);
+    setRoundSuggestionOpen(false);
+    setRoundPadOpen(false);
+    if (!selectedRecipient || !selectedTopicId) return;
+
+    const controller = new AbortController();
+    const params = new URLSearchParams({ topicId: selectedTopicId });
+    if (selectedRecipient.buCode)
+      params.set("buCode", selectedRecipient.buCode);
+    params.set("bu", selectedRecipient.bu);
+
+    setRoundSuggestionLoading(true);
+    fetch(`/api/evaluations/round-suggestion?${params.toString()}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? t.unableToLoad);
+        return data as { latestRound: number | null };
+      })
+      .then(({ latestRound }) => {
+        if (controller.signal.aborted) return;
+        if (latestRound && latestRound > 0) {
+          setRoundSuggestion(latestRound);
+          setRoundSuggestionOpen(true);
+        } else {
+          setRoundPadOpen(true);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setRoundPadOpen(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setRoundSuggestionLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [
+    selectedRecipient?.bu,
+    selectedRecipient?.buCode,
+    selectedRecipientId,
+    selectedTopicId,
+    t.unableToLoad,
+  ]);
   const readyToEvaluate = Boolean(
     selectedRecipient && selectedTopic && Number.isInteger(round) && round >= 1,
   );
@@ -308,9 +357,13 @@ export default function EvaluatorPage() {
     setSelectedRecipientId("");
     setSelectedTopicId("");
     setSelectedAssessmentVersionId(null);
+    setEvaluationRound(null);
     setCategories([]);
     setQuestions([]);
     setEvaluationRound(null);
+    setRoundSuggestion(null);
+    setRoundSuggestionOpen(false);
+    setRoundSuggestionLoading(false);
     setAnswers({});
     setComment("");
     setSubmitError("");
@@ -495,7 +548,7 @@ export default function EvaluatorPage() {
                 type="button"
                 className="h-12 w-full justify-between rounded-2xl border-slate-200 bg-white px-4 text-left font-semibold shadow-none"
                 onClick={() => setRoundPadOpen(true)}
-                disabled={answeredCount > 0}
+                disabled={answeredCount > 0 || roundSuggestionLoading}
                 aria-label={t.round}
               >
                 <span
@@ -503,7 +556,7 @@ export default function EvaluatorPage() {
                     evaluationRound ? "text-slate-900" : "text-slate-400"
                   }
                 >
-                  {evaluationRound ?? t.round}
+                  {evaluationRound ?? (roundSuggestionLoading ? t.loading : t.round)}
                 </span>
                 <ChevronRight className="h-4 w-4 rotate-90 text-slate-400" />
               </Button>
@@ -516,6 +569,37 @@ export default function EvaluatorPage() {
           )}
         </div>
       </Card>
+      <Dialog
+        open={roundSuggestionOpen}
+        onClose={() => setRoundSuggestionOpen(false)}
+        title={t.latestRoundForBu}
+        className="max-w-sm"
+      >
+        <p className="mb-5 text-sm text-slate-600">
+          {t.bu}: {selectedRecipient?.buCode ?? selectedRecipient?.bu} · {t.round} {roundSuggestion}
+        </p>
+        <div className="grid gap-3">
+          <Button
+            type="button"
+            onClick={() => {
+              if (roundSuggestion) setEvaluationRound(roundSuggestion);
+              setRoundSuggestionOpen(false);
+            }}
+          >
+            {t.useLatestRound} ({roundSuggestion})
+          </Button>
+          <Button
+            type="button"
+            className="border border-slate-200 bg-white text-slate-700 shadow-none hover:bg-slate-50"
+            onClick={() => {
+              setRoundSuggestionOpen(false);
+              setRoundPadOpen(true);
+            }}
+          >
+            {t.chooseCustomRound}
+          </Button>
+        </div>
+      </Dialog>
       <Dialog
         open={roundPadOpen}
         onClose={() => setRoundPadOpen(false)}
