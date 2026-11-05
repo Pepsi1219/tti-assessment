@@ -6,7 +6,6 @@ import {
 import { getFirestoreDb } from "@/lib/firebase/admin";
 import type {
   EvaluationPage,
-  EvaluationPageCursor,
   EvaluationPageQuery,
   EvaluationRepository,
 } from "@/lib/repositories/evaluation-repository";

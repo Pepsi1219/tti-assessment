@@ -8,7 +8,6 @@ import {
 } from "@/lib/auth/authorization";
 import {
   EvaluationValidationError,
-  getEvaluationResultById,
   getEvaluationResults,
   submitEvaluation,
 } from "@/lib/services/evaluation-service";
