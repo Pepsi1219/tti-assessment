@@ -111,6 +111,30 @@ export default function EvaluatorPage() {
   const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
+    const assessmentInProgress = !latest && Boolean(
+      Object.keys(answers).length > 0 ||
+      comment.trim() ||
+      step > 0
+    );
+    window.dispatchEvent(
+      new CustomEvent("evaluator-assessment-state", {
+        detail: assessmentInProgress,
+      }),
+    );
+  }, [
+    latest,
+    answers,
+    comment,
+    step,
+  ]);
+
+  useEffect(() => () => {
+    window.dispatchEvent(
+      new CustomEvent("evaluator-assessment-state", { detail: false }),
+    );
+  }, []);
+
+  useEffect(() => {
     let isMounted = true;
     async function loadFormData() {
       try {
@@ -292,13 +316,20 @@ export default function EvaluatorPage() {
         if (controller.signal.aborted) return;
         if (latestRound && latestRound > 0) {
           setRoundSuggestion(latestRound);
+          setEvaluationRound(latestRound);
           setRoundSuggestionOpen(true);
         } else {
-          setRoundPadOpen(true);
+          setRoundSuggestion(1);
+          setEvaluationRound(1);
+          setRoundSuggestionOpen(false);
         }
       })
       .catch(() => {
-        if (!controller.signal.aborted) setRoundPadOpen(true);
+        if (!controller.signal.aborted) {
+          setRoundSuggestion(1);
+          setEvaluationRound(1);
+          setRoundSuggestionOpen(false);
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setRoundSuggestionLoading(false);
@@ -463,7 +494,6 @@ export default function EvaluatorPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs leading-5 text-slate-500">{t.evaluationCourseHelp}</p>
             </label>
             <label className="space-y-2">
               <span className="text-sm font-bold text-slate-700">
@@ -510,7 +540,7 @@ export default function EvaluatorPage() {
               <Select
                 value={selectedTopicId}
                 onValueChange={(value) => void selectTopic(value)}
-                disabled={answeredCount > 0}
+                disabled
               >
                 <SelectTrigger
                   aria-label={t.selectTopic}
@@ -546,9 +576,8 @@ export default function EvaluatorPage() {
               </span>
               <Button
                 type="button"
-                className="h-12 w-full justify-between rounded-2xl border-slate-200 bg-white px-4 text-left font-semibold shadow-none"
-                onClick={() => setRoundPadOpen(true)}
-                disabled={answeredCount > 0 || roundSuggestionLoading}
+                className="h-12 w-full cursor-not-allowed justify-between rounded-2xl border-slate-200 bg-slate-100 px-4 text-left font-semibold shadow-none opacity-70"
+                disabled
                 aria-label={t.round}
               >
                 <span
@@ -571,7 +600,10 @@ export default function EvaluatorPage() {
       </Card>
       <Dialog
         open={roundSuggestionOpen}
-        onClose={() => setRoundSuggestionOpen(false)}
+        onClose={() => {
+          if (roundSuggestion) setEvaluationRound(roundSuggestion);
+          setRoundSuggestionOpen(false);
+        }}
         title={t.latestRoundForBu}
         className="max-w-sm"
       >

@@ -109,10 +109,12 @@ export default function LoginPage() {
 
   async function handleEvaluatorSubmit(e: React.FormEvent) {
     e.preventDefault();
+    sessionStorage.setItem("evaluator-workflow-type", workflowType);
     const destination = workflowType === "exam"
       ? `/evaluator/exams?topicId=${encodeURIComponent(selectedTopicId)}`
       : `/evaluator?topicId=${encodeURIComponent(selectedTopicId)}`;
     if (session?.user?.role === "Evaluator" && selectedTopicId) {
+      sessionStorage.setItem("evaluator-workflow-type", workflowType);
       window.location.replace(destination);
       return;
     }

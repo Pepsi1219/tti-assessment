@@ -21,12 +21,27 @@ export default function EvaluatorLayout({
   const pathname = usePathname();
   const { t } = useI18n();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [workflowType, setWorkflowType] = useState<"assessment" | "exam">("assessment");
+  const [assessmentInProgress, setAssessmentInProgress] = useState(false);
 
   async function handleSignOut() {
     await signOut({ redirect: false });
     // Resolve the destination in the browser so a LAN/IP host is preserved.
     window.location.replace("/login");
   }
+
+  useEffect(() => {
+    const storedWorkflow = sessionStorage.getItem("evaluator-workflow-type");
+    setWorkflowType(storedWorkflow === "exam" ? "exam" : "assessment");
+
+    const handleAssessmentState = (event: Event) => {
+      setAssessmentInProgress((event as CustomEvent<boolean>).detail === true);
+    };
+    window.addEventListener("evaluator-assessment-state", handleAssessmentState);
+    return () => {
+      window.removeEventListener("evaluator-assessment-state", handleAssessmentState);
+    };
+  }, []);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -46,7 +61,9 @@ export default function EvaluatorLayout({
 
   const navItems = [
     { href: "/evaluator", label: t.newEvaluation, icon: ClipboardList },
-    { href: "/evaluator/exams", label: t.examMode, icon: FileCheck2 },
+    ...(workflowType === "exam"
+      ? [{ href: "/evaluator/exams", label: t.examMode, icon: FileCheck2 }]
+      : []),
     { href: "/evaluator/history", label: t.myEvaluations, icon: History },
     {
       href: "/evaluator/evaluation-summaries",
@@ -74,7 +91,12 @@ export default function EvaluatorLayout({
                 <Menu className="h-5 w-5" />
               )}
             </button>
-            <Link href="/evaluator" className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <Link
+              href={assessmentInProgress ? "#" : "/evaluator"}
+              onClick={(event) => assessmentInProgress && event.preventDefault()}
+              aria-disabled={assessmentInProgress}
+              className="flex min-w-0 items-center gap-2 sm:gap-3"
+            >
               <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-950 p-1.5 shadow-lg shadow-slate-950/20">
                 <Image
                   src={logo}
@@ -99,8 +121,10 @@ export default function EvaluatorLayout({
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${active ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-600 hover:bg-slate-100"}`}
+                  href={assessmentInProgress ? "#" : item.href}
+                  aria-disabled={assessmentInProgress}
+                  onClick={(event) => assessmentInProgress && event.preventDefault()}
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${assessmentInProgress ? "cursor-not-allowed opacity-50" : active ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-600 hover:bg-slate-100"}`}
                 >
                   <item.icon className="h-4 w-4" />
                   {item.label}
@@ -135,9 +159,16 @@ export default function EvaluatorLayout({
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold ${active ? "bg-primary text-white" : "text-slate-700 hover:bg-slate-50"}`}
+                  href={assessmentInProgress ? "#" : item.href}
+                  aria-disabled={assessmentInProgress}
+                  onClick={(event) => {
+                    if (assessmentInProgress) {
+                      event.preventDefault();
+                      return;
+                    }
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold ${assessmentInProgress ? "cursor-not-allowed opacity-50" : active ? "bg-primary text-white" : "text-slate-700 hover:bg-slate-50"}`}
                 >
                   <item.icon className="h-4 w-4" />
                   {item.label}
