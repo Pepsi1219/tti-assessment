@@ -1,8 +1,21 @@
-import type { AssessmentVersion, Category, Evaluation, EvaluationDetail, EvaluationRecipient, EvaluationTopic, ExamAttempt, Evaluator, Question, User } from "@/lib/types";
+import type { AdminPageKey, AssessmentVersion, Category, Evaluation, EvaluationDetail, EvaluationRecipient, EvaluationTopic, ExamAttempt, Evaluator, Question, User } from "@/lib/types";
 
 const now = new Date().toISOString();
 
-export const systemSettings = { evaluationOpen: true };
+export const defaultAdminPagePermissions: AdminPageKey[] = [
+  "evaluators",
+  "recipients",
+  "assessmentVersions",
+  "evaluationSummaries",
+];
+
+export const systemSettings: {
+  evaluationOpen: boolean;
+  adminPagePermissions: AdminPageKey[];
+} = {
+  evaluationOpen: true,
+  adminPagePermissions: [...defaultAdminPagePermissions],
+};
 
 export const users: User[] = [
   { id: "u-admin", employeeId: "ADMIN01", name: "Admin User", email: "admin@nanyang.com", role: "Developer", createdAt: now }

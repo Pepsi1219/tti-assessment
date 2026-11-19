@@ -222,6 +222,20 @@ export const evaluatorPayloadSchema = z.object({
   status: z.enum(["Active", "Inactive"]).optional(),
 });
 
+export const adminPagePermissionsSchema = z.object({
+  pages: z.array(z.enum([
+    "dashboard",
+    "admins",
+    "evaluators",
+    "recipients",
+    "topics",
+    "assessmentVersions",
+    "evaluations",
+    "evaluationSummaries",
+    "system",
+  ])).max(9),
+});
+
 export const adminPayloadSchema = z.object({
   id: identifier.optional(),
   employeeId: z.string().trim().min(1).max(64),

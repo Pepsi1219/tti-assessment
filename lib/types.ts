@@ -1,4 +1,14 @@
 export type AdministratorRole = "Admin" | "Developer";
+export type AdminPageKey =
+  | "dashboard"
+  | "admins"
+  | "evaluators"
+  | "recipients"
+  | "topics"
+  | "assessmentVersions"
+  | "evaluations"
+  | "evaluationSummaries"
+  | "system";
 export type Role = AdministratorRole | "Evaluator";
 export type TrainerStatus = "Active" | "Inactive";
 export type RecordStatus = "Active" | "Inactive";

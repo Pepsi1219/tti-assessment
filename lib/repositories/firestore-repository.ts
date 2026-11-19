@@ -91,6 +91,25 @@ export class FirestoreEvaluationRepository implements EvaluationRepository {
     );
   }
 
+  async getAdminPagePermissions(): Promise<import("@/lib/types").AdminPageKey[]> {
+    const document = await this.collection<{ pages?: import("@/lib/types").AdminPageKey[] }>(
+      collectionNames.systemSettings,
+    ).doc("adminPermissions").get();
+    return document.data()?.pages ?? [
+      "evaluators",
+      "recipients",
+      "assessmentVersions",
+      "evaluationSummaries",
+    ];
+  }
+
+  async setAdminPagePermissions(pages: import("@/lib/types").AdminPageKey[]): Promise<void> {
+    await this.collection(collectionNames.systemSettings).doc("adminPermissions").set(
+      { pages, updatedAt: new Date().toISOString() },
+      { merge: true },
+    );
+  }
+
   async getUsers(): Promise<User[]> {
     return this.getCachedAll<User>(
       collectionNames.users,

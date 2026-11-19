@@ -26,6 +26,7 @@ import type {
   Question,
   Evaluator,
   User,
+  AdminPageKey,
 } from "@/lib/types";
 
 export class InMemoryEvaluationRepository implements EvaluationRepository {
@@ -35,6 +36,14 @@ export class InMemoryEvaluationRepository implements EvaluationRepository {
 
   async setEvaluationOpen(isOpen: boolean) {
     systemSettings.evaluationOpen = isOpen;
+  }
+
+  async getAdminPagePermissions() {
+    return [...systemSettings.adminPagePermissions];
+  }
+
+  async setAdminPagePermissions(pages: AdminPageKey[]) {
+    systemSettings.adminPagePermissions = [...pages];
   }
 
   async getUsers() {

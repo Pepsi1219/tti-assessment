@@ -33,7 +33,7 @@ import {
 } from "@/components/admin-evaluation-actions";
 import { useI18n } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
-import type { EvaluationTopic } from "@/lib/types";
+import type { AdminPageKey, EvaluationTopic } from "@/lib/types";
 
 export default function AdminLayout({
   children,
@@ -48,12 +48,33 @@ export default function AdminLayout({
   const [dashboardSubmenuOpen, setDashboardSubmenuOpen] = useState(false);
   const [dashboardTopics, setDashboardTopics] = useState<EvaluationTopic[]>([]);
   const [activeDashboardTopicId, setActiveDashboardTopicId] = useState("");
+  const [adminPagePermissions, setAdminPagePermissions] = useState<AdminPageKey[]>([
+    "evaluators",
+    "recipients",
+    "assessmentVersions",
+    "evaluationSummaries",
+  ]);
 
   async function handleSignOut() {
     await signOut({ redirect: false });
     // Resolve the destination in the browser so a LAN/IP host is preserved.
     window.location.replace("/login");
   }
+
+  useEffect(() => {
+    if (status !== "authenticated" || !session) return;
+    const loadPermissions = () => {
+      fetch("/api/admin-permissions")
+        .then((response) => response.ok ? response.json() : null)
+        .then((body: { pages?: AdminPageKey[] } | null) => {
+          if (body?.pages) setAdminPagePermissions(body.pages);
+        })
+        .catch(() => undefined);
+    };
+    loadPermissions();
+    window.addEventListener("admin-permissions-updated", loadPermissions);
+    return () => window.removeEventListener("admin-permissions-updated", loadPermissions);
+  }, [session, status]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -66,18 +87,40 @@ export default function AdminLayout({
       router.replace("/evaluator");
       return;
     }
-    const adminOnlyPaths = [
-      "/admin/admins",
-      "/admin/topics",
-      "/admin/evaluations",
-      "/admin/system",
-    ];
+    const pagePathKeys: Record<string, AdminPageKey> = {
+      "/admin": "dashboard",
+      "/admin/admins": "admins",
+      "/admin/evaluators": "evaluators",
+      "/admin/recipients": "recipients",
+      "/admin/topics": "topics",
+      "/admin/assessment-versions": "assessmentVersions",
+      "/admin/evaluations": "evaluations",
+      "/admin/evaluation-summaries": "evaluationSummaries",
+      "/admin/system": "system",
+    };
+    const matchedPath = Object.keys(pagePathKeys)
+      .sort((left, right) => right.length - left.length)
+      .find((path) => pathname === path || pathname.startsWith(`${path}/`));
     if (
       role === "Admin" &&
-      adminOnlyPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))
-    )
-      router.replace("/admin/evaluation-summaries");
-  }, [session, status, router, pathname]);
+      matchedPath &&
+      !adminPagePermissions.includes(pagePathKeys[matchedPath])
+    ) {
+      const fallbackPaths: [AdminPageKey, string][] = [
+        ["evaluationSummaries", "/admin/evaluation-summaries"],
+        ["evaluators", "/admin/evaluators"],
+        ["recipients", "/admin/recipients"],
+        ["assessmentVersions", "/admin/assessment-versions"],
+        ["dashboard", "/admin"],
+        ["admins", "/admin/admins"],
+        ["topics", "/admin/topics"],
+        ["evaluations", "/admin/evaluations"],
+        ["system", "/admin/system"],
+      ];
+      const fallback = fallbackPaths.find(([page]) => adminPagePermissions.includes(page));
+      router.replace(fallback?.[1] ?? "/login");
+    }
+  }, [session, status, router, pathname, adminPagePermissions]);
 
   useEffect(() => {
     let active = true;
@@ -117,10 +160,21 @@ export default function AdminLayout({
       icon: Award,
     },
     { href: "/admin/system", label: t.system, icon: Settings },
-  ].filter((item) =>
-    isDeveloper ||
-    !["/admin/admins", "/admin/topics", "/admin/evaluations", "/admin/system"].includes(item.href),
-  );
+  ].filter((item) => {
+    if (isDeveloper) return true;
+    const pageKeyByHref: Record<string, AdminPageKey> = {
+      "/admin": "dashboard",
+      "/admin/admins": "admins",
+      "/admin/evaluators": "evaluators",
+      "/admin/recipients": "recipients",
+      "/admin/topics": "topics",
+      "/admin/assessment-versions": "assessmentVersions",
+      "/admin/evaluations": "evaluations",
+      "/admin/evaluation-summaries": "evaluationSummaries",
+      "/admin/system": "system",
+    };
+    return adminPagePermissions.includes(pageKeyByHref[item.href]);
+  });
 
   const isActive = (href: string) => {
     if (href === "/admin") return pathname === "/admin";
@@ -207,7 +261,10 @@ export default function AdminLayout({
                 <Menu className="h-5 w-5" />
               )}
             </button>
-            <Link href="/admin" className="flex min-w-0 items-center gap-3">
+            <Link
+              href={isDeveloper || adminPagePermissions.includes("dashboard") ? "/admin" : "/admin/evaluation-summaries"}
+              className="flex min-w-0 items-center gap-3"
+            >
               <Image
                 src={logo}
                 alt="Nanyang"

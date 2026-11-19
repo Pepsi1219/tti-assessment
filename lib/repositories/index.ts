@@ -32,7 +32,9 @@ export function getRepository(): EvaluationRepository {
     typeof globalForRepo.repo.upsertEvaluator === "function" &&
     typeof globalForRepo.repo.deleteEvaluator === "function" &&
     typeof globalForRepo.repo.updateEvaluation === "function" &&
-    typeof globalForRepo.repo.deleteEvaluation === "function";
+    typeof globalForRepo.repo.deleteEvaluation === "function" &&
+    typeof globalForRepo.repo.getAdminPagePermissions === "function" &&
+    typeof globalForRepo.repo.setAdminPagePermissions === "function";
 
   // Next.js Fast Refresh can retain an older repository instance after its
   // interface changes. Recreate it when the storage choice or contract changes.

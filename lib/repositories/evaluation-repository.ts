@@ -10,6 +10,7 @@ import type {
   Question,
   Evaluator,
   User,
+  AdminPageKey,
 } from "@/lib/types";
 
 export type EvaluationPageCursor = {
@@ -40,6 +41,8 @@ export type EvaluationPage = {
 export interface EvaluationRepository {
   isEvaluationOpen(): Promise<boolean>;
   setEvaluationOpen(isOpen: boolean): Promise<void>;
+  getAdminPagePermissions(): Promise<AdminPageKey[]>;
+  setAdminPagePermissions(pages: AdminPageKey[]): Promise<void>;
   getUsers(): Promise<User[]>;
   upsertUser(user: User): Promise<User>;
   deleteUser(id: string): Promise<void>;

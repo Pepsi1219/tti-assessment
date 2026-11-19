@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n/context";
-import type { User } from "@/lib/types";
+import type { AdminPageKey, User } from "@/lib/types";
 
 type AdminForm = {
   employeeId: string;
@@ -46,6 +46,21 @@ export default function AdminManagementPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [adminPages, setAdminPages] = useState<AdminPageKey[]>([
+    "evaluators",
+    "recipients",
+    "assessmentVersions",
+    "evaluationSummaries",
+  ]);
+  const [savingPermissions, setSavingPermissions] = useState(false);
+  const [permissionsSaved, setPermissionsSaved] = useState(false);
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [savedAdminPages, setSavedAdminPages] = useState<AdminPageKey[]>([
+    "evaluators",
+    "recipients",
+    "assessmentVersions",
+    "evaluationSummaries",
+  ]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,6 +73,18 @@ export default function AdminManagementPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    fetch("/api/admin-permissions")
+      .then((response) => response.ok ? response.json() : null)
+      .then((body: { pages?: AdminPageKey[] } | null) => {
+        if (body?.pages) {
+          setAdminPages(body.pages);
+          setSavedAdminPages(body.pages);
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -113,6 +140,46 @@ export default function AdminManagementPage() {
     }
   }
 
+  async function savePermissions() {
+    setSavingPermissions(true);
+    setPermissionsSaved(false);
+    setError("");
+    try {
+      const response = await fetch("/api/admin-permissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pages: adminPages }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        setError(body?.error ?? t.error);
+        return;
+      }
+      const body = await response.json();
+      setAdminPages(body.pages);
+      setSavedAdminPages(body.pages);
+      setPermissionsSaved(true);
+      window.dispatchEvent(new Event("admin-permissions-updated"));
+    } catch {
+      setError(t.error);
+    } finally {
+      setSavingPermissions(false);
+    }
+  }
+
+  const permissionsChanged =
+    adminPages.length !== savedAdminPages.length ||
+    adminPages.some((page) => !savedAdminPages.includes(page));
+
+  function toggleAdminPage(page: AdminPageKey) {
+    setPermissionsSaved(false);
+    setAdminPages((current) =>
+      current.includes(page)
+        ? current.filter((item) => item !== page)
+        : [...current, page],
+    );
+  }
+
   async function remove(admin: User) {
     if (!window.confirm(`${t.confirmDelete} ${admin.name}`)) return;
     setError("");
@@ -146,10 +213,21 @@ export default function AdminManagementPage() {
             {t.adminManagement}
           </h1>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          {t.addAdmin}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            className="bg-slate-100 text-slate-700 shadow-none hover:bg-slate-200"
+            onClick={() => {
+              setPermissionsSaved(false);
+              setPermissionsDialogOpen(true);
+            }}
+          >
+            Admin Permission
+          </Button>
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            {t.addAdmin}
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -157,6 +235,67 @@ export default function AdminManagementPage() {
           {error}
         </p>
       )}
+
+      <Dialog
+        open={permissionsDialogOpen}
+        onClose={() => setPermissionsDialogOpen(false)}
+        title="สิทธิ์การเข้าถึงหน้าของ role Admin"
+      >
+        <div className="space-y-5">
+          <p className="text-sm text-slate-500">
+            เลือกหน้าที่บัญชี role Admin สามารถเปิดและมองเห็นเมนูได้
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {([
+              ["dashboard", t.dashboard],
+              ["admins", t.admin],
+              ["evaluators", t.evaluator],
+              ["recipients", t.recipients],
+              ["topics", t.evaluationTopics],
+              ["assessmentVersions", t.assessmentVersions],
+              ["evaluations", t.evaluationsLog],
+              ["evaluationSummaries", t.evaluationSummaries],
+              ["system", t.system],
+            ] as [AdminPageKey, string][]).map(([page, label]) => (
+              <label
+                key={page}
+                className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold dark:border-slate-700"
+              >
+                <input
+                  type="checkbox"
+                  checked={adminPages.includes(page)}
+                  onChange={() => toggleAdminPage(page)}
+                  className="h-4 w-4 accent-primary"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            {permissionsSaved && (
+              <span
+                role="status"
+                aria-live="polite"
+                className="mr-auto text-sm font-bold text-emerald-600"
+              >
+                {t.success}
+              </span>
+            )}
+            <Button
+              className="bg-slate-200 text-slate-700 shadow-none hover:bg-slate-300"
+              onClick={() => setPermissionsDialogOpen(false)}
+            >
+              {t.cancel}
+            </Button>
+            <Button
+              onClick={savePermissions}
+              disabled={savingPermissions || !permissionsChanged}
+            >
+              {savingPermissions ? t.submitting : t.save}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
 
       <Card className="p-5">
         <div className="mb-4 flex flex-wrap gap-3">
