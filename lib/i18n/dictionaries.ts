@@ -39,6 +39,7 @@ type Dictionary = {
   department: string;
   recipientManagement: string;
   addRecipient: string;
+  duplicateEmployeeId: string;
   selectRecipient: string;
   questions: string;
   evaluationTopics: string;
@@ -326,6 +327,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     department: "แผนก",
     recipientManagement: "จัดการผู้รับการประเมิน",
     addRecipient: "เพิ่มผู้รับการประเมิน",
+    duplicateEmployeeId: "รหัสพนักงานนี้มีอยู่ในระบบแล้ว",
     selectRecipient: "เลือกผู้รับการประเมิน",
     questions: "คำถาม",
     evaluationTopics: "หลักสูตร",
@@ -613,6 +615,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     department: "Department",
     recipientManagement: "Manage Evaluation Recipients",
     addRecipient: "Add Recipient",
+    duplicateEmployeeId: "This employee ID already exists.",
     selectRecipient: "Select Recipient",
     questions: "Questions",
     evaluationTopics: "Courses",
@@ -900,6 +903,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     department: "ພະແນກ",
     recipientManagement: "ຈັດການຜູ້ຮັບການປະເມີນ",
     addRecipient: "ເພີ່ມຜູ້ຮັບການປະເມີນ",
+    duplicateEmployeeId: "ລະຫັດພະນັກງານນີ້ມີແລ້ວ",
     selectRecipient: "ເລືອກຜູ້ຮັບການປະເມີນ",
     questions: "ຄຳຖາມ",
     evaluationTopics: "ຫຼັກສູດ",
@@ -1186,6 +1190,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     department: "Phòng ban",
     recipientManagement: "Quản lý người được đánh giá",
     addRecipient: "Thêm người được đánh giá",
+    duplicateEmployeeId: "Mã nhân viên này đã tồn tại.",
     selectRecipient: "Chọn người được đánh giá",
     questions: "Câu hỏi",
     evaluationTopics: "Khóa học",

@@ -117,6 +117,7 @@ export default function RecipientManagementPage() {
   const [form, setForm] = useState<RecipientForm>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   async function load() {
     try {
@@ -235,6 +236,7 @@ export default function RecipientManagementPage() {
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
+    setSaveError("");
     setDialogOpen(true);
   }
 
@@ -247,6 +249,7 @@ export default function RecipientManagementPage() {
       buCode: recipient.buCode ?? "",
       status: recipient.status,
     });
+    setSaveError("");
     setDialogOpen(true);
   }
 
@@ -258,10 +261,18 @@ export default function RecipientManagementPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, id: editing?.id }),
       });
-      if (response.ok) {
-        setDialogOpen(false);
-        await load();
+      if (!response.ok) {
+        setSaveError(
+          response.status === 409
+            ? t.duplicateEmployeeId
+            : t.unableToSave,
+        );
+        return;
       }
+      setDialogOpen(false);
+      await load();
+    } catch {
+      setSaveError(t.unableToSave);
     } finally {
       setSaving(false);
     }
@@ -470,15 +481,21 @@ export default function RecipientManagementPage() {
         title={editing ? t.edit : t.addRecipient}
       >
         <div className="space-y-4">
+          {saveError && (
+            <p role="alert" className="text-sm font-medium text-red-600">
+              {saveError}
+            </p>
+          )}
           <label className="block space-y-1">
             <span className="text-sm font-bold text-slate-700">
               {t.employeeId}
             </span>
             <Input
               value={form.employeeId}
-              onChange={(event) =>
-                setForm({ ...form, employeeId: event.target.value })
-              }
+              onChange={(event) => {
+                setForm({ ...form, employeeId: event.target.value });
+                setSaveError("");
+              }}
             />
           </label>
           <label className="block space-y-1">
