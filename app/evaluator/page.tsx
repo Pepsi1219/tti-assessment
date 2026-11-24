@@ -53,6 +53,8 @@ import type {
 
 type Section = Category & { questions: Question[] };
 
+const SELECTED_TOPIC_STORAGE_KEY = "evaluator-selected-topic-id";
+
 function isAnswered(question: Question, answer: QuestionAnswer | undefined) {
   if (answer === undefined || answer === null) return false;
   switch (question.answerType ?? "rating") {
@@ -144,9 +146,11 @@ export default function EvaluatorPage() {
           window.location.replace("/evaluation-closed");
           return;
         }
-        const requestedTopicId = new URLSearchParams(window.location.search).get(
+        const queryTopicId = new URLSearchParams(window.location.search).get(
           "topicId",
         );
+        const requestedTopicId =
+          queryTopicId || sessionStorage.getItem(SELECTED_TOPIC_STORAGE_KEY);
         const [recipientRes, topicRes, questionRes] = await Promise.all([
           fetch("/api/recipients"),
           fetch("/api/topics"),
@@ -180,6 +184,10 @@ export default function EvaluatorPage() {
           )
         ) {
           setSelectedTopicId(requestedTopicId);
+          sessionStorage.setItem(SELECTED_TOPIC_STORAGE_KEY, requestedTopicId);
+        } else {
+          setSelectedTopicId("");
+          sessionStorage.removeItem(SELECTED_TOPIC_STORAGE_KEY);
         }
         setCategories(questionData.categories);
         setQuestions(questionData.questions);
@@ -204,6 +212,11 @@ export default function EvaluatorPage() {
   async function selectTopic(topicId: string) {
     const requestId = ++assessmentRequestId.current;
     setSelectedTopicId(topicId);
+    if (topicId) {
+      sessionStorage.setItem(SELECTED_TOPIC_STORAGE_KEY, topicId);
+    } else {
+      sessionStorage.removeItem(SELECTED_TOPIC_STORAGE_KEY);
+    }
     setSelectedAssessmentVersionId(null);
     setAnswers({});
     setComment("");
