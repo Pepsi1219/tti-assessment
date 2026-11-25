@@ -40,6 +40,7 @@ type Dictionary = {
   recipientManagement: string;
   addRecipient: string;
   duplicateEmployeeId: string;
+  recipientSaved: string;
   selectRecipient: string;
   questions: string;
   evaluationTopics: string;
@@ -156,6 +157,17 @@ type Dictionary = {
   question: string;
   weight: string;
   maxScore: string;
+  ratingRange: string;
+  ratingStart: string;
+  ratingEnd: string;
+  ratingLabelPlaceholder: string;
+  to: string;
+  likertScale: string;
+  likertSymbol: string;
+  likertStar: string;
+  likertHeart: string;
+  likertThumbsUp: string;
+  duplicateQuestion: string;
   score: string;
   poor: string;
   fair: string;
@@ -226,6 +238,10 @@ type Dictionary = {
   options: string;
   optionsHint: string;
   optionsPlaceholder: string;
+  optionPlaceholder: string;
+  addOption: string;
+  addOtherOption: string;
+  otherOptionLabel: string;
   language: string;
   lightMode: string;
   darkMode: string;
@@ -250,6 +266,7 @@ type Dictionary = {
   selectionLockedAfterScoring: string;
   selectRound: string;
   section: string;
+  sectionProgress: string;
   review: string;
   readyToSubmit: string;
   allQuestionsScored: string;
@@ -328,6 +345,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     recipientManagement: "จัดการผู้รับการประเมิน",
     addRecipient: "เพิ่มผู้รับการประเมิน",
     duplicateEmployeeId: "รหัสพนักงานนี้มีอยู่ในระบบแล้ว",
+    recipientSaved: "บันทึกข้อมูลผู้รับการประเมินเรียบร้อยแล้ว",
     selectRecipient: "เลือกผู้รับการประเมิน",
     questions: "คำถาม",
     evaluationTopics: "หลักสูตร",
@@ -516,6 +534,21 @@ export const dictionaries: Record<Locale, Dictionary> = {
     options: "ตัวเลือก",
     optionsHint: "ตัวเลือก (1 บรรทัดต่อ 1 ตัวเลือก)",
     optionsPlaceholder: "ตัวเลือก 1\nตัวเลือก 2\nตัวเลือก 3",
+    optionPlaceholder: "ตัวเลือก",
+    addOption: "เพิ่มตัวเลือก",
+    addOtherOption: "เพิ่ม ‘อื่นๆ’",
+    otherOptionLabel: "อื่นๆ",
+    ratingRange: "ช่วงคะแนน",
+    ratingStart: "คะแนนเริ่มต้น",
+    ratingEnd: "คะแนนสิ้นสุด",
+    ratingLabelPlaceholder: "ป้ายกำกับ (ตัวเลือก)",
+    to: "ถึง",
+    likertScale: "จำนวนระดับ",
+    likertSymbol: "สัญลักษณ์",
+    likertStar: "ดาว",
+    likertHeart: "หัวใจ",
+    likertThumbsUp: "ถูกใจ",
+    duplicateQuestion: "ทำสำเนาคำถาม",
     language: "ภาษา",
     lightMode: "โหมดสว่าง",
     darkMode: "โหมดมืด",
@@ -540,6 +573,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     selectionLockedAfterScoring: "ผู้รับการประเมิน หัวข้อ และรอบจะถูกล็อกหลังเริ่มให้คะแนน เลือกประเมินใหม่เพื่อเริ่มแบบฟอร์มใหม่",
     selectRound: "เลือกรอบ",
     section: "หมวด",
+    sectionProgress: "ส่วนที่",
     review: "ตรวจสอบ",
     readyToSubmit: "พร้อมส่งแบบประเมิน",
     allQuestionsScored: "ตอบคำถามครบทุกข้อแล้ว สามารถเพิ่มความคิดเห็นได้หากต้องการ",
@@ -571,7 +605,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     importDescription: "เลือกผู้รับการประเมิน หลักสูตร วันที่ และรอบ กรอกผลจาก MS Forms/Teams สำหรับผู้ประเมิน 1 คน แล้วบันทึก",
     saveToFirestore: "บันทึกลง Firestore",
     page: "หน้า",
-    securePortal: "พอร์ทัลการประเมินภายในที่ปลอดภัย",
+    securePortal: "หลักสูตรที่รองรับในระบบ",
     adminAccessDescription: "กรอกรหัสพนักงานเพื่อเข้าถึงเครื่องมือผู้ดูแลระบบ",
     or: "หรือ",
     internalUseOnly: "สำหรับใช้งานภายใน Nanyang เท่านั้น",
@@ -616,6 +650,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     recipientManagement: "Manage Evaluation Recipients",
     addRecipient: "Add Recipient",
     duplicateEmployeeId: "This employee ID already exists.",
+    recipientSaved: "Recipient saved successfully.",
     selectRecipient: "Select Recipient",
     questions: "Questions",
     evaluationTopics: "Courses",
@@ -804,6 +839,21 @@ export const dictionaries: Record<Locale, Dictionary> = {
     options: "options",
     optionsHint: "Options (1 per line)",
     optionsPlaceholder: "Option 1\nOption 2\nOption 3",
+    optionPlaceholder: "Option",
+    addOption: "Add option",
+    addOtherOption: "Add ‘Other’",
+    otherOptionLabel: "Other",
+    ratingRange: "Rating range",
+    ratingStart: "Starting score",
+    ratingEnd: "Ending score",
+    ratingLabelPlaceholder: "Label (optional)",
+    to: "to",
+    likertScale: "Scale points",
+    likertSymbol: "Symbol",
+    likertStar: "Star",
+    likertHeart: "Heart",
+    likertThumbsUp: "Thumbs up",
+    duplicateQuestion: "Duplicate question",
     language: "Language",
     lightMode: "Light mode",
     darkMode: "Dark mode",
@@ -828,6 +878,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     selectionLockedAfterScoring: "The recipient, topic, and round are locked after scoring begins. Select Evaluate next to begin a new form.",
     selectRound: "Select round",
     section: "Section",
+    sectionProgress: "Section",
     review: "Review",
     readyToSubmit: "Ready to submit",
     allQuestionsScored: "All questions have been scored. Add a comment if needed.",
@@ -859,7 +910,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     importDescription: "Select the recipient, course, date, and round. Enter MS Forms/Teams results for one evaluator, then save.",
     saveToFirestore: "Save to Firestore",
     page: "Page",
-    securePortal: "Secure internal assessment portal",
+    securePortal: "Courses supported in the system",
     adminAccessDescription: "Enter your employee ID to access administration tools.",
     or: "or",
     internalUseOnly: "Nanyang internal use only",
@@ -904,6 +955,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     recipientManagement: "ຈັດການຜູ້ຮັບການປະເມີນ",
     addRecipient: "ເພີ່ມຜູ້ຮັບການປະເມີນ",
     duplicateEmployeeId: "ລະຫັດພະນັກງານນີ້ມີແລ້ວ",
+    recipientSaved: "ບັນທຶກຜູ້ຮັບການປະເມີນສຳເລັດແລ້ວ",
     selectRecipient: "ເລືອກຜູ້ຮັບການປະເມີນ",
     questions: "ຄຳຖາມ",
     evaluationTopics: "ຫຼັກສູດ",
@@ -1091,6 +1143,21 @@ export const dictionaries: Record<Locale, Dictionary> = {
     options: "ຕົວເລືອກ",
     optionsHint: "ຕົວເລືອກ (1 ແຖວຕໍ່ 1 ຕົວເລືອກ)",
     optionsPlaceholder: "ຕົວເລືອກ 1\nຕົວເລືອກ 2\nຕົວເລືອກ 3",
+    optionPlaceholder: "ຕົວເລືອກ",
+    addOption: "ເພີ່ມຕົວເລືອກ",
+    addOtherOption: "ເພີ່ມ ‘ອື່ນໆ’",
+    otherOptionLabel: "ອື່ນໆ",
+    ratingRange: "ຊ່ວງຄະແນນ",
+    ratingStart: "ຄະແນນເລີ່ມຕົ້ນ",
+    ratingEnd: "ຄະແນນສິ້ນສຸດ",
+    ratingLabelPlaceholder: "ປ້າຍກຳກັບ (ບໍ່ບັງຄັບ)",
+    to: "ຫາ",
+    likertScale: "ຈຳນວນລະດັບ",
+    likertSymbol: "ສັນຍະລັກ",
+    likertStar: "ດາວ",
+    likertHeart: "ຫົວໃຈ",
+    likertThumbsUp: "ຖືກໃຈ",
+    duplicateQuestion: "ສຳເນົາຄຳຖາມ",
     language: "ພາສາ",
     lightMode: "ໂໝດສະຫວ່າງ",
     darkMode: "ໂໝດມືດ",
@@ -1115,6 +1182,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     selectionLockedAfterScoring: "ຜູ້ຮັບການປະເມີນ ຫົວຂໍ້ ແລະ ຮອບຈະຖືກລັອກຫຼັງຈາກເລີ່ມໃຫ້ຄະແນນ ເລືອກປະເມີນໃໝ່ເພື່ອເລີ່ມແບບຟອມໃໝ່",
     selectRound: "ເລືອກຮອບ",
     section: "ໝວດ",
+    sectionProgress: "ສ່ວນທີ່",
     review: "ກວດສອບ",
     readyToSubmit: "ພ້ອມສົ່ງການປະເມີນ",
     allQuestionsScored: "ໃຫ້ຄະແນນຄຳຖາມຄົບແລ້ວ ເພີ່ມຄຳເຫັນໄດ້ຖ້າຕ້ອງການ",
@@ -1146,7 +1214,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     importDescription: "ເລືອກຜູ້ຮັບການປະເມີນ ຫຼັກສູດ ວັນທີ ແລະ ຮອບ ໃສ່ຜົນຈາກ MS Forms/Teams ສຳລັບຜູ້ປະເມີນ 1 ຄົນ ແລ້ວບັນທຶກ",
     saveToFirestore: "ບັນທຶກໃນ Firestore",
     page: "ໜ້າ",
-    securePortal: "ພອດທັລປະເມີນພາຍໃນທີ່ປອດໄພ",
+    securePortal: "ຫຼັກສູດທີ່ສະຫນັບສະຫນູນໃນລະບົບ",
     adminAccessDescription: "ໃສ່ລະຫັດພະນັກງານເພື່ອເຂົ້າເຖິງເຄື່ອງມືຜູ້ດູແລ",
     or: "ຫຼື",
     internalUseOnly: "ສຳລັບໃຊ້ງານພາຍໃນ Nanyang ເທົ່ານັ້ນ",
@@ -1191,6 +1259,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     recipientManagement: "Quản lý người được đánh giá",
     addRecipient: "Thêm người được đánh giá",
     duplicateEmployeeId: "Mã nhân viên này đã tồn tại.",
+    recipientSaved: "Đã lưu người được đánh giá thành công.",
     selectRecipient: "Chọn người được đánh giá",
     questions: "Câu hỏi",
     evaluationTopics: "Khóa học",
@@ -1379,6 +1448,21 @@ export const dictionaries: Record<Locale, Dictionary> = {
     options: "tùy chọn",
     optionsHint: "Tùy chọn (1 dòng mỗi tùy chọn)",
     optionsPlaceholder: "Tùy chọn 1\nTùy chọn 2\nTùy chọn 3",
+    optionPlaceholder: "Tùy chọn",
+    addOption: "Thêm tùy chọn",
+    addOtherOption: "Thêm ‘Khác’",
+    otherOptionLabel: "Khác",
+    ratingRange: "Khoảng điểm",
+    ratingStart: "Điểm bắt đầu",
+    ratingEnd: "Điểm kết thúc",
+    ratingLabelPlaceholder: "Nhãn (không bắt buộc)",
+    to: "đến",
+    likertScale: "Số mức",
+    likertSymbol: "Biểu tượng",
+    likertStar: "Ngôi sao",
+    likertHeart: "Trái tim",
+    likertThumbsUp: "Thích",
+    duplicateQuestion: "Nhân bản câu hỏi",
     language: "Ngôn ngữ",
     lightMode: "Chế độ sáng",
     darkMode: "Chế độ tối",
@@ -1403,6 +1487,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     selectionLockedAfterScoring: "Người được đánh giá, chủ đề và vòng sẽ bị khóa sau khi bắt đầu chấm điểm. Chọn đánh giá mới để bắt đầu biểu mẫu mới.",
     selectRound: "Chọn vòng",
     section: "Mục",
+    sectionProgress: "Phần",
     review: "Xem lại",
     readyToSubmit: "Sẵn sàng gửi",
     allQuestionsScored: "Tất cả câu hỏi đã được chấm điểm. Thêm nhận xét nếu cần.",
@@ -1434,7 +1519,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     importDescription: "Chọn người được đánh giá, khóa học, ngày và vòng. Nhập kết quả MS Forms/Teams cho một người đánh giá rồi lưu.",
     saveToFirestore: "Lưu vào Firestore",
     page: "Trang",
-    securePortal: "Cổng đánh giá nội bộ an toàn",
+    securePortal: "Các khóa học được hỗ trợ trong hệ thống",
     adminAccessDescription: "Nhập mã nhân viên để truy cập công cụ quản trị.",
     or: "hoặc",
     internalUseOnly: "Chỉ dùng nội bộ Nanyang",

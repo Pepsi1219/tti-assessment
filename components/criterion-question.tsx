@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { Question, QuestionAnswer } from "@/lib/types";
 import { CalendarDateInput } from "@/components/ui/calendar-date-input";
+import { Heart, Star, ThumbsUp } from "lucide-react";
 
 export function CriterionQuestion({
   index,
@@ -18,6 +19,9 @@ export function CriterionQuestion({
   const answerType = question.answerType ?? "rating";
   const scaleSize = answerType === "nps" ? 10 : question.maxScore || 5;
   const scaleLabels = question.options.length ? question.options : Array.from({ length: scaleSize }, (_, index) => String(index + 1));
+  const ratingMinScore = question.minScore ?? 1;
+  const ratingMinLabel = question.minScoreLabel ?? question.options[0] ?? "";
+  const ratingMaxLabel = question.maxScoreLabel ?? question.options.at(-1) ?? "";
   const selectedChoice = Array.isArray(answer) ? answer : typeof answer === "string" ? [answer] : [];
   const likertAnswers = answer && typeof answer === "object" && !Array.isArray(answer)
     ? answer as Record<string, number>
@@ -53,8 +57,16 @@ export function CriterionQuestion({
         next[rank] = event.target.value;
         onAnswer(next.some(Boolean) ? next : undefined);
       }}><option value="">{question.questionText}</option>{question.options.filter((option) => option === rankingAnswers[rank] || !rankingAnswers.includes(option)).map((option) => <option key={option} value={option}>{option}</option>)}</select></label>)}</div>}
-      {answerType === "likert" && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[520px] border-collapse text-center text-sm"><thead><tr><th className="p-2 text-left" />{Array.from({ length: scaleSize }, (_, index) => <th key={index} className="max-w-24 p-2 font-medium text-slate-600">{scaleLabels[index] ?? index + 1}</th>)}</tr></thead><tbody>{(question.statements ?? []).map((statement, row) => <tr key={`${row}-${statement}`} className="border-t border-slate-100"><th className="p-3 text-left font-medium">{statement}</th>{Array.from({ length: scaleSize }, (_, index) => <td key={index} className="p-2"><input type="radio" name={`question-${question.id}-row-${row}`} aria-label={`${statement}: ${scaleLabels[index] ?? index + 1}`} checked={likertAnswers[String(row)] === index + 1} onChange={() => onAnswer({ ...likertAnswers, [String(row)]: index + 1 })} /></td>)}</tr>)}</tbody></table></div>}
-      {(answerType === "rating" || answerType === "nps") && <div className={cn("mt-4 gap-2", question.options.length ? "flex flex-col" : "flex flex-wrap")}>{Array.from({ length: scaleSize + (answerType === "nps" ? 1 : 0) }, (_, index) => {
+      {answerType === "likert" && <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[520px] border-collapse text-center text-sm"><thead><tr><th className="p-2 text-left" />{Array.from({ length: scaleSize }, (_, index) => <th key={index} className="max-w-24 p-2 font-medium text-slate-600"><div className="flex flex-col items-center gap-2"><span>{scaleLabels[index] ?? index + 1}</span>{question.likertIcon === "heart" ? <Heart aria-hidden="true" className="h-6 w-6 text-slate-500" /> : question.likertIcon === "thumbs-up" ? <ThumbsUp aria-hidden="true" className="h-6 w-6 text-slate-500" /> : <Star aria-hidden="true" className="h-6 w-6 text-slate-500" />}</div></th>)}</tr></thead><tbody>{(question.statements ?? []).map((statement, row) => <tr key={`${row}-${statement}`} className="border-t border-slate-100"><th className="p-3 text-left font-medium">{statement}</th>{Array.from({ length: scaleSize }, (_, index) => <td key={index} className="p-2"><input type="radio" name={`question-${question.id}-row-${row}`} aria-label={`${statement}: ${scaleLabels[index] ?? index + 1}`} checked={likertAnswers[String(row)] === index + 1} onChange={() => onAnswer({ ...likertAnswers, [String(row)]: index + 1 })} /></td>)}</tr>)}</tbody></table></div>}
+      {answerType === "rating" && question.minScore !== undefined && <div className="mt-4 space-y-2">
+        {(ratingMinLabel || ratingMaxLabel) && <div className="flex justify-between gap-4 text-xs text-slate-500"><span>{ratingMinLabel}</span><span className="text-right">{ratingMaxLabel}</span></div>}
+        <div className="flex flex-wrap gap-2">{Array.from({ length: Math.max(0, question.maxScore - ratingMinScore + 1) }, (_, index) => {
+          const value = ratingMinScore + index;
+          const selected = answer === value;
+          return <button key={value} type="button" onClick={() => onAnswer(value)} aria-pressed={selected} className={cn("flex min-h-12 min-w-12 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition", selected ? "border-primary bg-primary text-white" : "border-slate-200 bg-white hover:border-primary hover:bg-primary/5")}>{value}</button>;
+        })}</div>
+      </div>}
+      {((answerType === "rating" && question.minScore === undefined) || answerType === "nps") && <div className={cn("mt-4 gap-2", question.options.length ? "flex flex-col" : "flex flex-wrap")}>{Array.from({ length: scaleSize + (answerType === "nps" ? 1 : 0) }, (_, index) => {
         const value = answerType === "nps" ? index : index + 1;
         const selected = answer === value;
         const label = answerType === "nps" ? String(value) : scaleLabels[index] ?? String(value);

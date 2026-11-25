@@ -38,6 +38,10 @@ const assessmentQuestionPayloadSchema = z.object({
   isScored: z.boolean().optional(),
   allowMultiple: z.boolean().default(false),
   statements: z.array(z.string().trim().min(1).max(500)).max(30).default([]),
+  minScore: z.number().int().min(1).max(5).optional(),
+  minScoreLabel: z.string().trim().max(250).optional(),
+  maxScoreLabel: z.string().trim().max(250).optional(),
+  likertIcon: z.enum(["star", "heart", "thumbs-up"]).optional(),
   options: z.array(z.string().trim().min(1).max(1_000)).max(50).default([]),
   correctAnswer: z.union([
     z.string().max(1_000),
@@ -46,7 +50,10 @@ const assessmentQuestionPayloadSchema = z.object({
   weight: z.number().finite().min(0.01).max(100),
   maxScore: z.number().int().min(1).max(10),
   isActive: z.boolean(),
-});
+}).refine(
+  (question) => question.minScore === undefined || question.minScore <= question.maxScore,
+  { path: ["minScore"], message: "Starting score must not exceed ending score." },
+);
 
 export const trainerPayloadSchema = z.object({
   id: identifier.optional(),

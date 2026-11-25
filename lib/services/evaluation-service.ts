@@ -50,7 +50,7 @@ export function hasValidAnswer(question: Question, answer: unknown) {
   }
   if (answerType === "nps")
     return Number.isInteger(answer) && Number(answer) >= 0 && Number(answer) <= 10;
-  return Number.isInteger(answer) && Number(answer) >= 1 && Number(answer) <= question.maxScore;
+  return Number.isInteger(answer) && Number(answer) >= (question.minScore ?? 1) && Number(answer) <= question.maxScore;
 }
 
 export async function calculateEvaluation(input: EvaluationInput, evaluator: CurrentUser): Promise<EvaluationResult> {

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, CopyPlus, Eye, Plus, Save, Send, Trash2 } from "lucide-react";
+import { ChevronLeft, Circle, CopyPlus, Eye, Heart, Plus, Save, Send, Square, Star, ThumbsUp, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CriterionQuestion } from "@/components/criterion-question";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,7 @@ function isPreviewQuestionComplete(question: Question, answer: QuestionAnswer | 
     case "nps":
       return typeof answer === "number" && Number.isInteger(answer) && answer >= 0 && answer <= 10;
     default:
-      return typeof answer === "number" && Number.isInteger(answer) && answer >= 1;
+      return typeof answer === "number" && Number.isInteger(answer) && answer >= (question.minScore ?? 1) && answer <= question.maxScore;
   }
 }
 
@@ -97,6 +97,7 @@ export default function AssessmentVersionsPage() {
   const [success, setSuccess] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewStep, setPreviewStep] = useState(0);
+  const [categoryStep, setCategoryStep] = useState(0);
   const [previewAnswers, setPreviewAnswers] = useState<Record<string, QuestionAnswer>>({});
 
   async function load() {
@@ -116,6 +117,7 @@ export default function AssessmentVersionsPage() {
   function createNewAssessment(topicId?: string) {
     setError("");
     setSuccess("");
+    setCategoryStep(0);
     setSelectedId("");
     setSelectedTopicId(topicId ?? "");
     setNewAssessmentFlow(true);
@@ -126,6 +128,7 @@ export default function AssessmentVersionsPage() {
   function createRevision() {
     setError("");
     setSuccess("");
+    setCategoryStep(0);
     const sourceVersion = versions.find((version) => version.id === selectedId);
     if (!sourceVersion) {
       setError(t.error);
@@ -148,6 +151,7 @@ export default function AssessmentVersionsPage() {
   }
 
   function selectVersion(version: AssessmentVersion) {
+    setCategoryStep(0);
     setSelectedId(version.id);
     setAssessment({
       id: version.id,
@@ -343,6 +347,14 @@ export default function AssessmentVersionsPage() {
 
   const isPublished = versions.find((version) => version.id === selectedId)?.status === "Published";
   const selectedTopic = topics.find((topic) => topic.id === selectedTopicId);
+  const editorCategories = assessment
+    ? assessment.categories.slice().sort((a, b) => a.sortOrder - b.sortOrder)
+    : [];
+  const activeCategoryIndex = Math.min(categoryStep, Math.max(0, editorCategories.length - 1));
+  const activeEditorCategory = editorCategories[activeCategoryIndex];
+  const editorCategoryQuestions = assessment?.questions.filter(
+    (question) => question.categoryId === activeEditorCategory?.id,
+  ) ?? [];
   const previewSections = assessment
     ? assessment.categories
         .slice()
@@ -655,42 +667,52 @@ export default function AssessmentVersionsPage() {
             </label>
           </Card>
 
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-lg font-black">{t.section} · {assessment.categories.length}</h3>
-            {!isPublished && <Button className="px-3 py-1.5 text-xs" onClick={() => setAssessment({ ...assessment, categories: [...assessment.categories, { id: createClientId("cat"), categoryName: "", sortOrder: assessment.categories.length + 1 }] })}><Plus className="h-4 w-4" />{t.addCategory}</Button>}
-          </div>
-          <div className="space-y-2">
-            {assessment.categories.map((category) => (
-              <Card key={category.id} className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_100px_auto_auto] sm:items-center">
-                <Input value={category.categoryName} disabled={isPublished} aria-label={t.section} onChange={(event) => updateCategory(category.id, { categoryName: event.target.value })} />
-                <Input type="number" min="1" value={category.sortOrder} disabled={isPublished} aria-label={t.sortBy} onChange={(event) => updateCategory(category.id, { sortOrder: Number(event.target.value) })} />
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={Boolean(category.isCritical)} disabled={isPublished} onChange={(event) => updateCategory(category.id, { isCritical: event.target.checked })} />
-                  {t.critical}
-                </label>
-                {!isPublished && <button type="button" title={t.delete} aria-label={t.delete} className="grid h-9 w-9 place-items-center rounded-md text-red-600 hover:bg-red-50" onClick={() => setAssessment({ ...assessment, categories: assessment.categories.filter((item) => item.id !== category.id), questions: assessment.questions.filter((item) => item.categoryId !== category.id) })}><Trash2 className="h-4 w-4" /></button>}
-              </Card>
-            ))}
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="relative h-[116px] bg-white pt-2">
+              <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-6 rounded-r-full bg-primary" />
+              <h3 className="relative z-10 inline-flex h-[90px] items-center rounded-t-2xl bg-primary px-6 text-2xl font-black text-white">
+                {t.sectionProgress} {activeEditorCategory ? activeCategoryIndex + 1 : 0} {t.of} {editorCategories.length}
+              </h3>
+              <h3 className="absolute bottom-0 right-6 z-10 flex h-6 items-center text-xs font-bold text-white">
+                {t.questions} · {editorCategoryQuestions.length}
+              </h3>
+              {!isPublished && <Button className="absolute right-6 top-4 z-20 h-9 bg-white px-4 text-primary shadow-none hover:bg-slate-50" onClick={() => {
+                setAssessment({ ...assessment, categories: [...assessment.categories, { id: createClientId("cat"), categoryName: "", sortOrder: assessment.categories.length + 1 }] });
+                setCategoryStep(assessment.categories.length);
+              }}><Plus className="h-4 w-4" />{t.addCategory}</Button>}
+            </div>
+            {activeEditorCategory ? (
+            <div key={activeEditorCategory.id} className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+              <Input value={activeEditorCategory.categoryName} disabled={isPublished} aria-label={t.section} onChange={(event) => updateCategory(activeEditorCategory.id, { categoryName: event.target.value })} />
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={Boolean(activeEditorCategory.isCritical)} disabled={isPublished} onChange={(event) => updateCategory(activeEditorCategory.id, { isCritical: event.target.checked })} />
+                {t.critical}
+              </label>
+              {!isPublished && <button type="button" title={t.delete} aria-label={t.delete} className="grid h-9 w-9 place-items-center rounded-md text-red-600 hover:bg-red-50" onClick={() => setAssessment({ ...assessment, categories: assessment.categories.filter((item) => item.id !== activeEditorCategory.id), questions: assessment.questions.filter((item) => item.categoryId !== activeEditorCategory.id) })}><Trash2 className="h-4 w-4" /></button>}
+            </div>
+            ) : (
+              <div className="border-t border-slate-200 p-6 text-center text-sm text-slate-500">{t.noData}</div>
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-lg font-black">{t.questions} · {assessment.questions.length}</h3>
             {!isPublished && <div className="flex flex-wrap gap-2">
               {assessment.questions.some((question) => question.answerType === "choice" && !question.allowMultiple && question.options.length >= 2 && question.options.length <= 10 && !question.isScored) && <Button className="px-3 py-1.5 text-xs" onClick={() => setAssessment({ ...assessment, questions: assessment.questions.map((question) => question.answerType === "choice" && !question.allowMultiple && question.options.length >= 2 && question.options.length <= 10 ? { ...question, isScored: true, maxScore: question.options.length } : question) })}>{t.scoreAllChoiceQuestions}</Button>}
-              <Button className="px-3 py-1.5 text-xs" onClick={() => setAssessment({ ...assessment, questions: [...assessment.questions, { id: createClientId("question"), categoryId: assessment.categories[0]?.id ?? "", questionText: "", answerType: "rating", isRequired: true, isScored: true, options: [], weight: 1, maxScore: 5, isActive: true }] })}><Plus className="h-4 w-4" />{t.addQuestion}</Button>
             </div>}
           </div>
           <div className="space-y-3">
-            {assessment.questions.map((question) => (
-              <Card key={question.id} className="grid gap-3 p-4">
-                <div className="grid gap-3 md:grid-cols-[220px_220px_minmax(0,1fr)]">
-                  <StandardSelect value={question.categoryId} onValueChange={(value) => updateQuestion(question.id, { categoryId: value })} ariaLabel={t.section} options={assessment.categories.map((category) => ({ value: category.id, label: category.categoryName || category.id }))} disabled={isPublished || !assessment.categories.length} />
+            {editorCategoryQuestions.map((question) => (
+              <Card key={question.id} className="grid min-h-40 gap-3 p-4">
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+                  <textarea className="h-11 w-full resize-none rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 dark:disabled:text-slate-100" value={question.questionText} disabled={isPublished} aria-label={t.question} onChange={(event) => updateQuestion(question.id, { questionText: event.target.value })} />
                   <StandardSelect value={question.answerType ?? "rating"} onValueChange={(value) => {
                     const answerType = value as QuestionAnswerType;
                     updateQuestion(question.id, {
                       answerType,
                       options: ["choice", "ranking", "rating", "likert"].includes(answerType) ? question.options : [],
                       statements: answerType === "likert" ? question.statements ?? [] : [],
+                      likertIcon: answerType === "likert" ? question.likertIcon ?? "star" : question.likertIcon,
+                      minScore: answerType === "rating" ? question.minScore ?? 1 : question.minScore,
                       correctAnswer: undefined,
                       maxScore: answerType === "nps" ? 10 : answerType === "likert" ? Math.max(2, question.maxScore) : answerType === "choice" && question.options.length ? question.options.length : Math.min(5, question.maxScore),
                       isScored: assessment.kind === "exam" && ["text", "choice"].includes(answerType)
@@ -699,27 +721,96 @@ export default function AssessmentVersionsPage() {
                       allowMultiple: answerType === "choice" ? question.allowMultiple : false,
                     });
                   }} ariaLabel={t.questionType} options={questionTypeOptions} disabled={isPublished} />
-                  <textarea className="min-h-20 w-full rounded-md border border-slate-200 p-3 text-sm outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100" value={question.questionText} disabled={isPublished} aria-label={t.question} onChange={(event) => updateQuestion(question.id, { questionText: event.target.value })} />
                 </div>
-                <div className="flex flex-wrap items-center gap-4">
-                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={question.isRequired !== false} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { isRequired: event.target.checked })} />{t.required}</label>
-                  {(["rating", "likert", "nps"].includes(question.answerType ?? "rating") || assessment.kind === "exam" && ["text", "choice"].includes(question.answerType ?? "rating")) && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={question.isScored !== false} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { isScored: event.target.checked })} />{t.scored}</label>}
-                  {question.answerType === "choice" && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(question.allowMultiple)} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { allowMultiple: event.target.checked, correctAnswer: undefined })} />{t.allowMultiple}</label>}
-                  {question.answerType === "rating" && <label className="flex items-center gap-2 text-sm">{t.maxScore}<Input className="w-20" type="number" min="1" max="5" value={question.maxScore} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { maxScore: Number(event.target.value) })} /></label>}
-                  {question.answerType === "likert" && <label className="flex items-center gap-2 text-sm">{t.maxScore}<Input className="w-20" type="number" min="2" max="10" value={question.maxScore} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { maxScore: Number(event.target.value) })} /></label>}
+                {(assessment.kind === "exam" && question.answerType === "text" && question.isScored !== false || question.answerType === "nps") && <div className="flex flex-wrap items-center gap-4">
                   {assessment.kind === "exam" && question.answerType === "text" && question.isScored !== false && <label className="flex items-center gap-2 text-sm">{t.maxScore}<Input className="w-20" type="number" min="1" max="10" value={question.maxScore} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { maxScore: Number(event.target.value) })} /></label>}
                   {question.answerType === "nps" && <span className="text-sm text-slate-500">0-10</span>}
-                  {["rating", "likert", "nps"].includes(question.answerType ?? "rating") && question.isScored !== false && <label className="flex items-center gap-2 text-sm">{t.weight}<Input className="w-20" type="number" min="0.01" step="0.1" value={question.weight} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { weight: Number(event.target.value) })} /></label>}
-                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={question.isActive} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { isActive: event.target.checked })} />{t.active}</label>
-                  {!isPublished && <button type="button" title={t.delete} aria-label={t.delete} className="grid h-9 w-9 place-items-center rounded-md text-red-600 hover:bg-red-50" onClick={() => setAssessment({ ...assessment, questions: assessment.questions.filter((item) => item.id !== question.id) })}><Trash2 className="h-4 w-4" /></button>}
-                </div>
-                {["choice", "ranking", "rating", "likert"].includes(question.answerType ?? "rating") && <label className="space-y-1 text-sm font-bold">
-                  <span>{question.answerType === "likert" ? t.optionsHint : t.optionsHint}</span>
-                  <textarea className="min-h-20 w-full rounded-md border border-slate-200 p-3 text-sm font-normal outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100" value={question.options.join("\n")} disabled={isPublished} placeholder={t.optionsPlaceholder} onChange={(event) => updateQuestion(question.id, { options: event.target.value.split("\n").map((value) => value.trim()).filter(Boolean) })} />
+                </div>}
+                {question.answerType === "rating" && <div className="space-y-3 rounded-md border border-slate-200 p-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm font-bold">{t.ratingRange}</span>
+                    <StandardSelect value={String(question.minScore ?? 1)} onValueChange={(value) => {
+                      const minScore = Number(value);
+                      updateQuestion(question.id, { minScore, maxScore: Math.max(question.maxScore, minScore) });
+                    }} ariaLabel={t.ratingStart} options={Array.from({ length: 5 }, (_, index) => ({ value: String(index + 1), label: String(index + 1) }))} disabled={isPublished} className="h-10 w-20 bg-white px-3" />
+                    <span className="text-sm text-slate-500">{t.to}</span>
+                    <StandardSelect value={String(question.maxScore)} onValueChange={(value) => updateQuestion(question.id, { minScore: question.minScore ?? 1, maxScore: Number(value) })} ariaLabel={t.ratingEnd} options={Array.from({ length: 6 - (question.minScore ?? 1) }, (_, index) => {
+                      const value = (question.minScore ?? 1) + index;
+                      return { value: String(value), label: String(value) };
+                    })} disabled={isPublished} className="h-10 w-20 bg-white px-3" />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="grid grid-cols-[40px_minmax(0,1fr)] items-center gap-3">
+                      <span className="text-sm font-medium text-slate-600">{question.minScore ?? 1}</span>
+                      <Input value={question.minScoreLabel ?? question.options[0] ?? ""} disabled={isPublished} aria-label={`${t.ratingStart} ${t.ratingLabelPlaceholder}`} placeholder={t.ratingLabelPlaceholder} onChange={(event) => updateQuestion(question.id, { minScore: question.minScore ?? 1, minScoreLabel: event.target.value })} />
+                    </label>
+                    <label className="grid grid-cols-[40px_minmax(0,1fr)] items-center gap-3">
+                      <span className="text-sm font-medium text-slate-600">{question.maxScore}</span>
+                      <Input value={question.maxScoreLabel ?? question.options.at(-1) ?? ""} disabled={isPublished} aria-label={`${t.ratingEnd} ${t.ratingLabelPlaceholder}`} placeholder={t.ratingLabelPlaceholder} onChange={(event) => updateQuestion(question.id, { minScore: question.minScore ?? 1, maxScoreLabel: event.target.value })} />
+                    </label>
+                  </div>
+                </div>}
+                {question.answerType === "likert" && <div className="space-y-4 rounded-md border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-end gap-3">
+                    <label className="space-y-1 text-sm font-bold">
+                      <span>{t.likertScale}</span>
+                      <StandardSelect value={String(question.maxScore)} onValueChange={(value) => updateQuestion(question.id, { maxScore: Number(value) })} ariaLabel={t.likertScale} options={Array.from({ length: 9 }, (_, index) => {
+                        const value = index + 2;
+                        return { value: String(value), label: String(value) };
+                      })} disabled={isPublished} className="h-10 w-24 bg-white px-3" />
+                    </label>
+                    <label className="space-y-1 text-sm font-bold">
+                      <span>{t.likertSymbol}</span>
+                      <StandardSelect value={question.likertIcon ?? "star"} onValueChange={(value) => updateQuestion(question.id, { likertIcon: value as "star" | "heart" | "thumbs-up" })} ariaLabel={t.likertSymbol} options={[
+                        { value: "star", label: `★ ${t.likertStar}` },
+                        { value: "heart", label: `♥ ${t.likertHeart}` },
+                        { value: "thumbs-up", label: `👍 ${t.likertThumbsUp}` },
+                      ]} disabled={isPublished} className="h-10 min-w-36 bg-white px-3" />
+                    </label>
+                  </div>
+                  <div className="grid min-w-[320px] grid-flow-col auto-cols-fr gap-2 overflow-x-auto text-center">
+                    {Array.from({ length: question.maxScore }, (_, index) => <div key={index} className="flex flex-col items-center gap-2 py-2">
+                      <span className="text-base font-medium">{index + 1}</span>
+                      {question.likertIcon === "heart" ? <Heart aria-hidden="true" className="h-7 w-7 text-slate-500" /> : question.likertIcon === "thumbs-up" ? <ThumbsUp aria-hidden="true" className="h-7 w-7 text-slate-500" /> : <Star aria-hidden="true" className="h-7 w-7 text-slate-500" />}
+                    </div>)}
+                  </div>
+                </div>}
+                {question.answerType === "choice" && <div className="space-y-2">
+                  {question.options.map((option, optionIndex) => (
+                    <div key={`${question.id}-option-${optionIndex}`} className="flex items-center gap-3">
+                      {question.allowMultiple ? <Square aria-hidden="true" className="h-5 w-5 shrink-0 text-slate-400" /> : <Circle aria-hidden="true" className="h-5 w-5 shrink-0 text-slate-400" />}
+                      <Input value={option} disabled={isPublished} aria-label={`${t.options} ${optionIndex + 1}`} placeholder={`${t.optionPlaceholder} ${optionIndex + 1}`} onChange={(event) => {
+                        const options = [...question.options];
+                        const oldOption = options[optionIndex];
+                        options[optionIndex] = event.target.value;
+                        const correctAnswer = Array.isArray(question.correctAnswer)
+                          ? question.correctAnswer.map((answer) => answer === oldOption ? event.target.value : answer)
+                          : question.correctAnswer === oldOption ? event.target.value : question.correctAnswer;
+                        updateQuestion(question.id, { options, correctAnswer });
+                      }} />
+                      {!isPublished && <button type="button" title={t.delete} aria-label={`${t.delete} ${t.options} ${optionIndex + 1}`} className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-slate-500 hover:bg-slate-100" onClick={() => {
+                        const removedOption = question.options[optionIndex];
+                        const options = question.options.filter((_, index) => index !== optionIndex);
+                        const correctAnswer = Array.isArray(question.correctAnswer)
+                          ? question.correctAnswer.filter((answer) => answer !== removedOption)
+                          : question.correctAnswer === removedOption ? undefined : question.correctAnswer;
+                        updateQuestion(question.id, { options, correctAnswer });
+                      }}><Trash2 className="h-4 w-4" /></button>}
+                    </div>
+                  ))}
+                  {!isPublished && <div className="ml-8 flex flex-wrap items-center gap-2 text-sm">
+                    <button type="button" className="font-medium text-primary hover:underline" onClick={() => updateQuestion(question.id, { options: [...question.options, ""] })}>{t.addOption}</button>
+                    <span className="text-slate-500">{t.or}</span>
+                    <button type="button" disabled={question.options.includes(t.otherOptionLabel)} className="font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline" onClick={() => updateQuestion(question.id, { options: [...question.options, t.otherOptionLabel] })}>{t.addOtherOption}</button>
+                  </div>}
+                </div>}
+                {question.answerType === "ranking" && <label className="space-y-1 text-sm font-bold">
+                  <span>{t.optionsHint}</span>
+                  <textarea className="min-h-40 w-full rounded-md border border-slate-200 p-3 text-sm font-normal outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 dark:disabled:text-slate-100" value={question.options.join("\n")} disabled={isPublished} placeholder={t.optionsPlaceholder} onChange={(event) => updateQuestion(question.id, { options: event.target.value.split("\n").map((value) => value.trim()).filter(Boolean) })} />
                 </label>}
                 {question.answerType === "likert" && <label className="space-y-1 text-sm font-bold">
                   <span>{t.statements}</span>
-                  <textarea className="min-h-24 w-full rounded-md border border-slate-200 p-3 text-sm font-normal outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100" value={(question.statements ?? []).join("\n")} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { statements: event.target.value.split("\n").map((value) => value.trim()).filter(Boolean) })} />
+                  <textarea className="min-h-24 w-full rounded-md border border-slate-200 p-3 text-sm font-normal outline-none focus:ring-2 focus:ring-primary disabled:bg-slate-100 dark:disabled:border-slate-700 dark:disabled:bg-slate-800 dark:disabled:text-slate-100" value={(question.statements ?? []).join("\n")} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { statements: event.target.value.split("\n").map((value) => value.trim()).filter(Boolean) })} />
                 </label>}
                 {assessment.kind === "exam" && question.answerType === "choice" && question.isScored !== false && (
                   <div className="space-y-2 text-sm font-bold">
@@ -761,8 +852,61 @@ export default function AssessmentVersionsPage() {
                     )}
                   </div>
                 )}
+                <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-3 border-t border-slate-100 pt-3">
+                  {!isPublished && <div className="flex items-center gap-1">
+                    <button type="button" title={t.duplicateQuestion} aria-label={t.duplicateQuestion} className="grid h-10 w-10 place-items-center rounded-md text-slate-600 hover:bg-slate-100" onClick={() => setAssessment({ ...assessment, questions: assessment.questions.flatMap((item) => item.id === question.id ? [item, { ...item, id: createClientId("question") }] : [item]) })}><CopyPlus className="h-5 w-5" /></button>
+                    <button type="button" title={t.delete} aria-label={`${t.delete} ${t.question}`} className="grid h-10 w-10 place-items-center rounded-md text-slate-600 hover:bg-red-50 hover:text-red-600" onClick={() => setAssessment({ ...assessment, questions: assessment.questions.filter((item) => item.id !== question.id) })}><Trash2 className="h-5 w-5" /></button>
+                  </div>}
+                  <span aria-hidden="true" className="hidden h-8 border-l border-slate-200 sm:block" />
+                  <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-3">
+                    <label className="flex cursor-pointer items-center gap-2 text-sm">
+                      <input type="checkbox" className="peer sr-only" checked={question.isRequired !== false} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { isRequired: event.target.checked })} />
+                      <span>{t.required}</span>
+                      <span aria-hidden="true" className="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition-colors after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-disabled:opacity-50" />
+                    </label>
+                    {(["rating", "likert", "nps"].includes(question.answerType ?? "rating") || assessment.kind === "exam" && ["text", "choice"].includes(question.answerType ?? "rating")) && <label className="flex cursor-pointer items-center gap-2 text-sm">
+                      <input type="checkbox" className="peer sr-only" checked={question.isScored !== false} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { isScored: event.target.checked })} />
+                      <span>{t.scored}</span>
+                      <span aria-hidden="true" className="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition-colors after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-disabled:opacity-50" />
+                    </label>}
+                    {["rating", "likert", "nps"].includes(question.answerType ?? "rating") && question.isScored !== false && <label className="flex items-center gap-2 text-sm">{t.weight}<Input className="w-20" type="number" min="0.01" step="0.1" value={question.weight} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { weight: Number(event.target.value) })} /></label>}
+                    {question.answerType === "choice" && <label className="flex cursor-pointer items-center gap-2 text-sm">
+                      <input type="checkbox" className="peer sr-only" checked={Boolean(question.allowMultiple)} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { allowMultiple: event.target.checked, correctAnswer: undefined })} />
+                      <span>{t.allowMultiple}</span>
+                      <span aria-hidden="true" className="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition-colors after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-disabled:opacity-50" />
+                    </label>}
+                    <label className="flex cursor-pointer items-center gap-2 text-sm">
+                      <input type="checkbox" className="peer sr-only" checked={question.isActive} disabled={isPublished} onChange={(event) => updateQuestion(question.id, { isActive: event.target.checked })} />
+                      <span>{t.active}</span>
+                      <span aria-hidden="true" className="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition-colors after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:bg-primary peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 peer-disabled:opacity-50" />
+                    </label>
+                  </div>
+                </div>
               </Card>
             ))}
+          </div>
+          {!isPublished && <div className="flex justify-center pt-2">
+            <Button className="px-3 py-1.5 text-xs" disabled={!activeEditorCategory} onClick={() => setAssessment({ ...assessment, questions: [...assessment.questions, { id: createClientId("question"), categoryId: activeEditorCategory?.id ?? "", questionText: "", answerType: "rating", isRequired: true, isScored: true, options: [], weight: 1, minScore: 1, maxScore: 5, isActive: true }] })}><Plus className="h-4 w-4" />{t.addQuestion}</Button>
+          </div>}
+          <div className="flex justify-between gap-3 border-t border-slate-100 pt-5">
+            <Button
+              type="button"
+              className="bg-slate-100 text-slate-700 shadow-none hover:bg-slate-200"
+              disabled={!activeEditorCategory || activeCategoryIndex === 0}
+              onClick={() => setCategoryStep((current) => Math.max(0, current - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />{t.back}
+            </Button>
+            <div className="self-center text-sm font-bold text-slate-500">
+              {activeEditorCategory ? `${t.section} ${activeCategoryIndex + 1} ${t.of} ${editorCategories.length}` : `${t.section} 0 ${t.of} 0`}
+            </div>
+            <Button
+              type="button"
+              disabled={!activeEditorCategory || activeCategoryIndex >= editorCategories.length - 1}
+              onClick={() => setCategoryStep((current) => Math.min(editorCategories.length - 1, current + 1))}
+            >
+              {t.next}<ChevronLeft className="h-4 w-4 rotate-180" />
+            </Button>
           </div>
           <Dialog
             open={previewOpen}

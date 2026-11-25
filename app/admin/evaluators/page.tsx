@@ -304,7 +304,7 @@ export default function EvaluatorManagementPage() {
               </TableHead>
               <TableHead className="min-w-56 text-left">{t.evaluator}</TableHead>
               <TableHead className="min-w-64 text-left">{t.email}</TableHead>
-              <TableHead className="w-px whitespace-nowrap">
+              <TableHead className="w-[140px] min-w-[140px] whitespace-nowrap">
                 {t.status}
               </TableHead>
               <TableHead className="w-[120px] min-w-[120px] whitespace-nowrap text-center">
@@ -322,7 +322,7 @@ export default function EvaluatorManagementPage() {
                   </TableCell>
                   <TableCell className="text-left">{evaluator.name}</TableCell>
                   <TableCell className="text-left">{evaluator.email}</TableCell>
-                  <TableCell>
+                  <TableCell className="w-[140px] min-w-[140px] whitespace-nowrap">
                     <Badge tone={active ? "success" : "danger"}>
                       {active ? t.active : t.inactive}
                     </Badge>

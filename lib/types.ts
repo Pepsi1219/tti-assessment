@@ -78,6 +78,8 @@ export type QuestionAnswerType =
   | "likert"
   | "nps";
 
+export type QuestionScaleIcon = "star" | "heart" | "thumbs-up";
+
 export type QuestionAnswer =
   | string
   | string[]
@@ -93,6 +95,10 @@ export type Question = {
   isScored?: boolean;
   allowMultiple?: boolean;
   statements?: string[];
+  minScore?: number;
+  minScoreLabel?: string;
+  maxScoreLabel?: string;
+  likertIcon?: QuestionScaleIcon;
   options: string[];
   correctAnswer?: QuestionAnswer;
   weight: number;

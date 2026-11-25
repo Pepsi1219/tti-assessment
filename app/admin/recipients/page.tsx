@@ -118,6 +118,7 @@ export default function RecipientManagementPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState("");
 
   async function load() {
     try {
@@ -176,7 +177,9 @@ export default function RecipientManagementPage() {
     const hasEvaluationFilters =
       filterCourse !== "all" || filterYear !== "all" || filterResult !== "all";
 
-    return recipients.filter((recipient) => {
+    return [...recipients]
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .filter((recipient) => {
       if (filterBuCode !== "all" && recipient.buCode !== filterBuCode)
         return false;
       if (filterDepartment !== "all" && recipient.bu !== filterDepartment)
@@ -193,7 +196,7 @@ export default function RecipientManagementPage() {
       if (hasEvaluationFilters && !matchingRecipientIds.has(recipient.id))
         return false;
       return true;
-    });
+      });
   }, [
     evaluations,
     filterBuCode,
@@ -237,6 +240,7 @@ export default function RecipientManagementPage() {
     setEditing(null);
     setForm(emptyForm);
     setSaveError("");
+    setSaveSuccess("");
     setDialogOpen(true);
   }
 
@@ -250,6 +254,7 @@ export default function RecipientManagementPage() {
       status: recipient.status,
     });
     setSaveError("");
+    setSaveSuccess("");
     setDialogOpen(true);
   }
 
@@ -269,8 +274,14 @@ export default function RecipientManagementPage() {
         );
         return;
       }
+      const savedRecipient: EvaluationRecipient = await response.json();
+      setRecipients((current) =>
+        [...current.filter((recipient) => recipient.id !== savedRecipient.id), savedRecipient]
+          .sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+      );
+      setPage(1);
       setDialogOpen(false);
-      await load();
+      setSaveSuccess(t.recipientSaved);
     } catch {
       setSaveError(t.unableToSave);
     } finally {
@@ -291,6 +302,12 @@ export default function RecipientManagementPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">
+
+      {saveSuccess && (
+        <p role="status" className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+          {saveSuccess}
+        </p>
+      )}
             {t.admin}
           </p>
           <h1 className="mt-1 text-2xl font-black tracking-tight">
